@@ -1,9 +1,12 @@
 import json
 from datetime import timedelta
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
 from django.utils import timezone
 
 
@@ -41,8 +44,16 @@ def login_view(request):
             elif User.objects.filter(email=email).exists():
                 ctx['reg_error'] = 'Email já registado.'
             else:
-                User.objects.create_user(username=username, email=email, password=pw)
-                ctx['reg_ok'] = f'Conta criada! Faça login com "{username}".'
+                User.objects.create_user(username=username, email=email, password=pw, is_active=False)
+                ctx['reg_ok'] = 'Registo submetido! Aguarde aprovação do administrador.'
+                if settings.ADMIN_EMAIL:
+                    send_mail(
+                        subject='[Fogo Bom] Novo utilizador aguarda aprovação',
+                        message=f'O utilizador "{username}" ({email}) registou-se e aguarda aprovação.\n\nAprove ou recuse em: {request.build_absolute_uri("/utilizadores/pendentes/")}',
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[settings.ADMIN_EMAIL],
+                        fail_silently=True,
+                    )
 
     return render(request, 'core/login.html', ctx)
 
@@ -90,6 +101,52 @@ def calendario(request):
             'url':   f'/preplan/{a.pk}/',
         })
     return render(request, 'core/calendario.html', {'events_json': json.dumps(events)})
+
+
+@login_required
+def pending_users(request):
+    if not request.user.is_staff:
+        return redirect('core:dashboard')
+    pending = User.objects.filter(is_active=False).order_by('date_joined')
+    return render(request, 'core/pending_users.html', {'pending': pending})
+
+
+@login_required
+def approve_user(request, user_id):
+    if not request.user.is_staff:
+        return redirect('core:dashboard')
+    user = get_object_or_404(User, pk=user_id, is_active=False)
+    user.is_active = True
+    user.save()
+    if user.email:
+        send_mail(
+            subject='[Fogo Bom] Acesso aprovado',
+            message=f'Olá {user.username},\n\nO seu acesso à plataforma Fogo Bom Algarve foi aprovado. Já pode iniciar sessão.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    messages.success(request, f'Utilizador "{user.username}" aprovado.')
+    return redirect('core:pending_users')
+
+
+@login_required
+def decline_user(request, user_id):
+    if not request.user.is_staff:
+        return redirect('core:dashboard')
+    user = get_object_or_404(User, pk=user_id, is_active=False)
+    email, username = user.email, user.username
+    user.delete()
+    if email:
+        send_mail(
+            subject='[Fogo Bom] Pedido de acesso recusado',
+            message=f'Olá {username},\n\nO seu pedido de acesso à plataforma Fogo Bom Algarve foi recusado.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=True,
+        )
+    messages.success(request, f'Utilizador "{username}" recusado e removido.')
+    return redirect('core:pending_users')
 
 
 @login_required

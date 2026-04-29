@@ -8,3 +8,4 @@ shapely
 Pillow
 python-docx
 GDAL==3.6.4
+resend

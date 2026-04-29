@@ -1,0 +1,44 @@
+{% extends 'core/base.html' %}
+{% block title %}Utilizadores Pendentes{% endblock %}
+{% block page_title %}Utilizadores Pendentes{% endblock %}
+
+{% block content %}
+{% if pending %}
+<div class="card">
+  <div class="card-title">Aguardam Aprovação ({{ pending|length }})</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Utilizador</th>
+        <th>Email</th>
+        <th>Data de Registo</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in pending %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.date_joined|date:"d/m/Y H:i" }}</td>
+        <td>
+          <div style="display:flex;gap:8px;">
+            <form method="post" action="{% url 'core:approve_user' u.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-primary">Aprovar</button>
+            </form>
+            <form method="post" action="{% url 'core:decline_user' u.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger">Recusar</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="msg msg-ok">Sem utilizadores pendentes.</div>
+{% endif %}
+{% endblock %}

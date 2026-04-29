@@ -102,6 +102,15 @@ if _S3_BUCKET:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+EMAIL_BACKEND      = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST         = 'smtp.resend.com'
+EMAIL_PORT         = 587
+EMAIL_USE_TLS      = True
+EMAIL_HOST_USER    = 'resend'
+EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@fogobom.com')
+ADMIN_EMAIL        = os.environ.get('ADMIN_EMAIL', '')
+
 # GDAL/GEOS — set via ENV in Dockerfile
 # GDAL_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu/libgdal.so'
 # GEOS_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu/libgeos_c.so'
