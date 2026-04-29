@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Fogo Bom Algarve{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    :root{--bg:#0f1410;--bg2:#161c18;--bg3:#1d2620;--border:#2a3830;--text:#c8d8cc;--dim:#5a7060;--accent:#e8541a;--accent2:#f5a623;--green:#3a8c50;--green-dim:#1e4a2a;--danger:#c0392b;--fh:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif;--r:4px;--sw:220px}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:14px;line-height:1.5}
+    a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent2)}
+    .shell{display:flex;height:100vh;overflow:hidden}
+    .sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+    .sb-brand{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+    .sb-brand .fi{font-size:28px;line-height:1}
+    .sb-brand h1{font-family:var(--fh);font-size:20px;font-weight:700;color:#fff;line-height:1.1;margin-top:6px}
+    .sb-brand span{font-size:11px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
+    .sb-nav{flex:1;padding:12px 0}
+    .nav-sec{padding:8px 16px 4px;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--dim);font-size:13.5px;font-weight:500;transition:all .15s;border-left:3px solid transparent}
+    .nav-item:hover{background:var(--bg3);color:var(--text);border-left-color:var(--border)}
+    .nav-item.active{background:var(--green-dim);color:#fff;border-left-color:var(--accent)}
+    .nav-item .ni{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+    .sb-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--dim)}
+    .sb-foot .un{color:var(--text);font-weight:500;margin-bottom:6px}
+    .btn-lo{font-size:12px;color:var(--dim);padding:4px 0;display:inline-block}.btn-lo:hover{color:var(--danger)}
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .topbar{height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+    .topbar-title{font-family:var(--fh);font-size:18px;font-weight:600;color:#fff}
+    .topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .content{flex:1;overflow-y:auto;padding:24px}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
+    .card-title{font-family:var(--fh);font-size:15px;font-weight:600;color:#fff;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+    .form-row{display:grid;gap:14px;margin-bottom:14px}
+    .cols-2{grid-template-columns:1fr 1fr}.cols-3{grid-template-columns:1fr 1fr 1fr}
+    .field label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+    .field input,.field select,.field textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--fb);font-size:13.5px;padding:8px 10px;outline:none;transition:border-color .15s}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--green)}
+    .field select option{background:var(--bg3)}.field textarea{resize:vertical;min-height:80px}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:var(--r);font-family:var(--fh);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none}
+    .btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:#d04010;color:#fff}
+    .btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--green);color:#fff}
+    .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}.btn-danger:hover{background:var(--danger);color:#fff}
+    .btn-sm{padding:5px 10px;font-size:12px}
+    .btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    thead th{background:var(--bg3);padding:9px 12px;text-align:left;font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border)}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+    tbody tr:hover{background:var(--bg3)}
+    tbody td{padding:9px 12px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+    .badge-green{background:var(--green-dim);color:#6fcf97}.badge-orange{background:#3a2010;color:var(--accent2)}.badge-red{background:#3a1010;color:#e57373}.badge-gray{background:var(--bg3);color:var(--dim)}
+    .msg{padding:10px 14px;border-radius:var(--r);font-size:13px;margin-bottom:12px}
+    .msg-ok{background:var(--green-dim);border-left:3px solid var(--green);color:#6fcf97}
+    .msg-error{background:#3a1010;border-left:3px solid var(--danger);color:#e57373}
+    .msg-info{background:#1a2a3a;border-left:3px solid #4a90e2;color:#90caf9}
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+    .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+    .stat-val{font-family:var(--fh);font-size:36px;font-weight:700;color:#fff;line-height:1}
+    .stat-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-top:4px}
+    .c-accent{color:var(--accent)}.c-green{color:var(--green)}.c-orange{color:var(--accent2)}
+    .map-container{width:100%;height:500px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+    ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    @media(max-width:768px){.sidebar{display:none}.cols-2,.cols-3{grid-template-columns:1fr}}
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="fi">🔥</div>
+      <h1>Fogo Bom<br>Algarve</h1>
+      <span>Gestão de Fogo Controlado</span>
+    </div>
+    <nav class="sb-nav">
+      <div class="nav-sec">Principal</div>
+      <a href="{% url 'core:dashboard' %}" class="nav-item {% block nav_dash %}{% endblock %}"><span class="ni">📊</span>Dashboard</a>
+      <div class="nav-sec">Território</div>
+      <a href="{% url 'parcelas:list' %}" class="nav-item {% block nav_parc %}{% endblock %}"><span class="ni">🗺️</span>Parcelas</a>
+      <div class="nav-sec">Operações</div>
+      <a href="{% url 'fire_actions:list' %}" class="nav-item {% block nav_pp %}{% endblock %}"><span class="ni">📋</span>Pré-Planos</a>
+      <a href="{% url 'fire_actions:burning_plan_list' %}" class="nav-item {% block nav_bp %}{% endblock %}"><span class="ni">📄</span>Planos de Queima</a>
+      <a href="{% url 'core:calendario' %}" class="nav-item {% block nav_cal %}{% endblock %}"><span class="ni">📅</span>Calendário</a>
+      <div class="nav-sec">Recursos</div>
+      <a href="{% url 'operatives:list' %}" class="nav-item {% block nav_op %}{% endblock %}"><span class="ni">👷</span>Operacionais</a>
+      <div class="nav-sec">Ferramentas</div>
+      <a href="{% url 'core:meteorologia' %}" class="nav-item {% block nav_met %}{% endblock %}"><span class="ni">🌤️</span>Meteorologia</a>
+    </nav>
+    <div class="sb-foot">
+      {% if request.user.is_authenticated %}
+      <div class="un">{{ request.user.username }}</div>
+      <a href="{% url 'core:logout' %}" class="btn-lo">↩ Terminar sessão</a>
+      {% endif %}
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+      <div class="topbar-right">{% block topbar_actions %}{% endblock %}</div>
+    </div>
+    <div class="content">
+      {% if messages %}{% for m in messages %}
+        <div class="msg {% if m.tags == 'error' %}msg-error{% elif m.tags == 'success' %}msg-ok{% else %}msg-info{% endif %}">{{ m }}</div>
+      {% endfor %}{% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+</div>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

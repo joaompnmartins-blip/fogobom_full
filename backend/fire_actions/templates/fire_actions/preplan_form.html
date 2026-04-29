@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+{% block title %}{% if action_obj %}Editar{% else %}Novo{% endif %} Pré-Plano{% endblock %}
+{% block page_title %}{% if action_obj %}Editar Pré-Plano{% else %}Novo Pré-Plano{% endif %}{% endblock %}
+{% block nav_pp %}active{% endblock %}
+{% block content %}
+<div class="card" style="max-width:760px">
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <div class="form-row">
+      <div class="field"><label>Nome da Ação *</label><input type="text" name="name" value="{{ action_obj.name|default:'' }}" required></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="field"><label>Responsável</label><input type="text" name="responsible" value="{{ action_obj.responsible|default:'' }}"></div>
+      <div class="field"><label>Data Prevista *</label><input type="date" name="scheduled_date" value="{{ action_obj.scheduled_date|default:'' }}" required></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Parcelas</label>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;max-height:180px;overflow-y:auto">
+          {% for p in parcelas %}
+          <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;text-transform:none;font-size:13px;letter-spacing:0;color:var(--text)">
+            <input type="checkbox" name="parcels" value="{{ p.pk }}"
+              {% if p.pk in selected_parcels %}checked{% endif %}
+              style="width:auto;background:none;border:none;padding:0">
+            {{ p.name }} {% if p.concelho %}({{ p.concelho }}){% endif %}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Notas</label><textarea name="notes">{{ action_obj.notes|default:'' }}</textarea></div>
+    </div>
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">💾 Guardar Pré-Plano</button>
+      <a href="{% url 'fire_actions:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

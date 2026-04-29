@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% block title %}Planos de Queima{% endblock %}
+{% block page_title %}Planos de Queima{% endblock %}
+{% block nav_bp %}active{% endblock %}
+{% block topbar_actions %}<a href="{% url 'fire_actions:burning_plan_create' %}" class="btn btn-primary btn-sm">+ Novo Plano</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-title">{{ plans.count }} Plano{{ plans.count|pluralize:"s" }} de Queima</div>
+  {% if plans %}
+  <table>
+    <thead><tr><th>Pré-Plano</th><th>Data Execução</th><th>Operacionais</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for bp in plans %}
+    <tr>
+      <td><a href="{% url 'fire_actions:burning_plan_detail' bp.pk %}">{{ bp.pre_plan.name }}</a></td>
+      <td>{{ bp.execution_date|date:"d/m/Y" }}</td>
+      <td>{{ bp.operatives.count }}</td>
+      <td style="white-space:nowrap">
+        <a href="{% url 'fire_actions:burning_plan_detail' bp.pk %}" class="btn btn-secondary btn-sm">👁️</a>
+        <a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️</a>
+        <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 Relatório</a>
+        <a href="{% url 'fire_actions:burning_plan_delete' bp.pk %}" class="btn btn-danger btn-sm">🗑️</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--dim)">Nenhum plano de queima. Crie primeiro um <a href="{% url 'fire_actions:list' %}">Pré-Plano →</a></p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "core/base.html" %}
+{% block title %}Operacionais{% endblock %}
+{% block page_title %}Operacionais{% endblock %}
+{% block nav_op %}active{% endblock %}
+{% block topbar_actions %}<a href="{% url 'operatives:create' %}" class="btn btn-primary btn-sm">+ Novo Operacional</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-title">{{ operatives.count }} Operacional{{ operatives.count|pluralize:"is" }}</div>
+  {% if operatives %}
+  <table><thead><tr><th>Nome</th><th>NIF</th><th>Email</th><th>Telefone</th><th>Certificação</th><th>Ações</th></tr></thead>
+  <tbody>{% for op in operatives %}
+  <tr>
+    <td>{{ op.name }}</td><td>{{ op.nif|default:"—" }}</td><td>{{ op.email }}</td>
+    <td>{{ op.phone }}</td><td>{{ op.certification_level }}</td>
+    <td>
+      <a href="{% url 'operatives:edit' op.pk %}" class="btn btn-secondary btn-sm">✏️</a>
+      <a href="{% url 'operatives:delete' op.pk %}" class="btn btn-danger btn-sm">🗑️</a>
+    </td>
+  </tr>
+  {% endfor %}</tbody></table>
+  {% else %}<p style="color:var(--dim)">Nenhum operacional. <a href="{% url 'operatives:create' %}">Criar →</a></p>{% endif %}
+</div>
+{% endblock %}

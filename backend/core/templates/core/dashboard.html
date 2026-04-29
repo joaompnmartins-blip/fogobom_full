@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+{% block title %}Dashboard — Fogo Bom Algarve{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block nav_dash %}active{% endblock %}
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-val c-green">{{ total_parcelas }}</div><div class="stat-label">Parcelas</div></div>
+  <div class="stat-card"><div class="stat-val c-orange">{{ total_preplans }}</div><div class="stat-label">Pré-Planos Ativos</div></div>
+  <div class="stat-card"><div class="stat-val c-accent">{{ total_burning_plans }}</div><div class="stat-label">Planos de Queima</div></div>
+  <div class="stat-card"><div class="stat-val">{{ total_operatives }}</div><div class="stat-label">Operacionais</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="card">
+    <div class="card-title">📅 Próximas Queimas (30 dias)</div>
+    {% if upcoming %}<table><thead><tr><th>Nome</th><th>Data</th><th>Estado</th></tr></thead><tbody>
+    {% for a in upcoming %}<tr><td><a href="{% url 'fire_actions:detail' a.pk %}">{{ a.name }}</a></td><td>{{ a.scheduled_date|date:"d/m/Y" }}</td><td><span class="badge badge-orange">Pré-Plano</span></td></tr>{% endfor %}
+    </tbody></table>{% else %}<p style="color:var(--dim);font-size:13px">Sem queimas agendadas.</p>{% endif %}
+  </div>
+  <div class="card">
+    <div class="card-title">🕒 Planos Recentes</div>
+    {% if recent_plans %}<table><thead><tr><th>Plano</th><th>Execução</th></tr></thead><tbody>
+    {% for bp in recent_plans %}<tr><td><a href="{% url 'fire_actions:burning_plan_detail' bp.pk %}">{{ bp.pre_plan.name }}</a></td><td>{{ bp.execution_date|date:"d/m/Y" }}</td></tr>{% endfor %}
+    </tbody></table>{% else %}<p style="color:var(--dim);font-size:13px">Sem planos recentes.</p>{% endif %}
+  </div>
+</div>
+<div class="card" style="margin-top:16px">
+  <div class="card-title">⚡ Ações Rápidas</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="{% url 'parcelas:create' %}" class="btn btn-secondary">🗺️ Nova Parcela</a>
+    <a href="{% url 'fire_actions:create' %}" class="btn btn-secondary">📋 Novo Pré-Plano</a>
+    <a href="{% url 'operatives:create' %}" class="btn btn-secondary">👷 Novo Operacional</a>
+    <a href="{% url 'core:meteorologia' %}" class="btn btn-secondary">🌤️ Meteorologia</a>
+  </div>
+</div>
+{% endblock %}

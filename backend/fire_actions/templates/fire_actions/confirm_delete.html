@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% block title %}Eliminar {{ tipo }}{% endblock %}
+{% block page_title %}Eliminar {{ tipo }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:500px">
+  <div class="card-title">⚠️ Confirmar Eliminação</div>
+  <p style="margin-bottom:20px">Eliminar <strong>{{ tipo }}</strong>: <strong>{{ obj }}</strong>?</p>
+  <form method="post">{% csrf_token %}
+    <div class="btn-group">
+      <button type="submit" class="btn btn-danger">Eliminar</button>
+      <a href="javascript:history.back()" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,349 @@
+{% extends "core/base.html" %}
+{% block title %}{{ action }}{% endblock %}
+{% block page_title %}{{ action }}{% endblock %}
+{% block nav_parc %}active{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<!-- toGeoJSON: KML → GeoJSON conversion -->
+<script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
+<style>
+  #import-btn {
+    position: absolute;
+    top: 10px; left: 50px;
+    z-index: 1000;
+    background: rgba(20,20,20,.85);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 5px;
+    color: #eee;
+    font-size: 12px;
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: background .15s;
+  }
+  #import-btn:hover { background: rgba(40,40,40,.95); }
+  #import-file { display: none; }
+
+  .map-legend {
+    background: rgba(20,20,20,.85);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #eee;
+    min-width: 160px;
+    line-height: 1.8;
+  }
+  .map-legend .legend-title {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #aaa;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    border: 1.5px solid rgba(255,255,255,.3);
+  }
+
+  #concelho-status {
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 4px;
+    min-height: 16px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div>
+    <div class="card">
+      <div class="card-title">Informação da Parcela</div>
+      <div class="form-row">
+        <div class="field"><label>Nome *</label><input type="text" name="name" value="{{ parcela.name|default:'' }}" required></div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="field">
+          <label>Concelho</label>
+          <input type="text" name="concelho" id="concelho-input" value="{{ parcela.concelho|default:'' }}">
+          <div id="concelho-status"></div>
+        </div>
+        <div class="field"><label>Tipo de Vegetação</label>
+          <select name="vegetation_type">
+            <option value="matos" {% if parcela.vegetation_type == 'matos' %}selected{% endif %}>Matos</option>
+            <option value="pinhal" {% if parcela.vegetation_type == 'pinhal' %}selected{% endif %}>Pinhal</option>
+            <option value="eucaliptal" {% if parcela.vegetation_type == 'eucaliptal' %}selected{% endif %}>Eucaliptal</option>
+            <option value="misto" {% if parcela.vegetation_type == 'misto' %}selected{% endif %}>Misto</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="field"><label>Infraestrutura</label>
+          <select name="infrastructure">
+            <option value="no_info" {% if parcela.infrastructure == 'no_info' %}selected{% endif %}>Sem informação</option>
+            <option value="existing" {% if parcela.infrastructure == 'existing' %}selected{% endif %}>Operacional</option>
+            <option value="req_maintenance" {% if parcela.infrastructure == 'req_maintenance' %}selected{% endif %}>Manutenção necessária</option>
+            <option value="non_existing" {% if parcela.infrastructure == 'non_existing' %}selected{% endif %}>Inexistente</option>
+          </select>
+        </div>
+        <div class="field"><label>Proprietário identificado</label>
+          <select name="owner_info">
+            <option value="no" {% if parcela.owner_info == 'no' %}selected{% endif %}>Não</option>
+            <option value="yes" {% if parcela.owner_info == 'yes' %}selected{% endif %}>Sim</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div class="field"><label>Nome do Responsável</label><input type="text" name="resp_name" value="{{ parcela.resp_name|default:'' }}"></div>
+        <div class="field"><label>Email do Responsável</label><input type="email" name="resp_email" value="{{ parcela.resp_email|default:'' }}"></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="padding:0;overflow:hidden;position:relative">
+      <!-- Import button overlaid on the map -->
+      <button type="button" id="import-btn" title="Importar GeoJSON ou KML">
+        📂 Importar GeoJSON / KML
+      </button>
+      <input type="file" id="import-file" accept=".geojson,.json,.kml">
+      <div id="draw-map" style="height:460px"></div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);margin-top:8px">
+      {% if parcela %}Geometria atual carregada. Redesenhe ou importe para alterar.{% else %}Desenhe ✏️ o polígono da parcela ou importe um ficheiro GeoJSON/KML.{% endif %}
+    </p>
+    <input type="hidden" name="geometry" id="geometry-input" value="{{ geom_json|default:'' }}">
+  </div>
+</div>
+
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 Guardar Parcela</button>
+  <a href="{% url 'parcelas:list' %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Basemaps ─────────────────────────────────────────────────────────────────
+const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+  maxZoom: 21,
+  subdomains: ['mt0','mt1','mt2','mt3'],
+  attribution: '© Google'
+});
+const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>'
+});
+
+const map = L.map('draw-map', { layers: [osm] }).setView([37.2, -8.1], 9);
+
+L.control.layers(
+  { 'Satélite (Google)': googleSat, 'Mapa (CartoDB)': osm },
+  {},
+  { position: 'topright' }
+).addTo(map);
+
+// ── Colour helpers ────────────────────────────────────────────────────────────
+function ownerColor(val) {
+  if (val === 'yes') return '#22c55e';
+  if (val === 'no')  return '#f97316';
+  return '#94a3b8';
+}
+
+// ── Existing parcelas overlay (live, background) ──────────────────────────────
+let existingLayer = null;
+function loadExistingParcelas() {
+  fetch("{% url 'parcelas:geojson' %}")
+    .then(r => r.json())
+    .then(data => {
+      if (existingLayer) map.removeLayer(existingLayer);
+      existingLayer = L.geoJSON(data, {
+        style: f => ({
+          color: ownerColor(f.properties.owner_info),
+          weight: 1.5,
+          fillOpacity: 0.2,
+          dashArray: '4 3'
+        }),
+        onEachFeature(feature, layer) {
+          const p = feature.properties;
+          layer.bindTooltip(p.name, { sticky: true, opacity: .85 });
+        }
+      }).addTo(map);
+    })
+    .catch(err => console.error('Erro ao carregar parcelas:', err));
+}
+loadExistingParcelas();
+
+// ── Drawn items ───────────────────────────────────────────────────────────────
+const drawnItems = new L.FeatureGroup().addTo(map);
+
+// Load existing geometry (edit mode)
+const existingGeom = document.getElementById('geometry-input').value;
+if (existingGeom) {
+  try {
+    const layer = L.geoJSON(JSON.parse(existingGeom), {
+      style: { color: '#e8541a', weight: 2, fillOpacity: 0.35 }
+    });
+    layer.eachLayer(l => drawnItems.addLayer(l));
+    map.fitBounds(drawnItems.getBounds(), { padding: [20, 20] });
+  } catch(e) {}
+}
+
+const drawControl = new L.Control.Draw({
+  edit: { featureGroup: drawnItems },
+  draw: {
+    polygon:      { shapeOptions: { color: '#e8541a', fillOpacity: .35 } },
+    rectangle:    false,
+    circle:       false,
+    circlemarker: false,
+    marker:       false,
+    polyline:     false
+  }
+}).addTo(map);
+
+// ── Geometry helpers ──────────────────────────────────────────────────────────
+function setGeometry(geojsonGeometry) {
+  document.getElementById('geometry-input').value = JSON.stringify(geojsonGeometry);
+  reverseGeocodeConcelhoFromGeometry(geojsonGeometry);
+}
+
+map.on(L.Draw.Event.CREATED, e => {
+  drawnItems.clearLayers();
+  drawnItems.addLayer(e.layer);
+  setGeometry(e.layer.toGeoJSON().geometry);
+});
+map.on(L.Draw.Event.EDITED, () => {
+  drawnItems.eachLayer(l => setGeometry(l.toGeoJSON().geometry));
+});
+map.on(L.Draw.Event.DELETED, () => {
+  document.getElementById('geometry-input').value = '';
+  document.getElementById('concelho-input').value = '';
+  document.getElementById('concelho-status').textContent = '';
+});
+
+// ── Import GeoJSON / KML ──────────────────────────────────────────────────────
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('import-file').click();
+});
+
+document.getElementById('import-file').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let geojson;
+      if (file.name.toLowerCase().endsWith('.kml')) {
+        const parser = new DOMParser();
+        const kmlDoc = parser.parseFromString(e.target.result, 'text/xml');
+        geojson = toGeoJSON.kml(kmlDoc);
+      } else {
+        geojson = JSON.parse(e.target.result);
+      }
+
+      // Extract first polygon geometry
+      let geometry = null;
+      if (geojson.type === 'FeatureCollection' && geojson.features.length > 0) {
+        const poly = geojson.features.find(f =>
+          f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
+        );
+        if (poly) geometry = poly.geometry;
+      } else if (geojson.type === 'Feature') {
+        geometry = geojson.geometry;
+      } else if (geojson.type === 'Polygon' || geojson.type === 'MultiPolygon') {
+        geometry = geojson;
+      }
+
+      if (!geometry) {
+        alert('Não foi encontrado nenhum polígono no ficheiro importado.');
+        return;
+      }
+
+      drawnItems.clearLayers();
+      const layer = L.geoJSON(geometry, {
+        style: { color: '#e8541a', weight: 2, fillOpacity: 0.35 }
+      });
+      layer.eachLayer(l => drawnItems.addLayer(l));
+      map.fitBounds(drawnItems.getBounds(), { padding: [30, 30] });
+      setGeometry(geometry);
+
+    } catch(err) {
+      alert('Erro ao importar ficheiro: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  // Reset so the same file can be re-imported
+  this.value = '';
+});
+
+// ── Auto-Concelho via Nominatim reverse geocoding ─────────────────────────────
+function centroidOfGeometry(geometry) {
+  // Simple centroid of first polygon ring
+  let coords = [];
+  if (geometry.type === 'Polygon') {
+    coords = geometry.coordinates[0];
+  } else if (geometry.type === 'MultiPolygon') {
+    coords = geometry.coordinates[0][0];
+  }
+  if (!coords.length) return null;
+  const sumLng = coords.reduce((s, c) => s + c[0], 0);
+  const sumLat = coords.reduce((s, c) => s + c[1], 0);
+  return { lat: sumLat / coords.length, lng: sumLng / coords.length };
+}
+
+function reverseGeocodeConcelhoFromGeometry(geometry) {
+  const center = centroidOfGeometry(geometry);
+  if (!center) return;
+
+  const status = document.getElementById('concelho-status');
+  status.textContent = '🔍 A detectar concelho…';
+
+  // zoom=10 targets municipality level in Nominatim's hierarchy
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${center.lat}&lon=${center.lng}&format=json&addressdetails=1&zoom=10&accept-language=pt`;
+  fetch(url, { headers: { 'User-Agent': 'FogoBomAlgarve/1.0' } })
+    .then(r => r.json())
+    .then(data => {
+      const addr = data.address || {};
+      // In Portugal: municipality = concelho, county = distrito — always prefer municipality
+      const concelho = addr.municipality || addr.city || addr.town || addr.village || '';
+      if (concelho) {
+        const clean = concelho.replace(/\s*(Municipality|Concelho de|Município de)\s*/gi, '').trim();
+        document.getElementById('concelho-input').value = clean;
+        status.textContent = `✅ Detectado automaticamente`;
+      } else {
+        status.textContent = 'Não foi possível detectar o concelho.';
+      }
+    })
+    .catch(() => {
+      status.textContent = 'Erro na geolocalização inversa.';
+    });
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = function() {
+  const div = L.DomUtil.create('div', 'map-legend');
+  div.innerHTML = `
+    <div class="legend-title">Proprietário</div>
+    <div><span class="legend-dot" style="background:#22c55e"></span>Identificado</div>
+    <div><span class="legend-dot" style="background:#f97316"></span>Não identificado</div>
+    <div><span class="legend-dot" style="background:#94a3b8"></span>Sem informação</div>
+  `;
+  return div;
+};
+legend.addTo(map);
+</script>
+{% endblock %}

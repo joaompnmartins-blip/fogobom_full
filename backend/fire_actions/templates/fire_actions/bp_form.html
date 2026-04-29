@@ -1,0 +1,223 @@
+{% extends "core/base.html" %}
+{% block title %}{% if bp %}Editar{% else %}Novo{% endif %} Plano de Queima{% endblock %}
+{% block page_title %}{% if bp %}Editar Plano de Queima{% else %}Novo Plano de Queima{% endif %}{% endblock %}
+{% block nav_bp %}active{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+
+{% if not bp %}
+<div class="card">
+  <div class="card-title">Pré-Plano Associado</div>
+  {% if preplan %}
+    <input type="hidden" name="pre_plan" value="{{ preplan.pk }}">
+    <p><strong>{{ preplan.name }}</strong> — {{ preplan.scheduled_date|date:"d/m/Y" }}</p>
+  {% else %}
+  <div class="field"><label>Selecionar Pré-Plano *</label>
+    <select name="pre_plan" required>
+      <option value="">— selecionar —</option>
+      {% for pp in preplans_without_bp %}
+        <option value="{{ pp.pk }}">{{ pp.name }} ({{ pp.scheduled_date|date:"d/m/Y" }})</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+  <input type="hidden" name="pre_plan" value="{{ preplan.pk }}">
+{% endif %}
+
+<div class="card">
+  <div class="card-title">Execução</div>
+  <div class="form-row cols-2">
+    <div class="field"><label>Data de Execução *</label>
+      <input type="date" name="execution_date" value="{{ bp.execution_date|default:'' }}" required>
+    </div>
+    <div class="field"><label>Nº de Homens</label>
+      <input type="number" name="num_men" value="{{ bp.num_men|default:'' }}" min="0">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="field"><label>Operacionais</label>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;max-height:160px;overflow-y:auto">
+        {% for op in operatives %}
+        <label style="display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;text-transform:none;font-size:13px;letter-spacing:0;color:var(--text)">
+          <input type="checkbox" name="operatives" value="{{ op.pk }}"
+            {% if op.pk in selected_operatives %}checked{% endif %}
+            style="width:auto;background:none;border:none;padding:0">
+          {{ op.name }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Meios</div>
+  <div class="form-row cols-3">
+    <div class="field"><label>VFCI</label>
+      <input type="number" name="vfci" value="{{ vehicles.VFCI|default:0 }}" min="0">
+    </div>
+    <div class="field"><label>VFCM</label>
+      <input type="number" name="vfcm" value="{{ vehicles.VFCM|default:0 }}" min="0">
+    </div>
+    <div class="field"><label>Outros veículos</label>
+      <input type="text" name="other_veh" value="{{ vehicles.Outro|default:'' }}">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Humidade dos Combustíveis (%)</div>
+  <div class="form-row cols-3">
+    <div class="field"><label>Superficial</label>
+      <input type="text" name="fuel_superficial" value="{{ bp.fuel_superficial|default:'' }}">
+    </div>
+    <div class="field"><label>Manta Morta F</label>
+      <input type="text" name="fuel_manta_f" value="{{ bp.fuel_manta_f|default:'' }}">
+    </div>
+    <div class="field"><label>Manta Morta H</label>
+      <input type="text" name="fuel_manta_h" value="{{ bp.fuel_manta_h|default:'' }}">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Meteorologia</div>
+  <div class="form-row cols-2">
+    <div class="field"><label>Estado do tempo</label>
+      <select name="weather_state">
+        <option value="">—</option>
+        <option value="Limpo" {% if bp.weather_state == 'Limpo' %}selected{% endif %}>Limpo</option>
+        <option value="Parcialmente nublado" {% if bp.weather_state == 'Parcialmente nublado' %}selected{% endif %}>Parcialmente nublado</option>
+        <option value="Nublado" {% if bp.weather_state == 'Nublado' %}selected{% endif %}>Nublado</option>
+        <option value="Neblinoso" {% if bp.weather_state == 'Neblinoso' %}selected{% endif %}>Neblinoso</option>
+      </select>
+    </div>
+    <div class="field"><label>Direção do vento</label>
+      <select name="wind_direction">
+        <option value="">—</option>
+        <option value="N"  {% if bp.wind_direction == 'N'  %}selected{% endif %}>N</option>
+        <option value="NE" {% if bp.wind_direction == 'NE' %}selected{% endif %}>NE</option>
+        <option value="E"  {% if bp.wind_direction == 'E'  %}selected{% endif %}>E</option>
+        <option value="SE" {% if bp.wind_direction == 'SE' %}selected{% endif %}>SE</option>
+        <option value="S"  {% if bp.wind_direction == 'S'  %}selected{% endif %}>S</option>
+        <option value="SO" {% if bp.wind_direction == 'SO' %}selected{% endif %}>SO</option>
+        <option value="O"  {% if bp.wind_direction == 'O'  %}selected{% endif %}>O</option>
+        <option value="NO" {% if bp.wind_direction == 'NO' %}selected{% endif %}>NO</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row cols-2">
+    <div class="field"><label>Vel. Vento (Beaufort)</label>
+      <input type="text" name="wind_speed_beaufort" value="{{ bp.wind_speed_beaufort|default:'' }}">
+    </div>
+    <div class="field"><label>Vel. Vento (km/h)</label>
+      <input type="text" name="wind_speed_kmh" value="{{ bp.wind_speed_kmh|default:'' }}">
+    </div>
+  </div>
+  <div class="form-row cols-2">
+    <div class="field"><label>Condução do fogo</label>
+      <select name="fire_conduct">
+        <option value="">—</option>
+        <option value="1" {% if bp.fire_conduct == '1' %}selected{% endif %}>1 — Contra o vento / contra o declive</option>
+        <option value="2" {% if bp.fire_conduct == '2' %}selected{% endif %}>2 — Por linhas sucessivas</option>
+        <option value="3" {% if bp.fire_conduct == '3' %}selected{% endif %}>3 — Perimetral</option>
+        <option value="4" {% if bp.fire_conduct == '4' %}selected{% endif %}>4 — De flanco</option>
+        <option value="5" {% if bp.fire_conduct == '5' %}selected{% endif %}>5 — Outro</option>
+      </select>
+    </div>
+    <div class="field"><label>Descrição (se "Outro")</label>
+      <input type="text" name="fire_conduct_other" value="{{ bp.fire_conduct_other|default:'' }}">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Resultados</div>
+  <div class="form-row cols-2">
+    <div class="field"><label>Efeitos da queima</label>
+      <textarea name="burn_effects">{{ bp.burn_effects|default:'' }}</textarea>
+    </div>
+    <div class="field"><label>Eficácia da ação</label>
+      <textarea name="burn_efficiency">{{ bp.burn_efficiency|default:'' }}</textarea>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="field"><label>Problemas identificados</label>
+      <textarea name="problems">{{ bp.problems|default:'' }}</textarea>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="field"><label>Notas adicionais</label>
+      <textarea name="notes">{{ bp.notes|default:'' }}</textarea>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Fotografias</div>
+  <div class="field">
+    <input type="file" name="photos" multiple accept="image/*" style="color:var(--text)">
+  </div>
+  {% if bp.photos.all %}
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+    {% for photo in bp.photos.all %}
+    <img src="{{ photo.image.url }}" style="height:80px;border-radius:4px;object-fit:cover">
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:13px">🗺️ Esquema Tático</span>
+    <span style="font-size:11px;color:var(--dim);margin-left:8px">Limite da(s) parcela(s) — incluído no relatório Word para preenchimento manual</span>
+  </div>
+  <div id="tactical-map" style="height:380px;width:100%;background:#fff"></div>
+</div>
+
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 Guardar Plano de Queima</button>
+  <a href="{% url 'fire_actions:burning_plan_list' %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+{% endblock %}
+
+
+
+
+{% block extra_js %}
+<script>
+const PARCELS_GEOM = {{ parcels_geom_json|default:"[]"|safe }};
+
+const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 21, attribution: '© OpenStreetMap © CARTO'
+});
+const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+  maxZoom: 21, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google'
+});
+
+const tmap = L.map('tactical-map', { layers: [osm] }).setView([37.2, -8.1], 12);
+L.control.layers({'Mapa': osm, 'Satélite': sat}, {}, {position: 'topright'}).addTo(tmap);
+
+const parcelLayer = L.featureGroup().addTo(tmap);
+PARCELS_GEOM.forEach(p => {
+  try {
+    L.geoJSON(JSON.parse(p.geojson), {
+      style: { color: '#D05C1E', weight: 2.5, fillColor: '#fff3ec', fillOpacity: 0.4 }
+    })
+    .bindTooltip(p.name, { permanent: true, direction: 'center' })
+    .addTo(parcelLayer);
+  } catch(e) {}
+});
+
+if (parcelLayer.getLayers().length > 0) {
+  tmap.fitBounds(parcelLayer.getBounds(), { padding: [50, 50] });
+}
+</script>
+{% endblock %}

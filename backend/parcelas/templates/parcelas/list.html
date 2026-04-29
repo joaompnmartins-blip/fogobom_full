@@ -1,0 +1,184 @@
+{% extends "core/base.html" %}
+{% block title %}Parcelas{% endblock %}
+{% block page_title %}Parcelas{% endblock %}
+{% block nav_parc %}active{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'parcelas:create' %}" class="btn btn-primary btn-sm">+ Nova Parcela</a>
+{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .map-legend {
+    background: rgba(20,20,20,.85);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #eee;
+    min-width: 160px;
+    line-height: 1.8;
+  }
+  .map-legend .legend-title {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #aaa;
+    margin-bottom: 6px;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    border: 1.5px solid rgba(255,255,255,.3);
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;position:relative">
+  <div id="map" style="height:360px;width:100%"></div>
+</div>
+<div class="card">
+  <div class="card-title">{{ total }} Parcela{{ total|pluralize:"s" }} Registada{{ total|pluralize:"s" }}</div>
+  {% if parcelas %}
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th>Nome</th><th>Concelho</th><th>Vegetação</th><th>Área (ha)</th><th>Infraestrutura</th><th>Proprietário</th><th>Última Queima</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for p in parcelas %}
+    <tr>
+      <td><a href="{% url 'parcelas:detail' p.pk %}">{{ p.name }}</a></td>
+      <td>{{ p.concelho|default:"—" }}</td>
+      <td>{{ p.get_vegetation_type_display }}</td>
+      <td>{{ p.area_ha|default:"—" }}</td>
+      <td>
+        {% if p.infrastructure == 'existing' %}<span class="badge badge-green">Operacional</span>
+        {% elif p.infrastructure == 'req_maintenance' %}<span class="badge badge-orange">Manutenção</span>
+        {% elif p.infrastructure == 'non_existing' %}<span class="badge badge-red">Inexistente</span>
+        {% else %}<span class="badge badge-gray">Sem info</span>{% endif %}
+      </td>
+      <td>
+        {% if p.owner_info == 'yes' %}<span class="badge badge-green">Identificado</span>
+        {% else %}<span class="badge badge-orange">Não identificado</span>{% endif %}
+      </td>
+      <td>{% if p.last_burn %}{{ p.last_burn|date:"d/m/Y" }}{% else %}<span style="color:var(--dim)">Não queimada</span>{% endif %}</td>
+      <td>
+        <a href="{% url 'parcelas:edit' p.pk %}" class="btn btn-secondary btn-sm">✏️</a>
+        <a href="{% url 'parcelas:delete' p.pk %}" class="btn btn-danger btn-sm">🗑️</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p style="color:var(--dim)">Nenhuma parcela registada. <a href="{% url 'parcelas:create' %}">Criar a primeira →</a></p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Basemaps ─────────────────────────────────────────────────────────────────
+const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+  maxZoom: 21,
+  subdomains: ['mt0','mt1','mt2','mt3'],
+  attribution: '© Google'
+});
+const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>'
+});
+
+const map = L.map('map', { layers: [osm] }).setView([37.2, -8.1], 9);
+
+L.control.layers(
+  { 'Satélite (Google)': googleSat, 'Mapa (CartoDB)': osm },
+  {},
+  { position: 'topright' }
+).addTo(map);
+
+// ── Colour by proprietário ────────────────────────────────────────────────────
+function ownerColor(val) {
+  if (val === 'yes') return '#22c55e';
+  if (val === 'no')  return '#f97316';
+  return '#94a3b8';
+}
+
+// ── Load parcelas live from API ───────────────────────────────────────────────
+let parcelasLayer = null;
+
+function loadParcelas() {
+  fetch("{% url 'parcelas:geojson' %}")
+    .then(r => r.json())
+    .then(data => {
+      if (parcelasLayer) map.removeLayer(parcelasLayer);
+
+      parcelasLayer = L.geoJSON(data, {
+        style: f => ({
+          color: ownerColor(f.properties.owner_info),
+          weight: 2,
+          fillOpacity: 0.35
+        }),
+        onEachFeature(feature, layer) {
+          const p = feature.properties;
+          const raw = String(feature.id || '');
+          const match = raw.match(/(\d+)$/);
+          const pk = match ? match[1] : null;
+
+          const ownerLabel = p.owner_info === 'yes'
+            ? '<span style="color:#22c55e">✅ Identificado</span>'
+            : '<span style="color:#f97316">❌ Não identificado</span>';
+
+          const vegMap = { matos:'Matos', pinhal:'Pinhal', eucaliptal:'Eucaliptal', misto:'Misto' };
+          const infraMap = { existing:'Operacional', req_maintenance:'Manutenção necessária', non_existing:'Inexistente', no_info:'Sem informação' };
+          const vegLabel   = vegMap[p.vegetation_type]  || p.vegetation_type  || '—';
+          const infraLabel = infraMap[p.infrastructure] || p.infrastructure   || '—';
+
+          const actions = pk ? `
+            <div style="margin-top:8px;display:flex;gap:6px">
+              <a href="/parcelas/${pk}/" style="font-size:12px;padding:3px 8px;background:#e8541a;color:#fff;border-radius:4px;text-decoration:none">🔍 Detalhes</a>
+              <a href="/parcelas/${pk}/editar/" style="font-size:12px;padding:3px 8px;background:#444;color:#fff;border-radius:4px;text-decoration:none">✏️ Editar</a>
+            </div>` : '';
+
+          layer.bindPopup(`
+            <strong style="font-size:13px">${p.name}</strong><br>
+            <span style="color:#aaa;font-size:11px">${p.concelho || '—'}</span><br>
+            <table style="font-size:12px;margin-top:4px;border-collapse:collapse">
+              <tr><td style="color:#aaa;padding-right:8px">Área</td><td>${p.area_ha ? p.area_ha + ' ha' : '—'}</td></tr>
+              <tr><td style="color:#aaa;padding-right:8px">Vegetação</td><td>${vegLabel}</td></tr>
+              <tr><td style="color:#aaa;padding-right:8px">Infraestrutura</td><td>${infraLabel}</td></tr>
+              <tr><td style="color:#aaa;padding-right:8px">Proprietário</td><td>${ownerLabel}</td></tr>
+            </table>
+            ${actions}
+          `, { minWidth: 200 });
+        }
+      }).addTo(map);
+
+      if (data.features && data.features.length > 0) {
+        try { map.fitBounds(parcelasLayer.getBounds(), { padding: [20, 20] }); } catch(e) {}
+      }
+    })
+    .catch(err => console.error('Erro ao carregar parcelas:', err));
+}
+
+loadParcelas();
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = function() {
+  const div = L.DomUtil.create('div', 'map-legend');
+  div.innerHTML = `
+    <div class="legend-title">Proprietário</div>
+    <div><span class="legend-dot" style="background:#22c55e"></span>Identificado</div>
+    <div><span class="legend-dot" style="background:#f97316"></span>Não identificado</div>
+    <div><span class="legend-dot" style="background:#94a3b8"></span>Sem informação</div>
+  `;
+  return div;
+};
+legend.addTo(map);
+</script>
+{% endblock %}

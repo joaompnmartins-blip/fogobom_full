@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% block title %}Eliminar Operacional{% endblock %}
+{% block page_title %}Eliminar Operacional{% endblock %}
+{% block content %}
+<div class="card" style="max-width:500px">
+  <div class="card-title">⚠️ Confirmar Eliminação</div>
+  <p style="margin-bottom:20px">Eliminar operacional <strong>{{ op.name }}</strong>?</p>
+  <form method="post">{% csrf_token %}
+    <div class="btn-group">
+      <button type="submit" class="btn btn-danger">Eliminar</button>
+      <a href="{% url 'operatives:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

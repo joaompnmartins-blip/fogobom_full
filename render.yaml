@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: fogobom-algarve
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: ALLOWED_HOSTS
+        value: "fogobom-algarve.onrender.com"
+      - key: DB_NAME
+        fromDatabase:
+          name: fogobom-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: fogobom-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: fogobom-db
+          property: password
+      - key: DB_HOST
+        fromDatabase:
+          name: fogobom-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: fogobom-db
+          property: port
+
+databases:
+  - name: fogobom-db
+    plan: free
+    databaseName: firedb
+    user: fireuser

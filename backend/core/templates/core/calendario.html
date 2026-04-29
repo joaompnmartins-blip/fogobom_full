@@ -1,0 +1,37 @@
+{% extends "core/base.html" %}
+{% block title %}Calendário{% endblock %}
+{% block page_title %}Calendário{% endblock %}
+{% block nav_cal %}active{% endblock %}
+{% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<style>
+.fc{font-family:var(--fb);font-size:13px}
+.fc .fc-toolbar-title{font-family:var(--fh);font-size:20px;font-weight:700;color:#fff}
+.fc .fc-button{background:var(--bg3)!important;border-color:var(--border)!important;color:var(--text)!important;font-family:var(--fh)!important}
+.fc .fc-button-primary:not(:disabled).fc-button-active{background:var(--accent)!important;border-color:var(--accent)!important}
+.fc-theme-standard td,.fc-theme-standard th{border-color:var(--border)}
+.fc .fc-daygrid-day{background:var(--bg2)}.fc .fc-daygrid-day:hover{background:var(--bg3)}
+.fc .fc-col-header-cell{background:var(--bg3);color:var(--dim);font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.fc .fc-daygrid-day-number{color:var(--dim);font-size:12px}
+.fc .fc-daygrid-day.fc-day-today{background:var(--green-dim)!important}
+.fc-event{border-radius:2px!important;font-size:12px!important}
+</style>
+{% endblock %}
+{% block content %}
+<div class="card"><div id="calendar"></div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const events = {{ events_json|safe }};
+document.addEventListener('DOMContentLoaded',function(){
+  new FullCalendar.Calendar(document.getElementById('calendar'),{
+    initialView:'dayGridMonth',locale:'pt',firstDay:1,
+    headerToolbar:{left:'prev,next today',center:'title',right:'dayGridMonth,listMonth'},
+    events,
+    eventClick:function(i){if(i.event.url){i.jsEvent.preventDefault();window.location.href=i.event.url}},
+    height:'auto'
+  }).render();
+});
+</script>
+{% endblock %}

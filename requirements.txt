@@ -1,0 +1,10 @@
+Django==6.0.1
+psycopg2-binary
+django-storages[s3]
+boto3
+whitenoise[brotli]
+gunicorn
+shapely
+Pillow
+python-docx
+GDAL==3.6.4

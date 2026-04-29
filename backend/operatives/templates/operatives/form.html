@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}{{ action }}{% endblock %}
+{% block page_title %}{{ action }}{% endblock %}
+{% block nav_op %}active{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px">
+  <div class="card-title">{{ action }}</div>
+  <form method="post">{% csrf_token %}
+    <div class="form-row cols-2">
+      <div class="field"><label>Nome *</label><input type="text" name="name" value="{{ op.name|default:'' }}" required></div>
+      <div class="field"><label>NIF</label><input type="text" name="nif" value="{{ op.nif|default:'' }}"></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="field"><label>Email</label><input type="email" name="email" value="{{ op.email|default:'' }}"></div>
+      <div class="field"><label>Telefone</label><input type="text" name="phone" value="{{ op.phone|default:'' }}"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Nível de Certificação</label><input type="text" name="certification_level" value="{{ op.certification_level|default:'' }}"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Notas</label><textarea name="notes">{{ op.notes|default:'' }}</textarea></div>
+    </div>
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">💾 Guardar</button>
+      <a href="{% url 'operatives:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

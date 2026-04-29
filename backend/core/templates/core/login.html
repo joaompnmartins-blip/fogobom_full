@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fogo Bom Algarve — Acesso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f1410;--bg2:#161c18;--bg3:#1d2620;--border:#2a3830;--text:#c8d8cc;--dim:#5a7060;--accent:#e8541a;--green:#3a8c50;--fh:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;display:grid;grid-template-columns:1fr 420px}
+    .left{background:linear-gradient(135deg,rgba(232,84,26,.12) 0%,transparent 60%),var(--bg);display:flex;flex-direction:column;justify-content:flex-end;padding:48px;position:relative;overflow:hidden}
+    .left::before{content:'🔥';position:absolute;top:-20px;left:-20px;font-size:320px;opacity:.04;line-height:1;pointer-events:none}
+    .left h1{font-family:var(--fh);font-size:64px;font-weight:800;line-height:.95;color:#fff;letter-spacing:-1px}
+    .left h1 span{color:var(--accent)}
+    .left p{margin-top:16px;font-size:15px;color:var(--dim);max-width:360px;line-height:1.6}
+    .left .tags{margin-top:32px;display:flex;gap:24px}
+    .left .tag{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim)}
+    .right{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;padding:48px 40px}
+    .right h2{font-family:var(--fh);font-size:28px;font-weight:700;color:#fff;margin-bottom:6px}
+    .right .sub{font-size:13px;color:var(--dim);margin-bottom:32px}
+    .tabs{display:flex;margin-bottom:28px;border-bottom:1px solid var(--border)}
+    .tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:8px 16px;font-family:var(--fh);font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;margin-bottom:-1px;transition:all .15s}
+    .tab-btn.active{color:#fff;border-bottom-color:var(--accent)}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+    .field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--fb);font-size:14px;padding:10px 12px;outline:none;transition:border-color .15s}
+    .field input:focus{border-color:var(--green)}
+    .btn-sub{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:3px;font-family:var(--fh);font-size:16px;font-weight:700;letter-spacing:.5px;cursor:pointer;margin-top:8px;transition:background .15s}
+    .btn-sub:hover{background:#d04010}
+    .msg{padding:10px 12px;border-radius:3px;font-size:13px;margin-bottom:14px}
+    .msg-e{background:#3a1010;border-left:3px solid #c0392b;color:#e57373}
+    .msg-ok{background:#1e4a2a;border-left:3px solid var(--green);color:#6fcf97}
+    @media(max-width:768px){body{grid-template-columns:1fr}.left{display:none}.right{padding:32px 24px}}
+  </style>
+</head>
+<body>
+<div class="left">
+  <h1>Fogo<br>Bom<br><span>Algarve</span></h1>
+  <p>Sistema de gestão de fogo controlado para o Algarve. Planeamento, execução e registo de queimas prescritas.</p>
+  <div class="tags">
+    <div class="tag"><span>🗺️</span> Parcelas GeoPT</div>
+    <div class="tag"><span>📋</span> Planos de Queima</div>
+    <div class="tag"><span>🌤️</span> FiredPT</div>
+  </div>
+</div>
+<div class="right">
+  <h2>Bem-vindo</h2>
+  <p class="sub">Aceda à sua conta para continuar</p>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="sw('login')">Iniciar Sessão</button>
+    <button class="tab-btn" onclick="sw('reg')">Criar Conta</button>
+  </div>
+  <div class="tab-panel active" id="tp-login">
+    {% if login_error %}<div class="msg msg-e">{{ login_error }}</div>{% endif %}
+    <form method="post" action="{% url 'core:login' %}">
+      {% csrf_token %}<input type="hidden" name="form_type" value="login">
+      <div class="field"><label>Utilizador</label><input type="text" name="username" autocomplete="username" required></div>
+      <div class="field"><label>Password</label><input type="password" name="password" autocomplete="current-password" required></div>
+      <button type="submit" class="btn-sub">Entrar →</button>
+    </form>
+  </div>
+  <div class="tab-panel" id="tp-reg">
+    {% if reg_error %}<div class="msg msg-e">{{ reg_error }}</div>{% endif %}
+    {% if reg_ok %}<div class="msg msg-ok">{{ reg_ok }}</div>{% endif %}
+    <form method="post" action="{% url 'core:login' %}">
+      {% csrf_token %}<input type="hidden" name="form_type" value="register">
+      <div class="field"><label>Utilizador</label><input type="text" name="reg_username" required></div>
+      <div class="field"><label>Email</label><input type="email" name="reg_email" required></div>
+      <div class="field"><label>Password</label><input type="password" name="reg_password" required></div>
+      <div class="field"><label>Confirmar Password</label><input type="password" name="reg_confirm" required></div>
+      <button type="submit" class="btn-sub">Criar Conta →</button>
+    </form>
+  </div>
+</div>
+<script>
+function sw(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='login')||(i===1&&t==='reg')));
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',(i===0&&t==='login')||(i===1&&t==='reg')));
+}
+{% if reg_error or reg_ok %}sw('reg');{% endif %}
+</script>
+</body>
+</html>

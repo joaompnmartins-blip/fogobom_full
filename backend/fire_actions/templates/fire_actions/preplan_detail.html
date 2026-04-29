@@ -1,0 +1,27 @@
+{% extends "core/base.html" %}
+{% block title %}{{ action.name }}{% endblock %}
+{% block page_title %}{{ action.name }}{% endblock %}
+{% block nav_pp %}active{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'fire_actions:edit' action.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>
+  {% if not has_bp %}<a href="{% url 'fire_actions:burning_plan_create_from' action.pk %}" class="btn btn-primary btn-sm">📄 Criar Plano de Queima</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px">
+  <div class="card-title">Informação</div>
+  <table><tbody>
+    <tr><td style="color:var(--dim);width:40%">Responsável</td><td>{{ action.responsible|default:"—" }}</td></tr>
+    <tr><td style="color:var(--dim)">Data prevista</td><td>{{ action.scheduled_date|date:"d/m/Y" }}</td></tr>
+    <tr><td style="color:var(--dim)">Estado</td><td>
+      {% if action.status == 'Pre-Plano' %}<span class="badge badge-orange">Pré-Plano</span>
+      {% else %}<span class="badge badge-green">Executada</span>{% endif %}
+    </td></tr>
+    <tr><td style="color:var(--dim)">Parcelas</td><td>{% for p in action.parcels.all %}<a href="{% url 'parcelas:detail' p.pk %}">{{ p.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+    <tr><td style="color:var(--dim)">Notas</td><td>{{ action.notes|default:"—" }}</td></tr>
+  </tbody></table>
+  <div class="btn-group">
+    {% if has_bp %}<a href="{% url 'fire_actions:burning_plan_detail' action.burningplan.pk %}" class="btn btn-secondary btn-sm">📄 Ver Plano de Queima</a>{% endif %}
+    <a href="{% url 'fire_actions:list' %}" class="btn btn-secondary btn-sm">← Voltar</a>
+  </div>
+</div>
+{% endblock %}

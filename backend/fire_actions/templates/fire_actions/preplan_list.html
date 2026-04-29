@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% block title %}Pré-Planos{% endblock %}
+{% block page_title %}Pré-Planos{% endblock %}
+{% block nav_pp %}active{% endblock %}
+{% block topbar_actions %}<a href="{% url 'fire_actions:create' %}" class="btn btn-primary btn-sm">+ Novo Pré-Plano</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-title">{{ actions.count }} Pré-Plano{{ actions.count|pluralize:"s" }}</div>
+  {% if actions %}
+  <table>
+    <thead><tr><th>Nome</th><th>Responsável</th><th>Data</th><th>Parcelas</th><th>Estado</th><th>Ações</th></tr></thead>
+    <tbody>
+    {% for a in actions %}
+    <tr>
+      <td><a href="{% url 'fire_actions:detail' a.pk %}">{{ a.name }}</a></td>
+      <td>{{ a.responsible|default:"—" }}</td>
+      <td>{{ a.scheduled_date|date:"d/m/Y" }}</td>
+      <td>{{ a.parcels.count }}</td>
+      <td>
+        {% if a.status == 'Pre-Plano' %}<span class="badge badge-orange">Pré-Plano</span>
+        {% else %}<span class="badge badge-green">Executada</span>{% endif %}
+      </td>
+      <td style="white-space:nowrap">
+        <a href="{% url 'fire_actions:detail' a.pk %}" class="btn btn-secondary btn-sm">👁️</a>
+        <a href="{% url 'fire_actions:edit' a.pk %}" class="btn btn-secondary btn-sm">✏️</a>
+        {% if a.status == 'Pre-Plano' %}
+        <a href="{% url 'fire_actions:burning_plan_create_from' a.pk %}" class="btn btn-primary btn-sm">📄 Queima</a>
+        {% else %}
+        <a href="{% url 'fire_actions:burning_plan_detail' a.burningplan.pk %}" class="btn btn-secondary btn-sm">📄</a>
+        {% endif %}
+        <a href="{% url 'fire_actions:delete' a.pk %}" class="btn btn-danger btn-sm">🗑️</a>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--dim)">Nenhum pré-plano. <a href="{% url 'fire_actions:create' %}">Criar →</a></p>
+  {% endif %}
+</div>
+{% endblock %}

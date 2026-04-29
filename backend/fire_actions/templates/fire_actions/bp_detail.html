@@ -1,0 +1,67 @@
+{% extends "core/base.html" %}
+{% block title %}Plano de Queima — {{ bp.pre_plan.name }}{% endblock %}
+{% block page_title %}Plano de Queima #{{ bp.pk }}{% endblock %}
+{% block nav_bp %}active{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 Relatório Word</a>
+  <a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>
+{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div>
+    <div class="card">
+      <div class="card-title">Identificação</div>
+      <table><tbody>
+        <tr><td style="color:var(--dim);width:45%">Pré-Plano</td><td><a href="{% url 'fire_actions:detail' bp.pre_plan.pk %}">{{ bp.pre_plan.name }}</a></td></tr>
+        <tr><td style="color:var(--dim)">Parcela(s)</td><td>{% for p in bp.pre_plan.parcels.all %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
+        <tr><td style="color:var(--dim)">Data Execução</td><td>{{ bp.execution_date|date:"d/m/Y" }}</td></tr>
+        <tr><td style="color:var(--dim)">Operacionais</td><td>{% for o in bp.operatives.all %}{{ o.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+        <tr><td style="color:var(--dim)">Nº Homens</td><td>{{ bp.num_men|default:"—" }}</td></tr>
+        <tr><td style="color:var(--dim)">VFCI / VFCM</td><td>{{ vehicles.VFCI|default:0 }} / {{ vehicles.VFCM|default:0 }}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-title">Meteorologia</div>
+      <table><tbody>
+        <tr><td style="color:var(--dim);width:45%">Estado tempo</td><td>{{ bp.weather_state|default:"—" }}</td></tr>
+        <tr><td style="color:var(--dim)">Vento</td><td>{{ bp.wind_speed_beaufort|default:"—" }} Bft / {{ bp.wind_speed_kmh|default:"—" }} km/h {{ bp.wind_direction|default:"" }}</td></tr>
+        <tr><td style="color:var(--dim)">Condução fogo</td><td>{{ bp.get_fire_conduct_display|default:"—" }}</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-title">Humidade Combustíveis</div>
+      <table><tbody>
+        <tr><td style="color:var(--dim)">Superficial</td><td>{{ bp.fuel_superficial|default:"—" }} %</td></tr>
+        <tr><td style="color:var(--dim)">Manta F</td><td>{{ bp.fuel_manta_f|default:"—" }} %</td></tr>
+        <tr><td style="color:var(--dim)">Manta H</td><td>{{ bp.fuel_manta_h|default:"—" }} %</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-title">Resultados</div>
+      <p style="color:var(--dim);font-size:11px;margin-bottom:4px">EFEITOS</p>
+      <p style="margin-bottom:12px">{{ bp.burn_effects|default:"—" }}</p>
+      <p style="color:var(--dim);font-size:11px;margin-bottom:4px">EFICÁCIA</p>
+      <p>{{ bp.burn_efficiency|default:"—" }}</p>
+    </div>
+    {% if bp.photos.all %}
+    <div class="card">
+      <div class="card-title">Fotografias</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        {% for photo in bp.photos.all %}
+        <a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" style="height:80px;border-radius:4px;object-fit:cover"></a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if schema_url %}
+  <div class="card" style="grid-column:1/-1">
+    <div class="card-title">🗺️ Esquema Tático</div>
+    <img src="{{ schema_url }}" style="max-width:100%;border-radius:4px;border:1px solid var(--border)">
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+{% block title %}Eliminar Parcela{% endblock %}
+{% block page_title %}Eliminar Parcela{% endblock %}
+{% block content %}
+<div class="card" style="max-width:500px">
+  <div class="card-title">⚠️ Confirmar Eliminação</div>
+  <p style="margin-bottom:20px">Tem a certeza que quer eliminar a parcela <strong>{{ parcela.name }}</strong>? Esta ação não pode ser desfeita.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="btn-group">
+      <button type="submit" class="btn btn-danger">Eliminar definitivamente</button>
+      <a href="{% url 'parcelas:list' %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
