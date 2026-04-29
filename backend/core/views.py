@@ -1,4 +1,5 @@
 import json
+import threading
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -8,6 +9,15 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
+
+
+def _send_async(subject, message, recipient_list):
+    threading.Thread(
+        target=send_mail,
+        args=(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list),
+        kwargs={'fail_silently': True},
+        daemon=True,
+    ).start()
 
 
 def login_view(request):
@@ -47,12 +57,10 @@ def login_view(request):
                 User.objects.create_user(username=username, email=email, password=pw, is_active=False)
                 ctx['reg_ok'] = 'Registo submetido! Aguarde aprovação do administrador.'
                 if settings.ADMIN_EMAIL:
-                    send_mail(
-                        subject='[Fogo Bom] Novo utilizador aguarda aprovação',
-                        message=f'O utilizador "{username}" ({email}) registou-se e aguarda aprovação.\n\nAprove ou recuse em: {request.build_absolute_uri("/utilizadores/pendentes/")}',
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[settings.ADMIN_EMAIL],
-                        fail_silently=True,
+                    _send_async(
+                        '[Fogo Bom] Novo utilizador aguarda aprovação',
+                        f'O utilizador "{username}" ({email}) registou-se e aguarda aprovação.\n\nAprove ou recuse em: {request.build_absolute_uri("/utilizadores/pendentes/")}',
+                        [settings.ADMIN_EMAIL],
                     )
 
     return render(request, 'core/login.html', ctx)
@@ -119,12 +127,10 @@ def approve_user(request, user_id):
     user.is_active = True
     user.save()
     if user.email:
-        send_mail(
-            subject='[Fogo Bom] Acesso aprovado',
-            message=f'Olá {user.username},\n\nO seu acesso à plataforma Fogo Bom Algarve foi aprovado. Já pode iniciar sessão.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
+        _send_async(
+            '[Fogo Bom] Acesso aprovado',
+            f'Olá {user.username},\n\nO seu acesso à plataforma Fogo Bom Algarve foi aprovado. Já pode iniciar sessão.',
+            [user.email],
         )
     messages.success(request, f'Utilizador "{user.username}" aprovado.')
     return redirect('core:pending_users')
@@ -138,12 +144,10 @@ def decline_user(request, user_id):
     email, username = user.email, user.username
     user.delete()
     if email:
-        send_mail(
-            subject='[Fogo Bom] Pedido de acesso recusado',
-            message=f'Olá {username},\n\nO seu pedido de acesso à plataforma Fogo Bom Algarve foi recusado.',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=True,
+        _send_async(
+            '[Fogo Bom] Pedido de acesso recusado',
+            f'Olá {username},\n\nO seu pedido de acesso à plataforma Fogo Bom Algarve foi recusado.',
+            [email],
         )
     messages.success(request, f'Utilizador "{username}" recusado e removido.')
     return redirect('core:pending_users')
