@@ -18,4 +18,4 @@ COPY . .
 RUN cd backend && python manage.py collectstatic --noinput
 
 EXPOSE 8000
-CMD ["sh", "-c", "cd backend && python manage.py migrate --noinput && gunicorn fire_mgmt.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
+CMD ["sh", "-c", "cd backend && python manage.py migrate --noinput && python manage.py ensure_superuser && gunicorn fire_mgmt.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
