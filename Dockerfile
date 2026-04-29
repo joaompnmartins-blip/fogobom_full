@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gdal-bin libgdal-dev libgeos-dev libproj-dev binutils libpq-dev gcc \
+    gdal-bin libgdal-dev libgeos-dev libproj-dev binutils libpq-dev gcc g++ \
     && rm -rf /var/lib/apt/lists/*
 
 ENV GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so
