@@ -8,6 +8,7 @@ urlpatterns = [
     path('',              views.dashboard,    name='dashboard'),
     path('login/',        views.login_view,   name='login'),
     path('logout/',       views.logout_view,  name='logout'),
+    path('password/alterar/',            views.PasswordChange.as_view(),           name='password_change'),
     path('password/recuperar/',          views.PasswordResetRequestView.as_view(), name='password_reset'),
     path('password/recuperar/enviado/',
          auth_views.PasswordResetDoneView.as_view(template_name='core/password_reset_done.html'),

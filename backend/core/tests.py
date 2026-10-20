@@ -116,6 +116,40 @@ class AuthTests(TestCase):
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)
+class PasswordChangeTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('rui', password='Antiga-Pass-2026')
+
+    def change(self, old, new1, new2=None):
+        return self.client.post('/password/alterar/', {'old_password': old, 'new_password1': new1,
+                                                       'new_password2': new2 or new1})
+
+    def test_requires_login(self):
+        self.assertRedirects(self.client.get('/password/alterar/'), '/login/?next=/password/alterar/',
+                             fetch_redirect_response=False)
+
+    def test_sidebar_links_to_page(self):
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get('/'), '/password/alterar/')
+
+    def test_change_keeps_session(self):
+        self.client.force_login(self.user)
+        r = self.change('Antiga-Pass-2026', STRONG_PW)
+        self.assertRedirects(r, '/', fetch_redirect_response=False)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(STRONG_PW))
+        self.assertEqual(self.client.get('/').status_code, 200)  # still logged in
+
+    def test_wrong_old_or_weak_new_rejected(self):
+        self.client.force_login(self.user)
+        for args in [('errada', STRONG_PW), ('Antiga-Pass-2026', '123'), ('Antiga-Pass-2026', STRONG_PW, 'outra')]:
+            r = self.change(*args)
+            self.assertEqual(r.status_code, 200, args)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('Antiga-Pass-2026'))
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
 class PasswordResetTests(TestCase):
     def setUp(self):
         cache.clear()

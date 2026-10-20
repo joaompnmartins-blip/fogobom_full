@@ -104,6 +104,7 @@
     <div class="sb-foot">
       {% if request.user.is_authenticated %}
       <div class="un">{{ request.user.username }}</div>
+      <a href="{% url 'core:password_change' %}" class="btn-lo">🔑 Alterar password</a>
       <form method="post" action="{% url 'core:logout' %}">{% csrf_token %}
         <button type="submit" class="btn-lo">↩ Terminar sessão</button>
       </form>

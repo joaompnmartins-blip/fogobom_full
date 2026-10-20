@@ -58,6 +58,16 @@ class PasswordResetRequestView(auth_views.PasswordResetView):
         return super().form_valid(form)
 
 
+class PasswordChange(auth_views.PasswordChangeView):
+    """Logged-in users change their own password; the session stays valid."""
+    template_name = 'core/password_change.html'
+    success_url   = reverse_lazy('core:dashboard')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Password alterada com sucesso.')
+        return super().form_valid(form)
+
+
 class PasswordResetConfirm(auth_views.PasswordResetConfirmView):
     template_name = 'core/password_reset_confirm.html'
     success_url   = reverse_lazy('core:password_reset_complete')
