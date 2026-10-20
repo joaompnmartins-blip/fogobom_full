@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 
 def _send_async(subject, message, recipient_list):
@@ -33,7 +34,11 @@ def login_view(request):
             user = authenticate(request, username=username, password=password)
             if user:
                 login(request, user)
-                return redirect(request.GET.get('next', 'core:dashboard'))
+                next_url = request.GET.get('next', '')
+                if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()},
+                                                   require_https=request.is_secure()):
+                    return redirect(next_url)
+                return redirect('core:dashboard')
             ctx['login_error'] = 'Credenciais inválidas.'
 
         elif form_type == 'register':
