@@ -5,6 +5,7 @@ import base64
 from io import BytesIO
 from datetime import date
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -148,51 +149,55 @@ def burning_plan_create(request, preplan_pk=None):
         try:
             pp_id = request.POST.get('pre_plan')
             pp    = get_object_or_404(FireAction, pk=pp_id)
+            if hasattr(pp, 'burningplan'):
+                messages.warning(request, 'Este pré-plano já tem um Plano de Queima.')
+                return redirect('fire_actions:burning_plan_detail', pk=pp.burningplan.pk)
 
-            vehicles = json.dumps({
-                'VFCI':  int(request.POST.get('vfci', 0) or 0),
-                'VFCM':  int(request.POST.get('vfcm', 0) or 0),
-                'Outro': request.POST.get('other_veh', ''),
-            })
+            with transaction.atomic():
+                vehicles = json.dumps({
+                    'VFCI':  int(request.POST.get('vfci', 0) or 0),
+                    'VFCM':  int(request.POST.get('vfcm', 0) or 0),
+                    'Outro': request.POST.get('other_veh', ''),
+                })
 
-            bp = BurningPlan.objects.create(
-                pre_plan            = pp,
-                execution_date      = request.POST['execution_date'],
-                num_men             = request.POST.get('num_men') or None,
-                vehicles            = vehicles,
-                problems            = request.POST.get('problems', ''),
-                fuel_superficial    = request.POST.get('fuel_superficial', ''),
-                fuel_manta_f        = request.POST.get('fuel_manta_f', ''),
-                fuel_manta_h        = request.POST.get('fuel_manta_h', ''),
-                weather_state       = request.POST.get('weather_state', ''),
-                wind_speed_beaufort = request.POST.get('wind_speed_beaufort', ''),
-                wind_speed_kmh      = request.POST.get('wind_speed_kmh', ''),
-                wind_direction      = request.POST.get('wind_direction', ''),
-                fire_conduct        = request.POST.get('fire_conduct', ''),
-                fire_conduct_other  = request.POST.get('fire_conduct_other', ''),
-                burn_effects        = request.POST.get('burn_effects', ''),
-                burn_efficiency     = request.POST.get('burn_efficiency', ''),
-                notes               = request.POST.get('notes', ''),
-            )
+                bp = BurningPlan.objects.create(
+                    pre_plan            = pp,
+                    execution_date      = request.POST['execution_date'],
+                    num_men             = request.POST.get('num_men') or None,
+                    vehicles            = vehicles,
+                    problems            = request.POST.get('problems', ''),
+                    fuel_superficial    = request.POST.get('fuel_superficial', ''),
+                    fuel_manta_f        = request.POST.get('fuel_manta_f', ''),
+                    fuel_manta_h        = request.POST.get('fuel_manta_h', ''),
+                    weather_state       = request.POST.get('weather_state', ''),
+                    wind_speed_beaufort = request.POST.get('wind_speed_beaufort', ''),
+                    wind_speed_kmh      = request.POST.get('wind_speed_kmh', ''),
+                    wind_direction      = request.POST.get('wind_direction', ''),
+                    fire_conduct        = request.POST.get('fire_conduct', ''),
+                    fire_conduct_other  = request.POST.get('fire_conduct_other', ''),
+                    burn_effects        = request.POST.get('burn_effects', ''),
+                    burn_efficiency     = request.POST.get('burn_efficiency', ''),
+                    notes               = request.POST.get('notes', ''),
+                )
 
-            op_ids = request.POST.getlist('operatives')
-            if op_ids:
-                bp.operatives.set(Operative.objects.filter(pk__in=op_ids))
+                op_ids = request.POST.getlist('operatives')
+                if op_ids:
+                    bp.operatives.set(Operative.objects.filter(pk__in=op_ids))
 
-            # Photos
-            for photo in request.FILES.getlist('photos'):
-                p = BurningPlanPhoto.objects.create(image=photo)
-                bp.photos.add(p)
+                # Photos
+                for photo in request.FILES.getlist('photos'):
+                    p = BurningPlanPhoto.objects.create(image=photo)
+                    bp.photos.add(p)
 
-            # Tactical schema
-            schema_b64 = request.POST.get('tactical_schema_b64', '')
-            if schema_b64:
-                save_tactical_schema(bp, schema_b64)
+                # Tactical schema
+                schema_b64 = request.POST.get('tactical_schema_b64', '')
+                if schema_b64:
+                    save_tactical_schema(bp, schema_b64)
 
-            # Mark pre-plan as executed
-            pp.status = 'Executada'
-            pp.execution_date = bp.execution_date
-            pp.save()
+                # Mark pre-plan as executed
+                pp.status = 'Executada'
+                pp.execution_date = bp.execution_date
+                pp.save()
 
             messages.success(request, 'Plano de Queima criado com sucesso.')
             return redirect('fire_actions:burning_plan_detail', pk=bp.pk)
@@ -233,40 +238,41 @@ def burning_plan_edit(request, pk):
 
     if request.method == 'POST':
         try:
-            vehicles = json.dumps({
-                'VFCI':  int(request.POST.get('vfci', 0) or 0),
-                'VFCM':  int(request.POST.get('vfcm', 0) or 0),
-                'Outro': request.POST.get('other_veh', ''),
-            })
-            bp.execution_date      = request.POST['execution_date']
-            bp.num_men             = request.POST.get('num_men') or None
-            bp.vehicles            = vehicles
-            bp.problems            = request.POST.get('problems', '')
-            bp.fuel_superficial    = request.POST.get('fuel_superficial', '')
-            bp.fuel_manta_f        = request.POST.get('fuel_manta_f', '')
-            bp.fuel_manta_h        = request.POST.get('fuel_manta_h', '')
-            bp.weather_state       = request.POST.get('weather_state', '')
-            bp.wind_speed_beaufort = request.POST.get('wind_speed_beaufort', '')
-            bp.wind_speed_kmh      = request.POST.get('wind_speed_kmh', '')
-            bp.wind_direction      = request.POST.get('wind_direction', '')
-            bp.fire_conduct        = request.POST.get('fire_conduct', '')
-            bp.fire_conduct_other  = request.POST.get('fire_conduct_other', '')
-            bp.burn_effects        = request.POST.get('burn_effects', '')
-            bp.burn_efficiency     = request.POST.get('burn_efficiency', '')
-            bp.notes               = request.POST.get('notes', '')
-            bp.save()
+            with transaction.atomic():
+                vehicles = json.dumps({
+                    'VFCI':  int(request.POST.get('vfci', 0) or 0),
+                    'VFCM':  int(request.POST.get('vfcm', 0) or 0),
+                    'Outro': request.POST.get('other_veh', ''),
+                })
+                bp.execution_date      = request.POST['execution_date']
+                bp.num_men             = request.POST.get('num_men') or None
+                bp.vehicles            = vehicles
+                bp.problems            = request.POST.get('problems', '')
+                bp.fuel_superficial    = request.POST.get('fuel_superficial', '')
+                bp.fuel_manta_f        = request.POST.get('fuel_manta_f', '')
+                bp.fuel_manta_h        = request.POST.get('fuel_manta_h', '')
+                bp.weather_state       = request.POST.get('weather_state', '')
+                bp.wind_speed_beaufort = request.POST.get('wind_speed_beaufort', '')
+                bp.wind_speed_kmh      = request.POST.get('wind_speed_kmh', '')
+                bp.wind_direction      = request.POST.get('wind_direction', '')
+                bp.fire_conduct        = request.POST.get('fire_conduct', '')
+                bp.fire_conduct_other  = request.POST.get('fire_conduct_other', '')
+                bp.burn_effects        = request.POST.get('burn_effects', '')
+                bp.burn_efficiency     = request.POST.get('burn_efficiency', '')
+                bp.notes               = request.POST.get('notes', '')
+                bp.save()
 
-            op_ids = request.POST.getlist('operatives')
-            bp.operatives.set(Operative.objects.filter(pk__in=op_ids))
+                op_ids = request.POST.getlist('operatives')
+                bp.operatives.set(Operative.objects.filter(pk__in=op_ids))
 
-            for photo in request.FILES.getlist('photos'):
-                p = BurningPlanPhoto.objects.create(image=photo)
-                bp.photos.add(p)
+                for photo in request.FILES.getlist('photos'):
+                    p = BurningPlanPhoto.objects.create(image=photo)
+                    bp.photos.add(p)
 
-            # Tactical schema
-            schema_b64 = request.POST.get('tactical_schema_b64', '')
-            if schema_b64:
-                save_tactical_schema(bp, schema_b64)
+                # Tactical schema
+                schema_b64 = request.POST.get('tactical_schema_b64', '')
+                if schema_b64:
+                    save_tactical_schema(bp, schema_b64)
 
             messages.success(request, 'Plano de Queima atualizado.')
             return redirect('fire_actions:burning_plan_detail', pk=bp.pk)
@@ -300,10 +306,11 @@ def burning_plan_delete(request, pk):
     bp = get_object_or_404(BurningPlan, pk=pk)
     if request.method == 'POST':
         pp = bp.pre_plan
-        bp.delete()
-        pp.status = 'Pre-Plano'
-        pp.execution_date = None
-        pp.save()
+        with transaction.atomic():
+            bp.delete()
+            pp.status = 'Pre-Plano'
+            pp.execution_date = None
+            pp.save()
         messages.success(request, 'Plano de Queima eliminado.')
         return redirect('fire_actions:burning_plan_list')
     return render(request, 'fire_actions/confirm_delete.html', {'obj': bp, 'tipo': 'Plano de Queima'})
