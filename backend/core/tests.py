@@ -99,6 +99,17 @@ class AuthTests(TestCase):
         r = self.login('staff', 'x', next_url='https://evil.example/')
         self.assertRedirects(r, '/', fetch_redirect_response=False)
 
+    @override_settings(CARTO_API_KEY='carto-k', MAPTILER_API_KEY='mt-k', STORAGES={
+        'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+        'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+    def test_weather_page_loads_static_assets_and_config(self):
+        self.client.force_login(self.staff)
+        r = self.client.get('/meteorologia/')
+        self.assertContains(r, '/static/core/firedpt.js')
+        self.assertContains(r, '/static/core/firedpt.css')
+        self.assertContains(r, '"maptilerKey": "mt-k"')
+        self.assertContains(r, '"cartoKey": "carto-k"')
+
     def test_pages_require_login(self):
         for url in ['/', '/calendario/', '/meteorologia/', '/parcelas/', '/preplan/', '/operacionais/']:
             self.assertEqual(self.client.get(url).status_code, 302, url)

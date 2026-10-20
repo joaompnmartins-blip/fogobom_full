@@ -208,4 +208,7 @@ def decline_user(request, user_id):
 @login_required
 def meteorologia(request):
     from parcelas.views import parcel_centroids
-    return render(request, 'core/firedpt.html', {'parcelas': parcel_centroids()})
+    return render(request, 'core/firedpt.html', {
+        'parcelas':       parcel_centroids(),
+        'firedpt_config': {'cartoKey': settings.CARTO_API_KEY, 'maptilerKey': settings.MAPTILER_API_KEY},
+    })

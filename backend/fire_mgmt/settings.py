@@ -132,6 +132,8 @@ ADMIN_EMAIL        = os.environ.get('ADMIN_EMAIL', '')
 
 # CARTO raster basemaps — key removes the "API key required" watermark
 CARTO_API_KEY      = os.environ.get('CARTO_API_KEY', '')
+# MapTiler terrain tiles (slope/aspect on the weather page)
+MAPTILER_API_KEY   = os.environ.get('MAPTILER_API_KEY', '')
 
 # GDAL/GEOS — set via ENV in Dockerfile
 # GDAL_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu/libgdal.so'
