@@ -105,6 +105,9 @@ def preplan_edit(request, pk):
 @login_required
 def preplan_delete(request, pk):
     action = get_object_or_404(FireAction, pk=pk)
+    if hasattr(action, 'burningplan'):
+        messages.error(request, 'Este pré-plano tem um Plano de Queima associado. Elimine primeiro o Plano de Queima.')
+        return redirect('fire_actions:detail', pk=pk)
     if request.method == 'POST':
         name = action.name
         action.delete()
