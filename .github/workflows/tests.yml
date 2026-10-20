@@ -1,0 +1,31 @@
+name: Testes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: firedb
+          POSTGRES_USER: fireuser
+          POSTGRES_PASSWORD: firepass
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fireuser"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      # Same image as production, so GDAL/GEOS match
+      - name: Build image
+        run: docker build -t fogobom .
+      - name: Run tests
+        run: >-
+          docker run --rm --network host
+          -e DEBUG=false -e SECRET_KEY=ci-only -e SECURE_SSL_REDIRECT=false
+          -e DB_HOST=localhost -e DB_NAME=firedb -e DB_USER=fireuser -e DB_PASSWORD=firepass
+          fogobom sh -c "cd backend && python manage.py test --noinput"
