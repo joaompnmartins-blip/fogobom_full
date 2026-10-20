@@ -1314,7 +1314,7 @@ const map = L.map('map', {
 });
 
 // Tile layers
-const osmLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+const osmLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}', {
   attribution: '© CartoDB © OpenStreetMap',
   subdomains: 'abcd',
   maxZoom: 19
@@ -2102,7 +2102,7 @@ async function generatePDFReport() {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             // Use CartoDB light (dark-friendly, no API key needed)
-            img.src = `https://a.basemaps.cartocdn.com/light_all/${ZOOM}/${tx}/${ty}.png`;
+            img.src = `https://a.basemaps.cartocdn.com/light_all/${ZOOM}/${tx}/${ty}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}`;
             img.onload  = () => { tctx.drawImage(img, px, py); resolve(); };
             img.onerror = () => resolve(); // skip failed tiles gracefully
           }));

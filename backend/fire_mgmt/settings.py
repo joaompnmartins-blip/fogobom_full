@@ -56,6 +56,7 @@ TEMPLATES = [{
         'django.template.context_processors.request',
         'django.contrib.auth.context_processors.auth',
         'django.contrib.messages.context_processors.messages',
+        'core.context_processors.map_keys',
     ]},
 }]
 
@@ -128,6 +129,9 @@ EMAIL_HOST_USER    = 'resend'
 EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@fogobom.com')
 ADMIN_EMAIL        = os.environ.get('ADMIN_EMAIL', '')
+
+# CARTO raster basemaps — key removes the "API key required" watermark
+CARTO_API_KEY      = os.environ.get('CARTO_API_KEY', '')
 
 # GDAL/GEOS — set via ENV in Dockerfile
 # GDAL_LIBRARY_PATH = '/usr/lib/x86_64-linux-gnu/libgdal.so'
