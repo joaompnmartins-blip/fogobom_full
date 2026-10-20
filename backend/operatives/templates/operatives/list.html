@@ -14,7 +14,7 @@
     <td>{{ op.phone }}</td><td>{{ op.certification_level }}</td>
     <td>
       <a href="{% url 'operatives:edit' op.pk %}" class="btn btn-secondary btn-sm">✏️</a>
-      <a href="{% url 'operatives:delete' op.pk %}" class="btn btn-danger btn-sm">🗑️</a>
+      {% if request.user.is_staff %}<a href="{% url 'operatives:delete' op.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}
     </td>
   </tr>
   {% endfor %}</tbody></table>

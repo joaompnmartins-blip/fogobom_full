@@ -19,7 +19,7 @@
         <a href="{% url 'fire_actions:burning_plan_detail' bp.pk %}" class="btn btn-secondary btn-sm">👁️</a>
         <a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️</a>
         <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 Relatório</a>
-        <a href="{% url 'fire_actions:burning_plan_delete' bp.pk %}" class="btn btn-danger btn-sm">🗑️</a>
+        {% if request.user.is_staff %}<a href="{% url 'fire_actions:burning_plan_delete' bp.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}
       </td>
     </tr>
     {% endfor %}

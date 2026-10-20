@@ -1,6 +1,7 @@
 import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from core.decorators import staff_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.core.serializers import serialize
@@ -126,7 +127,7 @@ def parcela_edit(request, pk):
     })
 
 
-@login_required
+@staff_required
 def parcela_delete(request, pk):
     parcela = get_object_or_404(FireParcel, pk=pk)
     if request.method == 'POST':

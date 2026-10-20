@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from core.decorators import staff_required
 from django.contrib import messages
 from .models import Operative
 
@@ -48,7 +49,7 @@ def operative_edit(request, pk):
     return render(request, 'operatives/form.html', {'op': op, 'action': 'Editar Operacional'})
 
 
-@login_required
+@staff_required
 def operative_delete(request, pk):
     op = get_object_or_404(Operative, pk=pk)
     if request.method == 'POST':

@@ -28,7 +28,7 @@
         {% else %}
         <a href="{% url 'fire_actions:burning_plan_detail' a.burningplan.pk %}" class="btn btn-secondary btn-sm">📄</a>
         {% endif %}
-        <a href="{% url 'fire_actions:delete' a.pk %}" class="btn btn-danger btn-sm">🗑️</a>
+        {% if request.user.is_staff %}<a href="{% url 'fire_actions:delete' a.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}
       </td>
     </tr>
     {% endfor %}

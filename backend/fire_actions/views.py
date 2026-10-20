@@ -8,6 +8,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from core.decorators import staff_required
 from django.contrib import messages
 from django.http import FileResponse, HttpResponse
 from .models import FireAction, BurningPlan, BurningPlanPhoto, PrePlanPhoto
@@ -103,7 +104,7 @@ def preplan_edit(request, pk):
     })
 
 
-@login_required
+@staff_required
 def preplan_delete(request, pk):
     action = get_object_or_404(FireAction, pk=pk)
     if hasattr(action, 'burningplan'):
@@ -301,7 +302,7 @@ def burning_plan_edit(request, pk):
     })
 
 
-@login_required
+@staff_required
 def burning_plan_delete(request, pk):
     bp = get_object_or_404(BurningPlan, pk=pk)
     if request.method == 'POST':
