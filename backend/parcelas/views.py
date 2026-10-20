@@ -5,6 +5,8 @@ from core.forms import form_errors_to_messages
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.core.serializers import serialize
+from django.contrib.gis.db.models.functions import Centroid
+from django.db.models import Max
 from .forms import FireParcelForm, parse_polygon, area_ha
 from .models import FireParcel
 try:
@@ -25,19 +27,22 @@ def last_burn_date_for_parcela(parcela):
             .first())
 
 
+def parcel_centroids():
+    """Parcel centroids (computed in PostGIS) as dicts for the weather/FiredPT map."""
+    qs = FireParcel.objects.annotate(centroid=Centroid('geometry')).only('id', 'name')
+    return [{'id': str(p.id), 'name': p.name,
+             'lat': round(p.centroid.y, 6), 'lng': round(p.centroid.x, 6)}
+            for p in qs if p.centroid]
+
+
 @login_required
 def parcela_list(request):
-    parcelas = FireParcel.objects.all()
-    geojson  = serialize('geojson', parcelas, geometry_field='geometry',
-                         fields=['name','concelho','vegetation_type','infrastructure','area_ha','owner_info','id'])
-    # Attach last_burn directly on each parcela for easy template access
-    parcelas = list(parcelas)
-    for p in parcelas:
-        p.last_burn = last_burn_date_for_parcela(p)
+    # Most recent burning plan execution date per parcela, in a single query
+    parcelas = list(FireParcel.objects.annotate(
+        last_burn=Max('fire_actions__burningplan__execution_date')))
     return render(request, 'parcelas/list.html', {
-        'parcelas':      parcelas,
-        'geojson':       geojson,
-        'total':         len(parcelas),
+        'parcelas': parcelas,
+        'total':    len(parcelas),
     })
 
 
@@ -130,12 +135,4 @@ def parcelas_geojson(request):
 @login_required
 def parcelas_centroids(request):
     """Returns parcela centroids as JSON for FiredPT."""
-    parcelas = []
-    for p in FireParcel.objects.all():
-        try:
-            c = p.geometry.centroid
-            parcelas.append({'id': str(p.id), 'name': p.name,
-                             'lat': round(c.y, 6), 'lng': round(c.x, 6)})
-        except Exception:
-            continue
-    return JsonResponse(parcelas, safe=False)
+    return JsonResponse(parcel_centroids(), safe=False)

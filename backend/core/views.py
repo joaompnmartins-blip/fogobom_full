@@ -207,13 +207,5 @@ def decline_user(request, user_id):
 
 @login_required
 def meteorologia(request):
-    from parcelas.models import FireParcel
-    parcelas = []
-    for p in FireParcel.objects.all():
-        try:
-            c = p.geometry.centroid
-            parcelas.append({'id': str(p.id), 'name': p.name,
-                             'lat': round(c.y, 6), 'lng': round(c.x, 6)})
-        except Exception:
-            continue
-    return render(request, 'core/firedpt.html', {'parcelas': parcelas})
+    from parcelas.views import parcel_centroids
+    return render(request, 'core/firedpt.html', {'parcelas': parcel_centroids()})
