@@ -15,7 +15,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-RUN cd backend && python manage.py collectstatic --noinput
+RUN cd backend && SECRET_KEY=build-only-not-secret python manage.py collectstatic --noinput
 
 EXPOSE 8000
 CMD ["sh", "-c", "cd backend && python manage.py migrate --noinput && python manage.py ensure_superuser && gunicorn fire_mgmt.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
