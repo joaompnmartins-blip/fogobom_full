@@ -113,3 +113,70 @@ class AuthTests(TestCase):
     def test_pages_require_login(self):
         for url in ['/', '/calendario/', '/meteorologia/', '/parcelas/', '/preplan/', '/operacionais/']:
             self.assertEqual(self.client.get(url).status_code, 302, url)
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class PasswordResetTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user('maria', email='maria@example.com', password='Antiga-Pass-2026')
+
+    def request_reset(self, email='maria@example.com'):
+        with mock.patch('core.views._send_async') as send:
+            r = self.client.post('/password/recuperar/', {'email': email})
+        self.assertRedirects(r, '/password/recuperar/enviado/', fetch_redirect_response=False)
+        return send
+
+    def reset_link(self, send):
+        body = send.call_args.args[1]
+        return next(line for line in body.splitlines() if '/password/repor/' in line).split('testserver', 1)[1]
+
+    def test_login_page_links_to_reset(self):
+        self.assertContains(self.client.get('/login/'), '/password/recuperar/')
+
+    def test_full_reset_flow(self):
+        send = self.request_reset()
+        self.assertEqual(send.call_args.args[2], ['maria@example.com'])
+        self.assertIn('Recuperação de password', send.call_args.args[0])
+        link = self.reset_link(send)
+
+        r = self.client.get(link, follow=True)  # Django swaps the token for a session token
+        self.assertTrue(r.context['validlink'])
+        r = self.client.post(r.redirect_chain[-1][0], {'new_password1': STRONG_PW, 'new_password2': STRONG_PW})
+        self.assertRedirects(r, '/password/repor/concluido/', fetch_redirect_response=False)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(STRONG_PW))
+
+        # Link is single-use
+        r = self.client.get(link, follow=True)
+        self.assertFalse(r.context['validlink'])
+
+    def test_weak_new_password_rejected(self):
+        link = self.reset_link(self.request_reset())
+        r = self.client.get(link, follow=True)
+        r = self.client.post(r.redirect_chain[-1][0], {'new_password1': '123', 'new_password2': '123'})
+        self.assertEqual(r.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('Antiga-Pass-2026'))
+
+    def test_unknown_or_pending_email_sends_nothing(self):
+        User.objects.create_user('pend', email='pend@example.com', password='x', is_active=False)
+        self.assertFalse(self.request_reset('ninguem@example.com').called)
+        self.assertFalse(self.request_reset('pend@example.com').called)
+
+    def test_reset_requests_throttled(self):
+        sends = [self.request_reset().called for _ in range(4)]
+        self.assertEqual(sends, [True, True, True, False])
+
+    def test_reset_lifts_login_lockout(self):
+        for _ in range(10):
+            self.client.post('/login/', {'form_type': 'login', 'username': 'maria', 'password': 'errada'})
+        link = self.reset_link(self.request_reset())
+        r = self.client.get(link, follow=True)
+        self.client.post(r.redirect_chain[-1][0], {'new_password1': STRONG_PW, 'new_password2': STRONG_PW})
+        r = self.client.post('/login/', {'form_type': 'login', 'username': 'maria', 'password': STRONG_PW})
+        self.assertRedirects(r, '/', fetch_redirect_response=False)
+
+    def test_invalid_token(self):
+        r = self.client.get('/password/repor/MQ/token-invalido/')
+        self.assertFalse(r.context['validlink'])

@@ -36,7 +36,8 @@ fogobom_full/
 | `ALLOWED_HOSTS` | sim | Domínios aceites, separados por vírgulas |
 | `CSRF_TRUSTED_ORIGINS` | não | Origens adicionais para CSRF (ex.: `https://dominio`) |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | sim | Ligação PostGIS |
-| `RESEND_API_KEY` | sim* | Envio de emails (SMTP Resend) — aprovação de utilizadores |
+| `RESEND_API_KEY` | sim* | Envio de emails (SMTP Resend) — aprovação de utilizadores e recuperação de password |
+| `EMAIL_PORT` | não | Porta SMTP; `2587` por omissão (o Railway bloqueia 587/465) |
 | `DEFAULT_FROM_EMAIL`, `ADMIN_EMAIL` | sim* | Remetente e destinatário dos avisos de novos registos |
 | `DJANGO_SUPERUSER_USERNAME`, `_EMAIL`, `_PASSWORD` | não | Cria o superuser no primeiro arranque (não altera um existente) |
 | `CARTO_API_KEY` | não | Chave dos mapas base CARTO (sem ela aparece marca d'água) |
@@ -53,6 +54,8 @@ Nunca colocar chaves no código nem no repositório — apenas nas variáveis do
 - Novos utilizadores registam-se em `/login/` e ficam **pendentes** até um membro *staff* os aprovar em
   *Utilizadores Pendentes*.
 - Utilizadores aprovados podem consultar, criar e editar; **apagar registos é reservado a staff**.
+- Quem se esquecer da password usa *Esqueceu-se da password?* no login: recebe por email um link
+  válido durante 2 horas e de uso único (máx. 3 pedidos por hora por email).
 - Para tornar alguém staff: `/admin/` → Utilizadores → marcar *Estado de membro da equipa*.
 
 ## Testes

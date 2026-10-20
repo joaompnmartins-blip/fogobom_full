@@ -3,7 +3,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import views as auth_views
+from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.password_validation import validate_password
+from django.template.loader import render_to_string
+from django.urls import reverse_lazy
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -20,8 +24,47 @@ LOGIN_MAX_FAILURES = 10
 LOGIN_LOCKOUT_SECONDS = 15 * 60
 
 
+PASSWORD_RESET_MAX_PER_HOUR = 3
+
+
 def login_fail_key(username):
     return f'login-fail:{username.lower()}'
+
+
+# ── Password reset ────────────────────────────────────────────────────────────
+
+class AsyncPasswordResetForm(PasswordResetForm):
+    """Django's reset form (active users only, no account disclosure), sending in the background."""
+    def send_mail(self, subject_template_name, email_template_name, context,
+                  from_email, to_email, html_email_template_name=None):
+        subject = ''.join(render_to_string(subject_template_name, context).splitlines())
+        body = render_to_string(email_template_name, context)
+        _send_async(subject, body, [to_email])
+
+
+class PasswordResetRequestView(auth_views.PasswordResetView):
+    form_class            = AsyncPasswordResetForm
+    template_name         = 'core/password_reset_form.html'
+    email_template_name   = 'core/password_reset_email.txt'
+    subject_template_name = 'core/password_reset_subject.txt'
+    success_url           = reverse_lazy('core:password_reset_done')
+
+    def form_valid(self, form):
+        key = f'pw-reset:{form.cleaned_data["email"].lower()}'
+        cache.add(key, 0, 60 * 60)
+        if cache.incr(key) > PASSWORD_RESET_MAX_PER_HOUR:
+            # Same response as a normal request, so nothing is revealed
+            return redirect(self.success_url)
+        return super().form_valid(form)
+
+
+class PasswordResetConfirm(auth_views.PasswordResetConfirmView):
+    template_name = 'core/password_reset_confirm.html'
+    success_url   = reverse_lazy('core:password_reset_complete')
+
+    def form_valid(self, form):
+        cache.delete(login_fail_key(form.user.get_username()))  # lift any login lockout
+        return super().form_valid(form)
 
 
 def _pending_users():
