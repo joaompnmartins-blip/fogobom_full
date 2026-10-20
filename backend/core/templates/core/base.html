@@ -33,7 +33,7 @@
     .nav-item .ni{font-size:16px;width:20px;text-align:center;flex-shrink:0}
     .sb-foot{padding:12px 16px;border-top:1px solid var(--border);font-size:12px;color:var(--dim)}
     .sb-foot .un{color:var(--text);font-weight:500;margin-bottom:6px}
-    .btn-lo{font-size:12px;color:var(--dim);padding:4px 0;display:inline-block}.btn-lo:hover{color:var(--danger)}
+    .btn-lo{font-size:12px;color:var(--dim);padding:4px 0;display:inline-block;background:none;border:none;cursor:pointer;font-family:inherit}.btn-lo:hover{color:var(--danger)}
     .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
     .topbar{height:48px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
     .topbar-title{font-family:var(--fh);font-size:18px;font-weight:600;color:#fff}
@@ -104,7 +104,9 @@
     <div class="sb-foot">
       {% if request.user.is_authenticated %}
       <div class="un">{{ request.user.username }}</div>
-      <a href="{% url 'core:logout' %}" class="btn-lo">↩ Terminar sessão</a>
+      <form method="post" action="{% url 'core:logout' %}">{% csrf_token %}
+        <button type="submit" class="btn-lo">↩ Terminar sessão</button>
+      </form>
       {% endif %}
     </div>
   </aside>
