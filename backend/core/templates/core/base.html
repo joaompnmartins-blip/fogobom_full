@@ -7,6 +7,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script>
+    // Escape user data before interpolating it into HTML (popups, tooltips)
+    function escHtml(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+  </script>
   <style>
     :root{--bg:#0f1410;--bg2:#161c18;--bg3:#1d2620;--border:#2a3830;--text:#c8d8cc;--dim:#5a7060;--accent:#e8541a;--accent2:#f5a623;--green:#3a8c50;--green-dim:#1e4a2a;--danger:#c0392b;--fh:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif;--r:4px;--sw:220px}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}

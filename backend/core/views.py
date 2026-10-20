@@ -1,4 +1,3 @@
-import json
 import threading
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
@@ -108,7 +107,7 @@ def calendario(request):
             'color': '#e8541a' if a.status == 'Pre-Plano' else '#3a8c50',
             'url':   f'/preplan/{a.pk}/',
         })
-    return render(request, 'core/calendario.html', {'events_json': json.dumps(events)})
+    return render(request, 'core/calendario.html', {'events': events})
 
 
 @login_required
@@ -164,5 +163,4 @@ def meteorologia(request):
                              'lat': round(c.y, 6), 'lng': round(c.x, 6)})
         except Exception:
             continue
-    parcelas_json = json.dumps(parcelas, ensure_ascii=False)
-    return render(request, 'core/firedpt.html', {'parcelas_json': parcelas_json})
+    return render(request, 'core/firedpt.html', {'parcelas': parcelas})

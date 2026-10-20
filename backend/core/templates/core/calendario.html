@@ -22,8 +22,9 @@
 <div class="card"><div id="calendar"></div></div>
 {% endblock %}
 {% block extra_js %}
+{{ events|json_script:"events-data" }}
 <script>
-const events = {{ events_json|safe }};
+const events = JSON.parse(document.getElementById('events-data').textContent);
 document.addEventListener('DOMContentLoaded',function(){
   new FullCalendar.Calendar(document.getElementById('calendar'),{
     initialView:'dayGridMonth',locale:'pt',firstDay:1,

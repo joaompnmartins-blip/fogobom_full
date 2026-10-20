@@ -135,8 +135,8 @@ function loadParcelas() {
 
           const vegMap = { matos:'Matos', pinhal:'Pinhal', eucaliptal:'Eucaliptal', misto:'Misto' };
           const infraMap = { existing:'Operacional', req_maintenance:'Manutenção necessária', non_existing:'Inexistente', no_info:'Sem informação' };
-          const vegLabel   = vegMap[p.vegetation_type]  || p.vegetation_type  || '—';
-          const infraLabel = infraMap[p.infrastructure] || p.infrastructure   || '—';
+          const vegLabel   = escHtml(vegMap[p.vegetation_type]  || p.vegetation_type  || '—');
+          const infraLabel = escHtml(infraMap[p.infrastructure] || p.infrastructure   || '—');
 
           const actions = pk ? `
             <div style="margin-top:8px;display:flex;gap:6px">
@@ -145,10 +145,10 @@ function loadParcelas() {
             </div>` : '';
 
           layer.bindPopup(`
-            <strong style="font-size:13px">${p.name}</strong><br>
-            <span style="color:#aaa;font-size:11px">${p.concelho || '—'}</span><br>
+            <strong style="font-size:13px">${escHtml(p.name)}</strong><br>
+            <span style="color:#aaa;font-size:11px">${escHtml(p.concelho || '—')}</span><br>
             <table style="font-size:12px;margin-top:4px;border-collapse:collapse">
-              <tr><td style="color:#aaa;padding-right:8px">Área</td><td>${p.area_ha ? p.area_ha + ' ha' : '—'}</td></tr>
+              <tr><td style="color:#aaa;padding-right:8px">Área</td><td>${p.area_ha ? escHtml(p.area_ha) + ' ha' : '—'}</td></tr>
               <tr><td style="color:#aaa;padding-right:8px">Vegetação</td><td>${vegLabel}</td></tr>
               <tr><td style="color:#aaa;padding-right:8px">Infraestrutura</td><td>${infraLabel}</td></tr>
               <tr><td style="color:#aaa;padding-right:8px">Proprietário</td><td>${ownerLabel}</td></tr>

@@ -192,8 +192,9 @@
 
 
 {% block extra_js %}
+{{ parcels_geom|json_script:"parcels-geom" }}
 <script>
-const PARCELS_GEOM = {{ parcels_geom_json|default:"[]"|safe }};
+const PARCELS_GEOM = JSON.parse(document.getElementById('parcels-geom').textContent) || [];
 
 const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
   maxZoom: 21, attribution: '© OpenStreetMap © CARTO'
@@ -211,7 +212,7 @@ PARCELS_GEOM.forEach(p => {
     L.geoJSON(JSON.parse(p.geojson), {
       style: { color: '#D05C1E', weight: 2.5, fillColor: '#fff3ec', fillOpacity: 0.4 }
     })
-    .bindTooltip(p.name, { permanent: true, direction: 'center' })
+    .bindTooltip(escHtml(p.name), { permanent: true, direction: 'center' })
     .addTo(parcelLayer);
   } catch(e) {}
 });

@@ -207,7 +207,7 @@ def burning_plan_create(request, preplan_pk=None):
         'preplan':             preplan,
         'preplans_without_bp': preplans_without_bp,
         'bp':                  None,
-        'parcels_geom_json':   json.dumps(parcels_geom),
+        'parcels_geom':        parcels_geom,
     })
 
 
@@ -288,7 +288,7 @@ def burning_plan_edit(request, pk):
         'vehicles':            vehicles,
         'selected_operatives': list(bp.operatives.values_list('pk', flat=True)),
         'schema_url':          schema_url,
-        'parcels_geom_json':   json.dumps(parcels_geom),
+        'parcels_geom':        parcels_geom,
     })
 
 

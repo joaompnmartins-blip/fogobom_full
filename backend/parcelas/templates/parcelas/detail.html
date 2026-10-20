@@ -114,10 +114,10 @@ function loadParcelas() {
           const p = feature.properties;
           const ownerLabel = p.owner_info === 'yes' ? '✅ Identificado' : '❌ Não identificado';
           layer.bindPopup(
-            `<strong>${p.name}</strong><br>
+            `<strong>${escHtml(p.name)}</strong><br>
              Proprietário: ${ownerLabel}<br>
-             Concelho: ${p.concelho || '—'}<br>
-             Área: ${p.area_ha ? p.area_ha + ' ha' : '—'}`
+             Concelho: ${escHtml(p.concelho || '—')}<br>
+             Área: ${p.area_ha ? escHtml(p.area_ha) + ' ha' : '—'}`
           );
           // Highlight the current parcela
           if (String(feature.id) === String(currentPk) ||

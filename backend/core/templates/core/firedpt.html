@@ -1198,6 +1198,7 @@
 </style>
 </head>
 <body>
+{{ parcelas|json_script:"parcelas-data" }}
 
 <header>
   <a href="{% url 'core:dashboard' %}" class="back-btn">← Dashboard</a>
@@ -3389,7 +3390,7 @@ async function generatePointReport() {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ─── State ───────────────────────────────────────────────────────────────────
-let parcels       = {{ parcelas_json|safe }};  // injected from FogoBom DB
+let parcels       = JSON.parse(document.getElementById('parcelas-data').textContent);  // injected from FogoBom DB
 let parcelResults = {};          // { parcelId: [ {date,fmMean,fmWorst,cls,go,wetDay,rain,dryDays} × 5 ] }
 let parcelMarkers = {};          // { parcelId: L.marker }
 let parcelLayerGroup = null;     // L.layerGroup for all parcel markers

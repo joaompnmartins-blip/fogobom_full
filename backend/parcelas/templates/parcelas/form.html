@@ -179,7 +179,7 @@ function loadExistingParcelas() {
         }),
         onEachFeature(feature, layer) {
           const p = feature.properties;
-          layer.bindTooltip(p.name, { sticky: true, opacity: .85 });
+          layer.bindTooltip(escHtml(p.name), { sticky: true, opacity: .85 });
         }
       }).addTo(map);
     })
