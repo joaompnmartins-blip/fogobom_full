@@ -8,3 +8,7 @@ media/
 .venv/
 venv/
 node_modules/
+
+# Ficheiros com segredos locais
+resend_key.odt
+*.key
