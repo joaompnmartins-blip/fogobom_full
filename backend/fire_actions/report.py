@@ -6,7 +6,7 @@ import io
 import json
 import math
 from datetime import date
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from docx import Document
 from fire_actions.models import BurningPlan
@@ -237,6 +237,22 @@ def _generate_parcela_schema(bp, width=900, height=600, padding=60) -> io.BytesI
     return buf
 
 
+def _photo_for_docx(photo, max_px=1600):
+    """Load a stored photo, downscale it and return a JPEG BytesIO (None if unavailable)."""
+    try:
+        with photo.image.open('rb') as f:
+            img = Image.open(f)
+            img.load()
+    except Exception:
+        return None
+    img = ImageOps.exif_transpose(img).convert('RGB')  # respect phone camera orientation
+    img.thumbnail((max_px, max_px))
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', quality=85)
+    buf.seek(0)
+    return buf
+
+
 def generate_bp_docx(bp) -> bytes:
     """
     Given a BurningPlan instance, return the .docx as bytes.
@@ -293,7 +309,7 @@ def generate_bp_docx(bp) -> bytes:
     op_names = ', '.join(o.name for o in bp.operatives.all()) or '—'
     _two_col_table(doc, [
         (('Nº de Homens',    bp.num_men),   ('Operacionais', op_names)),
-        (('VFCI',            vd.get('VFCI', 0)), ('VLCI', vd.get('VLCI', vd.get('VFCM', 0)))),
+        (('VFCI',            vd.get('VFCI', 0)), ('VFCM', vd.get('VFCM', 0))),
         (('Outros veículos', vd.get('Outro', '—')), ('', '')),
     ])
 
@@ -353,8 +369,35 @@ def generate_bp_docx(bp) -> bytes:
         _value_cell(t.rows[0].cells[0], 'Sem geometria de parcela disponível.')
     doc.add_paragraph()
 
-    # ── 9. Assinaturas ────────────────────────────────────────────────────────
-    _section_heading(doc, '9. Assinaturas')
+    # ── 9. Fotografias ────────────────────────────────────────────────────────
+    photos = list(bp.photos.all())
+    if photos:
+        _section_heading(doc, '9. Fotografias')
+        missing = 0
+        for photo in photos:
+            img_buf = _photo_for_docx(photo)
+            if img_buf is None:
+                missing += 1
+                continue
+            doc.add_picture(img_buf, width=Cm(14))
+            doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if photo.caption:
+                cap = doc.add_paragraph()
+                cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                cr = cap.add_run(photo.caption)
+                cr.font.size = Pt(9)
+                cr.font.color.rgb = DIM
+                cr.font.name = 'Arial'
+        if missing:
+            note = doc.add_paragraph()
+            nr = note.add_run(f'{missing} fotografia(s) indisponível(eis) no armazenamento.')
+            nr.font.size = Pt(9)
+            nr.font.color.rgb = DIM
+            nr.font.name = 'Arial'
+        doc.add_paragraph()
+
+    # ── 10. Assinaturas ───────────────────────────────────────────────────────
+    _section_heading(doc, '10. Assinaturas')
     t = doc.add_table(rows=3, cols=2)
     t.style = 'Table Grid'
     _label_cell(t.rows[0].cells[0], 'Responsável da Queima')
