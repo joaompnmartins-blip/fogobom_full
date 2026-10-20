@@ -1,5 +1,3 @@
-import logging
-import threading
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -9,7 +7,6 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.conf import settings
 from django.utils import timezone
@@ -17,26 +14,14 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .decorators import staff_required
-
-logger = logging.getLogger(__name__)
+from .emails import send_async as _send_async
 
 LOGIN_MAX_FAILURES = 10
 LOGIN_LOCKOUT_SECONDS = 15 * 60
 
 
-def _send_mail_logged(subject, message, recipient_list):
-    try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
-    except Exception:
-        logger.exception('Falha ao enviar email "%s" para %s', subject, recipient_list)
-
-
-def _send_async(subject, message, recipient_list):
-    threading.Thread(
-        target=_send_mail_logged,
-        args=(subject, message, recipient_list),
-        daemon=True,
-    ).start()
+def login_fail_key(username):
+    return f'login-fail:{username.lower()}'
 
 
 def _pending_users():
@@ -55,7 +40,7 @@ def login_view(request):
         if form_type == 'login':
             username = request.POST.get('username', '').strip()
             password = request.POST.get('password', '')
-            fail_key = f'login-fail:{username.lower()}'
+            fail_key = login_fail_key(username)
             if cache.get(fail_key, 0) >= LOGIN_MAX_FAILURES:
                 ctx['login_error'] = 'Demasiadas tentativas falhadas. Tente novamente dentro de 15 minutos.'
                 return render(request, 'core/login.html', ctx)
