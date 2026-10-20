@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from core.decorators import staff_required
 from django.contrib import messages
+from core.forms import form_errors_to_messages
+from .forms import OperativeForm
 from .models import Operative
 
 
@@ -14,19 +16,13 @@ def operative_list(request):
 @login_required
 def operative_create(request):
     if request.method == 'POST':
-        try:
-            Operative.objects.create(
-                name                = request.POST['name'],
-                nif                 = request.POST.get('nif', ''),
-                email               = request.POST.get('email', ''),
-                phone               = request.POST.get('phone', ''),
-                certification_level = request.POST.get('certification_level', ''),
-                notes               = request.POST.get('notes', ''),
-            )
-            messages.success(request, f'Operacional "{request.POST["name"]}" criado.')
+        form = OperativeForm(request.POST)
+        if form.is_valid():
+            op = form.save()
+            messages.success(request, f'Operacional "{op.name}" criado.')
             return redirect('operatives:list')
-        except Exception as e:
-            messages.error(request, f'Erro: {e}')
+        form_errors_to_messages(request, form)
+        return render(request, 'operatives/form.html', {'op': form.instance, 'action': 'Novo Operacional'})
     return render(request, 'operatives/form.html', {'action': 'Novo Operacional'})
 
 
@@ -34,18 +30,12 @@ def operative_create(request):
 def operative_edit(request, pk):
     op = get_object_or_404(Operative, pk=pk)
     if request.method == 'POST':
-        try:
-            op.name                = request.POST['name']
-            op.nif                 = request.POST.get('nif', '')
-            op.email               = request.POST.get('email', '')
-            op.phone               = request.POST.get('phone', '')
-            op.certification_level = request.POST.get('certification_level', '')
-            op.notes               = request.POST.get('notes', '')
-            op.save()
+        form = OperativeForm(request.POST, instance=op)
+        if form.is_valid():
+            form.save()
             messages.success(request, f'Operacional "{op.name}" atualizado.')
             return redirect('operatives:list')
-        except Exception as e:
-            messages.error(request, f'Erro: {e}')
+        form_errors_to_messages(request, form)
     return render(request, 'operatives/form.html', {'op': op, 'action': 'Editar Operacional'})
 
 

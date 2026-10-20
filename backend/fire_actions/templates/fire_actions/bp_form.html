@@ -1,6 +1,6 @@
 {% extends "core/base.html" %}
-{% block title %}{% if bp %}Editar{% else %}Novo{% endif %} Plano de Queima{% endblock %}
-{% block page_title %}{% if bp %}Editar Plano de Queima{% else %}Novo Plano de Queima{% endif %}{% endblock %}
+{% block title %}{% if bp.pk %}Editar{% else %}Novo{% endif %} Plano de Queima{% endblock %}
+{% block page_title %}{% if bp.pk %}Editar Plano de Queima{% else %}Novo Plano de Queima{% endif %}{% endblock %}
 {% block nav_bp %}active{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -10,7 +10,7 @@
 {% block content %}
 <form method="post" enctype="multipart/form-data">{% csrf_token %}
 
-{% if not bp %}
+{% if not bp.pk %}
 <div class="card">
   <div class="card-title">Pré-Plano Associado</div>
   {% if preplan %}
@@ -21,7 +21,7 @@
     <select name="pre_plan" required>
       <option value="">— selecionar —</option>
       {% for pp in preplans_without_bp %}
-        <option value="{{ pp.pk }}">{{ pp.name }} ({{ pp.scheduled_date|date:"d/m/Y" }})</option>
+        <option value="{{ pp.pk }}" {% if pp.pk == bp.pre_plan_id %}selected{% endif %}>{{ pp.name }} ({{ pp.scheduled_date|date:"d/m/Y" }})</option>
       {% endfor %}
     </select>
   </div>
@@ -35,7 +35,7 @@
   <div class="card-title">Execução</div>
   <div class="form-row cols-2">
     <div class="field"><label>Data de Execução *</label>
-      <input type="date" name="execution_date" value="{{ bp.execution_date|default:'' }}" required>
+      <input type="date" name="execution_date" value="{{ bp.execution_date|date:'Y-m-d' }}" required>
     </div>
     <div class="field"><label>Nº de Homens</label>
       <input type="number" name="num_men" value="{{ bp.num_men|default:'' }}" min="0">
@@ -165,7 +165,7 @@
   <div class="field">
     <input type="file" name="photos" multiple accept="image/*" style="color:var(--text)">
   </div>
-  {% if bp.photos.all %}
+  {% if bp.pk and bp.photos.all %}
   <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
     {% for photo in bp.photos.all %}
     <img src="{{ photo.image.url }}" style="height:80px;border-radius:4px;object-fit:cover">

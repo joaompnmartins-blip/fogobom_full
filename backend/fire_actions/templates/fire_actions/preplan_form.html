@@ -1,6 +1,6 @@
 {% extends "core/base.html" %}
-{% block title %}{% if action_obj %}Editar{% else %}Novo{% endif %} Pré-Plano{% endblock %}
-{% block page_title %}{% if action_obj %}Editar Pré-Plano{% else %}Novo Pré-Plano{% endif %}{% endblock %}
+{% block title %}{% if action_obj.pk %}Editar{% else %}Novo{% endif %} Pré-Plano{% endblock %}
+{% block page_title %}{% if action_obj.pk %}Editar Pré-Plano{% else %}Novo Pré-Plano{% endif %}{% endblock %}
 {% block nav_pp %}active{% endblock %}
 {% block content %}
 <div class="card" style="max-width:760px">
@@ -10,7 +10,7 @@
     </div>
     <div class="form-row cols-2">
       <div class="field"><label>Responsável</label><input type="text" name="responsible" value="{{ action_obj.responsible|default:'' }}"></div>
-      <div class="field"><label>Data Prevista *</label><input type="date" name="scheduled_date" value="{{ action_obj.scheduled_date|default:'' }}" required></div>
+      <div class="field"><label>Data Prevista *</label><input type="date" name="scheduled_date" value="{{ action_obj.scheduled_date|date:'Y-m-d' }}" required></div>
     </div>
     <div class="form-row">
       <div class="field"><label>Parcelas</label>

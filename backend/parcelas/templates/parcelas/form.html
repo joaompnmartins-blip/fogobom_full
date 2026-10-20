@@ -122,7 +122,7 @@
       <div id="draw-map" style="height:460px"></div>
     </div>
     <p style="font-size:12px;color:var(--dim);margin-top:8px">
-      {% if parcela %}Geometria atual carregada. Redesenhe ou importe para alterar.{% else %}Desenhe ✏️ o polígono da parcela ou importe um ficheiro GeoJSON/KML.{% endif %}
+      {% if parcela.pk %}Geometria atual carregada. Redesenhe ou importe para alterar.{% else %}Desenhe ✏️ o polígono da parcela ou importe um ficheiro GeoJSON/KML.{% endif %}
     </p>
     <input type="hidden" name="geometry" id="geometry-input" value="{{ geom_json|default:'' }}">
   </div>

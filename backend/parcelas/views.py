@@ -1,26 +1,17 @@
-import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from core.decorators import staff_required
+from core.forms import form_errors_to_messages
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.core.serializers import serialize
-from django.contrib.gis.geos import GEOSGeometry, Polygon, MultiPolygon
+from .forms import FireParcelForm, parse_polygon, area_ha
 from .models import FireParcel
 try:
     from fire_actions.models import BurningPlan
     HAS_BP = True
 except ImportError:
     HAS_BP = False
-
-
-def coerce_to_polygon(geom):
-    """Accept Polygon or MultiPolygon; returns a Polygon (largest part if multi)."""
-    if isinstance(geom, Polygon):
-        return geom
-    if isinstance(geom, MultiPolygon):
-        return max(geom, key=lambda p: p.area)
-    return None
 
 
 def last_burn_date_for_parcela(parcela):
@@ -50,79 +41,54 @@ def parcela_list(request):
     })
 
 
+def _save_parcela(request, instance, action):
+    """Shared create/edit handler. On edit, an empty geometry keeps the current one."""
+    is_new = instance.pk is None
+    form = FireParcelForm(request.POST, instance=instance)
+    geom_str = request.POST.get('geometry', '')
+    geom = geom_error = None
+    if geom_str:
+        geom, geom_error = parse_polygon(geom_str)
+    elif is_new:
+        geom_error = 'Geometria em falta. Desenhe a parcela no mapa.'
+
+    if form.is_valid() and not geom_error:
+        parcela = form.save(commit=False)
+        if geom:
+            parcela.geometry = geom
+            parcela.area_ha  = area_ha(geom)
+        parcela.save()
+        verb = 'criada com sucesso' if is_new else 'atualizada'
+        messages.success(request, f'Parcela "{parcela.name}" {verb}.')
+        return redirect('parcelas:list')
+
+    form_errors_to_messages(request, form)
+    if geom_error:
+        messages.error(request, geom_error)
+    if not geom_str and form.instance.geometry:
+        geom_str = form.instance.geometry.json
+    return render(request, 'parcelas/form.html', {
+        'parcela':   form.instance,
+        'geom_json': geom_str,
+        'action':    action,
+    })
+
+
 @login_required
 def parcela_create(request):
     if request.method == 'POST':
-        try:
-            geom_str = request.POST.get('geometry', '')
-            if not geom_str:
-                messages.error(request, 'Geometria em falta. Desenhe a parcela no mapa.')
-                return render(request, 'parcelas/form.html', {'form_data': request.POST})
-
-            geom = coerce_to_polygon(GEOSGeometry(geom_str, srid=4326))
-            if geom is None:
-                messages.error(request, 'A geometria deve ser um polígono.')
-                return render(request, 'parcelas/form.html', {'form_data': request.POST})
-
-            geom_proj = geom.transform(3763, clone=True)  # Portuguese TM06
-            area_ha = round(geom_proj.area / 10000, 4)
-
-            FireParcel.objects.create(
-                name             = request.POST['name'],
-                concelho         = request.POST.get('concelho', ''),
-                vegetation_type  = request.POST.get('vegetation_type', 'matos'),
-                infrastructure   = request.POST.get('infrastructure', 'no_info'),
-                owner_info       = request.POST.get('owner_info', 'no'),
-                resp_name        = request.POST.get('resp_name') or None,
-                resp_email       = request.POST.get('resp_email') or None,
-                geometry         = geom,
-                area_ha          = area_ha,
-            )
-            messages.success(request, f'Parcela "{request.POST["name"]}" criada com sucesso.')
-            return redirect('parcelas:list')
-
-        except Exception as e:
-            messages.error(request, f'Erro ao criar parcela: {e}')
-
+        return _save_parcela(request, FireParcel(), 'Nova Parcela')
     return render(request, 'parcelas/form.html', {'action': 'Nova Parcela'})
 
 
 @login_required
 def parcela_edit(request, pk):
     parcela = get_object_or_404(FireParcel, pk=pk)
-
     if request.method == 'POST':
-        try:
-            geom_str = request.POST.get('geometry', '')
-            geom_raw = GEOSGeometry(geom_str, srid=4326) if geom_str else parcela.geometry
-            geom = coerce_to_polygon(geom_raw) if geom_str else geom_raw
-            if geom_str and geom is None:
-                messages.error(request, 'A geometria deve ser um polígono.')
-                return render(request, 'parcelas/form.html', {'parcela': parcela, 'geom_json': geom_str, 'action': 'Editar Parcela'})
-            if geom_str:
-                geom_proj = geom.transform(3763, clone=True)
-                parcela.area_ha = round(geom_proj.area / 10000, 4)
-                parcela.geometry = geom
-
-            parcela.name             = request.POST['name']
-            parcela.concelho         = request.POST.get('concelho', '')
-            parcela.vegetation_type  = request.POST.get('vegetation_type', 'matos')
-            parcela.infrastructure   = request.POST.get('infrastructure', 'no_info')
-            parcela.owner_info       = request.POST.get('owner_info', 'no')
-            parcela.resp_name        = request.POST.get('resp_name') or None
-            parcela.resp_email       = request.POST.get('resp_email') or None
-            parcela.save()
-
-            messages.success(request, f'Parcela "{parcela.name}" atualizada.')
-            return redirect('parcelas:list')
-
-        except Exception as e:
-            messages.error(request, f'Erro ao atualizar: {e}')
-
-    geom_json = parcela.geometry.json if parcela.geometry else ''
+        return _save_parcela(request, parcela, 'Editar Parcela')
     return render(request, 'parcelas/form.html', {
         'parcela':   parcela,
-        'geom_json': geom_json,
+        'geom_json': parcela.geometry.json if parcela.geometry else '',
         'action':    'Editar Parcela',
     })
 
