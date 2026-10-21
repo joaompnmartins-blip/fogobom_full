@@ -96,6 +96,7 @@
       <a href="{% url 'operatives:list' %}" class="nav-item {% block nav_op %}{% endblock %}"><span class="ni">👷</span>Operacionais</a>
       <div class="nav-sec">Ferramentas</div>
       <a href="{% url 'core:meteorologia' %}" class="nav-item {% block nav_met %}{% endblock %}"><span class="ni">🌤️</span>Meteorologia</a>
+      <a href="{% url 'core:manual' %}" class="nav-item"><span class="ni">📖</span>Manual</a>
       {% if request.user.is_staff %}
       <div class="nav-sec">Administração</div>
       <a href="{% url 'core:pending_users' %}" class="nav-item {% block nav_pending %}{% endblock %}"><span class="ni">👤</span>Utilizadores Pendentes</a>

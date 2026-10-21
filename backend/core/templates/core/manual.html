@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Utilizador — Fogo Bom Algarve</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f1410;--bg2:#161c18;--bg3:#1d2620;--border:#2a3830;--text:#c8d8cc;--dim:#7a9080;--accent:#e8541a;--green:#3a8c50;--fh:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth;scroll-padding-top:16px}
+    body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:15px;line-height:1.65}
+    a{color:var(--accent)}
+    .top{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .brand{font-family:var(--fh);font-size:22px;font-weight:800;color:#fff;letter-spacing:-.3px}
+    .brand span{color:var(--accent)}
+    .top a.back{font-size:13px;color:var(--dim);text-decoration:none;border:1px solid var(--border);padding:6px 12px;border-radius:4px}
+    .top a.back:hover{color:#fff;border-color:var(--accent)}
+    .wrap{display:grid;grid-template-columns:240px minmax(0,1fr);gap:40px;max-width:1120px;margin:0 auto;padding:32px 24px 80px}
+    nav.toc{position:sticky;top:16px;align-self:start;font-size:13.5px}
+    nav.toc .t{font-family:var(--fh);font-size:13px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+    nav.toc ol{list-style:none;counter-reset:toc}
+    nav.toc li{counter-increment:toc}
+    nav.toc a{display:block;padding:4px 0 4px 10px;color:var(--text);text-decoration:none;border-left:2px solid var(--border)}
+    nav.toc a::before{content:counter(toc) ". ";color:var(--dim)}
+    nav.toc a:hover{border-left-color:var(--accent);color:#fff}
+    main h1{font-family:var(--fh);font-size:40px;font-weight:800;color:#fff;line-height:1.05;margin-bottom:8px}
+    main .lead{color:var(--dim);margin-bottom:32px;max-width:640px}
+    section{margin-bottom:44px}
+    h2{font-family:var(--fh);font-size:26px;font-weight:700;color:#fff;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--accent)}
+    h3{font-family:var(--fh);font-size:19px;font-weight:700;color:#fff;margin:22px 0 8px}
+    p,ul,ol{margin-bottom:12px;max-width:720px}
+    main ul,main ol{padding-left:22px}
+    li{margin-bottom:4px}
+    strong{color:#fff;font-weight:600}
+    kbd,.ui{font-family:var(--fb);font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 7px;color:#fff;white-space:nowrap}
+    table{border-collapse:collapse;margin:8px 0 16px;font-size:14px;max-width:720px;width:100%}
+    th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+    th{background:var(--bg3);color:#fff;font-weight:600}
+    .note{background:var(--bg2);border-left:3px solid var(--green);padding:10px 14px;border-radius:3px;margin:12px 0 16px;max-width:720px;font-size:14px}
+    .warn{border-left-color:var(--accent)}
+    .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+    .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 16px}
+    .flow span{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:13.5px;color:#fff}
+    .flow b{color:var(--accent)}
+    @media(max-width:860px){.wrap{grid-template-columns:1fr;gap:16px}nav.toc{position:static;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px}main h1{font-size:32px}}
+  </style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">Fogo Bom <span>Algarve</span> · Manual</div>
+  {% if request.user.is_authenticated %}
+    <a class="back" href="{% url 'core:dashboard' %}">← Voltar à aplicação</a>
+  {% else %}
+    <a class="back" href="{% url 'core:login' %}">← Iniciar sessão</a>
+  {% endif %}
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Índice">
+    <div class="t">Índice</div>
+    <ol>
+      <li><a href="#inicio">Primeiros passos</a></li>
+      <li><a href="#navegacao">Navegação</a></li>
+      <li><a href="#dashboard">Dashboard</a></li>
+      <li><a href="#parcelas">Parcelas</a></li>
+      <li><a href="#operacionais">Operacionais</a></li>
+      <li><a href="#preplanos">Pré-Planos</a></li>
+      <li><a href="#planos">Planos de Queima</a></li>
+      <li><a href="#relatorio">Relatório Word</a></li>
+      <li><a href="#calendario">Calendário</a></li>
+      <li><a href="#meteorologia">Meteorologia</a></li>
+      <li><a href="#faq">Perguntas frequentes</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <h1>Manual de Utilizador</h1>
+    <p class="lead">Guia de utilização da plataforma Fogo Bom Algarve para gestão de fogo controlado:
+      registo de parcelas, planeamento das queimas, registo da execução e consulta da meteorologia.</p>
+
+    <p>O trabalho na plataforma segue normalmente esta sequência:</p>
+    <div class="flow">
+      <span>🗺️ Parcela</span><b>→</b><span>📋 Pré-Plano</span><b>→</b><span>📄 Plano de Queima</span><b>→</b><span>📥 Relatório Word</span>
+    </div>
+
+    <!-- 1 ─────────────────────────────────────────────────────────── -->
+    <section id="inicio">
+      <h2>1. Primeiros passos</h2>
+
+      <h3>Criar conta</h3>
+      <ol>
+        <li>Na página de entrada, abra o separador <span class="ui">Criar Conta</span>.</li>
+        <li>Indique um nome de utilizador, o seu email e uma password (duas vezes).</li>
+        <li>Carregue em <span class="ui">Criar Conta →</span>.</li>
+      </ol>
+      <p>A password tem de ter <strong>pelo menos 8 caracteres</strong> e não pode ser demasiado comum,
+        composta só por números, nem parecida com o nome de utilizador.</p>
+      <div class="note">A conta fica <strong>pendente</strong> até ser aprovada por um administrador.
+        Se tentar entrar antes disso, verá a mensagem “A sua conta ainda aguarda aprovação”.
+        Após a aprovação pode iniciar sessão normalmente.</div>
+
+      <h3>Iniciar e terminar sessão</h3>
+      <p>Introduza o nome de utilizador e a password no separador <span class="ui">Iniciar Sessão</span>.
+        Para sair, use <span class="ui">↩ Terminar sessão</span> no fundo do menu lateral.</p>
+      <div class="note warn">Por segurança, após <strong>10 tentativas falhadas</strong> o acesso a essa conta
+        fica bloqueado durante <strong>15 minutos</strong>. Se precisar de entrar antes disso, recupere a password (ver abaixo).</div>
+
+      <h3>Esqueci-me da password</h3>
+      <ol>
+        <li>Na página de entrada, clique em <span class="ui">Esqueceu-se da password?</span>.</li>
+        <li>Indique o email da sua conta e carregue em <span class="ui">Enviar link →</span>.</li>
+        <li>Abra o email recebido e siga o link para escolher uma nova password.</li>
+      </ol>
+      <p>O link é válido durante <strong>2 horas</strong> e só pode ser usado uma vez. Se não receber o email,
+        verifique a pasta de spam; pode pedir até 3 links por hora. Se continuar sem o receber, contacte o administrador.</p>
+
+      <h3>Alterar a password</h3>
+      <p>Com sessão iniciada, clique em <span class="ui">🔑 Alterar password</span> no fundo do menu lateral,
+        indique a password atual e a nova (duas vezes). Se um administrador lhe tiver atribuído uma password
+        temporária, altere-a logo no primeiro acesso.</p>
+    </section>
+
+    <!-- 2 ─────────────────────────────────────────────────────────── -->
+    <section id="navegacao">
+      <h2>2. Navegação</h2>
+      <p>O menu lateral, à esquerda, dá acesso a todas as áreas:</p>
+      <table>
+        <tr><th>Menu</th><th>Para quê</th></tr>
+        <tr><td>📊 Dashboard</td><td>Resumo geral, próximas queimas e planos recentes</td></tr>
+        <tr><td>🗺️ Parcelas</td><td>Áreas de intervenção, com mapa</td></tr>
+        <tr><td>📋 Pré-Planos</td><td>Planeamento das queimas (data prevista e parcelas)</td></tr>
+        <tr><td>📄 Planos de Queima</td><td>Registo da execução de cada queima e relatório Word</td></tr>
+        <tr><td>📅 Calendário</td><td>Vista mensal das queimas planeadas e executadas</td></tr>
+        <tr><td>👷 Operacionais</td><td>Pessoas que participam nas queimas</td></tr>
+        <tr><td>🌤️ Meteorologia</td><td>Previsão da humidade do combustível e recomendação para fogo controlado</td></tr>
+      </table>
+      <p>Nas listas, os botões de cada linha têm este significado:
+        <span class="ui">👁️</span> ver detalhe · <span class="ui">✏️</span> editar ·
+        <span class="ui">📄 Queima</span> criar o plano de queima · <span class="ui">📥 Relatório</span> descarregar o relatório Word.
+        O botão principal de cada página (por exemplo <span class="ui">+ Nova Parcela</span>) está no canto superior direito.</p>
+      <div class="note">A plataforma foi pensada para utilização em computador. Este manual está sempre
+        disponível na página de entrada e no menu lateral (<span class="ui">📖 Manual</span>).</div>
+    </section>
+
+    <!-- 3 ─────────────────────────────────────────────────────────── -->
+    <section id="dashboard">
+      <h2>3. Dashboard</h2>
+      <p>É a página inicial após iniciar sessão. Mostra:</p>
+      <ul>
+        <li><strong>Totais</strong>: parcelas, pré-planos ativos (ainda não executados), planos de queima e operacionais.</li>
+        <li><strong>Próximas queimas</strong>: pré-planos com data prevista nos próximos 30 dias.</li>
+        <li><strong>Planos recentes</strong>: os últimos planos de queima registados.</li>
+        <li><strong>Ações rápidas</strong>: atalhos para criar parcela, pré-plano, operacional ou abrir a meteorologia.</li>
+      </ul>
+    </section>
+
+    <!-- 4 ─────────────────────────────────────────────────────────── -->
+    <section id="parcelas">
+      <h2>4. Parcelas</h2>
+      <p>Uma parcela é a área onde se realiza (ou pode realizar) uma queima, definida por um polígono no mapa.</p>
+
+      <h3>Lista e mapa</h3>
+      <p>A página mostra todas as parcelas num mapa e numa tabela com concelho, vegetação, área, infraestrutura,
+        proprietário e <strong>data da última queima</strong> (calculada automaticamente a partir dos planos de queima).
+        No mapa, a cor indica se o proprietário está identificado:</p>
+      <p><span class="dot" style="background:#22c55e"></span>Identificado &nbsp;
+        <span class="dot" style="background:#f97316"></span>Não identificado &nbsp;
+        <span class="dot" style="background:#94a3b8"></span>Sem informação</p>
+      <p>Clique numa parcela do mapa para ver um resumo e os atalhos para o detalhe e a edição.
+        Pode alternar entre mapa e satélite no canto superior direito do mapa.</p>
+
+      <h3>Criar uma parcela</h3>
+      <ol>
+        <li>Em <span class="ui">Parcelas</span>, carregue em <span class="ui">+ Nova Parcela</span>.</li>
+        <li>Preencha o nome (obrigatório) e, se souber, concelho, tipo de vegetação, infraestrutura,
+          proprietário identificado e o nome e email do responsável.</li>
+        <li>Defina a geometria de uma de duas formas:
+          <ul>
+            <li><strong>Desenhar</strong>: use a ferramenta de polígono do mapa, clique em cada vértice e feche
+              o polígono clicando no primeiro ponto. As parcelas existentes aparecem a tracejado como referência.</li>
+            <li><strong>Importar</strong>: carregue em <span class="ui">📂 Importar GeoJSON / KML</span> e escolha um
+              ficheiro <code>.geojson</code>, <code>.json</code> ou <code>.kml</code>.</li>
+          </ul>
+        </li>
+        <li>Carregue em <span class="ui">💾 Guardar Parcela</span>.</li>
+      </ol>
+      <p>A <strong>área (ha)</strong> é calculada automaticamente a partir do polígono (sistema PT-TM06).</p>
+      <div class="note warn">
+        <strong>Regras da geometria:</strong> tem de ser um polígono. Polígonos cujas linhas se cruzam
+        (por exemplo em forma de “laço”) são recusados — redesenhe-os. Se importar um ficheiro com várias
+        partes, é guardada apenas a <strong>maior</strong>.</div>
+
+      <h3>Editar uma parcela</h3>
+      <p>Abra a parcela e carregue em <span class="ui">✏️ Editar</span>. A geometria atual aparece no mapa;
+        <strong>se não a redesenhar nem importar outra, mantém-se a atual</strong>.
+        Se algum campo tiver um erro, a página indica-o e mantém o que escreveu, para poder corrigir.</p>
+    </section>
+
+    <!-- 5 ─────────────────────────────────────────────────────────── -->
+    <section id="operacionais">
+      <h2>5. Operacionais</h2>
+      <p>Registe aqui as pessoas que participam nas queimas, para as poder associar aos planos de queima.</p>
+      <ol>
+        <li>Em <span class="ui">Operacionais</span>, carregue em <span class="ui">+ Novo Operacional</span>.</li>
+        <li>Preencha o nome (obrigatório) e, opcionalmente, NIF, email, telefone, nível de certificação e notas.</li>
+        <li>Carregue em <span class="ui">💾 Guardar</span>.</li>
+      </ol>
+      <p>Para alterar dados, use <span class="ui">✏️</span> na linha do operacional.</p>
+    </section>
+
+    <!-- 6 ─────────────────────────────────────────────────────────── -->
+    <section id="preplanos">
+      <h2>6. Pré-Planos</h2>
+      <p>O pré-plano é o planeamento de uma queima: nome da ação, responsável, data prevista e parcelas abrangidas.</p>
+      <ol>
+        <li>Em <span class="ui">Pré-Planos</span>, carregue em <span class="ui">+ Novo Pré-Plano</span>.</li>
+        <li>Indique o nome da ação e a data prevista (obrigatórios), o responsável e notas.</li>
+        <li>Selecione uma ou mais parcelas na lista.</li>
+        <li>Carregue em <span class="ui">💾 Guardar Pré-Plano</span>.</li>
+      </ol>
+      <h3>Estados</h3>
+      <table>
+        <tr><th>Estado</th><th>Significado</th></tr>
+        <tr><td><span class="dot" style="background:#e8541a"></span>Pré-Plano</td><td>Planeado, ainda sem plano de queima</td></tr>
+        <tr><td><span class="dot" style="background:#3a8c50"></span>Executada</td><td>Já tem plano de queima registado (passa a este estado automaticamente)</td></tr>
+      </table>
+      <p>No detalhe do pré-plano encontra o botão <span class="ui">📄 Criar Plano de Queima</span> ou, se já existir,
+        <span class="ui">📄 Ver Plano de Queima</span>.</p>
+    </section>
+
+    <!-- 7 ─────────────────────────────────────────────────────────── -->
+    <section id="planos">
+      <h2>7. Planos de Queima</h2>
+      <p>O plano de queima regista a execução: data, equipa, meios, humidade dos combustíveis, meteorologia,
+        resultados e fotografias. Cada pré-plano tem <strong>um único</strong> plano de queima.</p>
+
+      <h3>Criar um plano de queima</h3>
+      <p>Pode começar de duas formas:</p>
+      <ul>
+        <li>Na lista de pré-planos, carregue em <span class="ui">📄 Queima</span> na linha do pré-plano (recomendado); ou</li>
+        <li>Em <span class="ui">Planos de Queima</span> → <span class="ui">+ Novo Plano</span> e escolha o pré-plano na lista
+          (só aparecem pré-planos ainda sem plano).</li>
+      </ul>
+      <p>O formulário está organizado em secções:</p>
+      <table>
+        <tr><th>Secção</th><th>O que registar</th></tr>
+        <tr><td>Execução</td><td>Data de execução (obrigatória), n.º de homens e operacionais envolvidos</td></tr>
+        <tr><td>Meios</td><td>N.º de VFCI e VFCM e outros veículos</td></tr>
+        <tr><td>Humidade dos Combustíveis</td><td>Superficial, manta morta F e manta morta H (%)</td></tr>
+        <tr><td>Meteorologia</td><td>Estado do tempo, direção e velocidade do vento (Beaufort e km/h), condução do fogo
+          (se escolher “5 — Outro”, descreva-a)</td></tr>
+        <tr><td>Resultados</td><td>Efeitos da queima, eficácia, problemas identificados e notas</td></tr>
+        <tr><td>Fotografias</td><td>Uma ou várias imagens (ver abaixo)</td></tr>
+        <tr><td>Esquema Tático</td><td>Mapa com o limite das parcelas, apenas para visualização</td></tr>
+      </table>
+      <p>Ao guardar, o pré-plano passa a <strong>Executada</strong> com a data de execução do plano.
+        Se mais tarde alterar a data no plano, a do pré-plano é atualizada automaticamente.</p>
+
+      <h3>Fotografias</h3>
+      <ul>
+        <li>Aceita imagens (JPG, PNG, …) até <strong>15 MB</strong> cada; pode selecionar várias de uma vez.</li>
+        <li>Ao editar o plano, as novas fotografias são <strong>acrescentadas</strong> às existentes.</li>
+        <li>Se algum ficheiro não for uma imagem válida, nada é guardado e a página indica qual o ficheiro com problema.</li>
+      </ul>
+    </section>
+
+    <!-- 8 ─────────────────────────────────────────────────────────── -->
+    <section id="relatorio">
+      <h2>8. Relatório Word</h2>
+      <p>No detalhe de um plano de queima carregue em <span class="ui">📥 Relatório Word</span>
+        (ou em <span class="ui">📥 Relatório</span> na lista). É descarregado um ficheiro <code>.docx</code> com:</p>
+      <ol>
+        <li>Identificação (pré-plano, parcelas, responsável, data)</li>
+        <li>Equipa e meios</li>
+        <li>Problemas identificados</li>
+        <li>Humidade dos combustíveis</li>
+        <li>Meteorologia e condução do fogo</li>
+        <li>Efeitos e eficácia</li>
+        <li>Notas adicionais (se existirem)</li>
+        <li>Esquema tático — desenho do limite das parcelas, para completar à mão</li>
+        <li>Fotografias (se existirem)</li>
+        <li>Espaço para assinaturas</li>
+      </ol>
+      <p>O ficheiro pode ser editado no Word antes de ser impresso ou enviado.</p>
+    </section>
+
+    <!-- 9 ─────────────────────────────────────────────────────────── -->
+    <section id="calendario">
+      <h2>9. Calendário</h2>
+      <p>Mostra os pré-planos na respetiva <strong>data prevista</strong>:
+        <span class="dot" style="background:#e8541a"></span>por executar ·
+        <span class="dot" style="background:#3a8c50"></span>executados.
+        Clique num evento para abrir o pré-plano. Use as setas para mudar de mês e o botão de lista para ver os eventos do mês em lista.</p>
+    </section>
+
+    <!-- 10 ────────────────────────────────────────────────────────── -->
+    <section id="meteorologia">
+      <h2>10. Meteorologia</h2>
+      <p>Ferramenta de apoio à decisão que estima a <strong>humidade do combustível fino morto (HC)</strong>
+        para os próximos 5 dias, no período diurno (08h–18h), a partir da previsão meteorológica.</p>
+
+      <h3>Consultar um local</h3>
+      <ol>
+        <li>Clique em qualquer ponto do mapa.</li>
+        <li>No painel lateral aparecem a localização (concelho e região), o relevo do ponto
+          (altitude, declive e exposição) e um cartão por dia com temperatura, humidade relativa, vento,
+          precipitação, HC prevista e a recomendação.</li>
+        <li>Clique num cartão diário para ver o <strong>gráfico hora a hora</strong> da humidade do combustível.</li>
+      </ol>
+      <p>Os atalhos para o <strong>Windy</strong> e o <strong>IPMA</strong> permitem confirmar a previsão noutras fontes.</p>
+
+      <h3>Classes de humidade e recomendação</h3>
+      <table>
+        <tr><th>Classe</th><th>HC</th><th>Recomendação</th></tr>
+        <tr><td><span class="dot" style="background:#ef4444"></span>Muito Seco</td><td>&lt; 10%</td><td>⛔ Não recomendado</td></tr>
+        <tr><td><span class="dot" style="background:#fb923c"></span>Seco</td><td>10–15%</td><td>⚠️ Condicionado</td></tr>
+        <tr><td><span class="dot" style="background:#4ade80"></span>Ótimo</td><td>15–20%</td><td>✅ Possível</td></tr>
+        <tr><td><span class="dot" style="background:#22d3ee"></span>Húmido</td><td>20–25%</td><td>⚠️ Condicionado</td></tr>
+        <tr><td><span class="dot" style="background:#094289"></span>Muito Húmido</td><td>&gt; 25%</td><td>⛔ Não recomendado</td></tr>
+      </table>
+      <p>A chuva recente também conta (dia com 1 mm ou mais):</p>
+      <ul>
+        <li>se choveu no dia anterior, o dia fica <strong>não recomendado</strong> (combustível húmido);</li>
+        <li>se só houve 1 a 3 dias seguidos sem chuva, um dia “possível” passa a <strong>condicionado</strong>.</li>
+      </ul>
+
+      <h3>As parcelas da plataforma</h3>
+      <p>As parcelas registadas aparecem automaticamente no mapa. Com o botão <span class="ui">📍 Parcelas</span> pode:</p>
+      <ul>
+        <li><span class="ui">⚡ Carregar Previsão</span> — obter a previsão de todas as parcelas de uma vez
+          (passe o rato sobre cada marcador para ver o resumo dos 5 dias);</li>
+        <li><span class="ui">⬇ Exportar CSV</span> — descarregar a previsão das parcelas numa folha de cálculo;</li>
+        <li>acrescentar pontos de um ficheiro <strong>CSV</strong> (colunas <code>id,name,lat,lon</code>) ou
+          <strong>GeoJSON</strong> (pontos), apenas para consulta — não ficam guardados na plataforma.</li>
+      </ul>
+
+      <h3>Grelha regional e relatório PDF</h3>
+      <p>Ative <span class="ui">Grelha HC 10 km</span> para ver a humidade prevista em toda a região, numa grelha de
+        quadrados de 10 km; escolha o dia nos botões por baixo. Com a grelha ativa, <span class="ui">⬇ Relatório PDF</span>
+        gera um relatório da previsão.</p>
+      <p>No canto do mapa pode alternar o fundo entre <span class="ui">OSM</span>, <span class="ui">Terreno</span> e <span class="ui">Satélite</span>.</p>
+
+      <div class="note warn">Os valores são <strong>estimativas</strong> calculadas a partir de modelos de previsão.
+        Servem de apoio ao planeamento e <strong>não substituem</strong> a medição no terreno nem a avaliação
+        do técnico responsável no dia da queima.</div>
+    </section>
+
+    <!-- 11 ────────────────────────────────────────────────────────── -->
+    <section id="faq">
+      <h2>11. Perguntas frequentes</h2>
+
+      <h3>Não encontro o botão para eliminar um registo.</h3>
+      <p>Eliminar parcelas, operacionais, pré-planos ou planos de queima está reservado aos administradores.
+        Se precisar de eliminar algo, peça a um administrador.</p>
+
+      <h3>Ao guardar, a página voltou com mensagens a vermelho.</h3>
+      <p>Algum campo tem um valor inválido (por exemplo uma data em falta, um email mal escrito ou um número negativo).
+        As mensagens indicam o campo; o que escreveu mantém-se, basta corrigir e guardar de novo.</p>
+
+      <h3>Não consigo criar o plano de queima de um pré-plano.</h3>
+      <p>Cada pré-plano só pode ter um plano de queima. Se já existir, use <span class="ui">✏️ Editar</span> no plano existente.</p>
+
+      <h3>A data da última queima de uma parcela está vazia.</h3>
+      <p>Esta data vem dos planos de queima. Aparece quando existir um plano de queima de um pré-plano que inclua essa parcela.</p>
+
+      <h3>O mapa da Meteorologia não mostra previsão.</h3>
+      <p>A previsão vem de serviços externos e precisa de ligação à internet. Aguarde alguns segundos e clique de novo;
+        se persistir, recarregue a página.</p>
+
+      <h3>Não recebi o email de recuperação de password.</h3>
+      <p>Verifique a pasta de spam e confirme que usou o email com que se registou. Se continuar sem o receber,
+        contacte o administrador.</p>
+
+      <h3>Outras dúvidas ou problemas</h3>
+      <p>Contacte o administrador da plataforma.</p>
+    </section>
+  </main>
+</div>
+</body>
+</html>

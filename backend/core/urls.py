@@ -1,5 +1,6 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
+from django.views.generic import TemplateView
 from . import views
 
 app_name = 'core'
@@ -8,6 +9,7 @@ urlpatterns = [
     path('',              views.dashboard,    name='dashboard'),
     path('login/',        views.login_view,   name='login'),
     path('logout/',       views.logout_view,  name='logout'),
+    path('manual/',       TemplateView.as_view(template_name='core/manual.html'), name='manual'),
     path('password/alterar/',            views.PasswordChange.as_view(),           name='password_change'),
     path('password/recuperar/',          views.PasswordResetRequestView.as_view(), name='password_reset'),
     path('password/recuperar/enviado/',

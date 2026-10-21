@@ -110,6 +110,17 @@ class AuthTests(TestCase):
         self.assertContains(r, '"maptilerKey": "mt-k"')
         self.assertContains(r, '"cartoKey": "carto-k"')
 
+    def test_manual_is_public_and_linked(self):
+        r = self.client.get('/manual/')
+        self.assertContains(r, 'Manual de Utilizador')
+        self.assertContains(r, '← Iniciar sessão')
+        for staff_only in ['Utilizadores Pendentes', '/admin/', 'staff']:
+            self.assertNotContains(r, staff_only)
+        self.assertContains(self.client.get('/login/'), '/manual/')
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get('/'), '/manual/')
+        self.assertContains(self.client.get('/manual/'), '← Voltar à aplicação')
+
     def test_pages_require_login(self):
         for url in ['/', '/calendario/', '/meteorologia/', '/parcelas/', '/preplan/', '/operacionais/']:
             self.assertEqual(self.client.get(url).status_code, 302, url)
