@@ -25,17 +25,18 @@
     {% if q %}<a href="{% url 'core:icnf_list' %}" class="btn btn-secondary btn-sm">Limpar</a>{% endif %}
   </form>
   <table>
-    <thead><tr><th>N.º ICNF</th><th>Nome e concelho (como na lista)</th><th>Validade</th><th>Pessoa na plataforma</th></tr></thead>
+    <thead><tr><th>N.º ICNF</th><th>Nome</th><th>Concelho de residência</th><th>Validade</th><th>Pessoa na plataforma</th></tr></thead>
     <tbody>
     {% for r, person in rows %}
       <tr>
         <td>{{ r.number }}</td>
-        <td>{{ r.text }}</td>
+        <td>{{ r.name }}</td>
+        <td>{{ r.concelho|default:"—" }}</td>
         <td>{% if r.lifetime %}Vitalícia{% else %}{{ r.valid_until|date:"d/m/Y" }}{% endif %}</td>
         <td>{{ person|default:"—" }}</td>
       </tr>
     {% empty %}
-      <tr><td colspan="4" style="color:var(--dim)">Sem resultados.</td></tr>
+      <tr><td colspan="5" style="color:var(--dim)">Sem resultados.</td></tr>
     {% endfor %}
     </tbody>
   </table>

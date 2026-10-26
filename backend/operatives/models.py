@@ -86,7 +86,8 @@ class Operative(models.Model):
 class IcnfTechnician(models.Model):
     """One line of the ICNF list of technicians credentialed in controlled burning."""
     number      = models.CharField('n.º ICNF', max_length=20, unique=True)
-    text        = models.CharField('nome e concelho (como na lista)', max_length=200)
+    name        = models.CharField('nome', max_length=150)
+    concelho    = models.CharField('concelho de residência', max_length=100, blank=True, default='')
     lifetime    = models.BooleanField('vitalícia', default=False)
     valid_until = models.DateField('validade', null=True, blank=True)
     list_date   = models.DateField('data da lista', null=True, blank=True)
@@ -97,4 +98,4 @@ class IcnfTechnician(models.Model):
         verbose_name_plural = 'Lista ICNF de técnicos credenciados'
 
     def __str__(self):
-        return f'{self.number} {self.text}'
+        return f'{self.number} {self.name}'

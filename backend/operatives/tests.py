@@ -10,11 +10,12 @@ from .models import IcnfTechnician, Operative
 
 STRONG_PW = 'Fogo-Bom-2026!x'
 
-SAMPLE_LIST = """Nº ICNF Nome Concelho de Residência Validade Credenciação
-3-2005 Hermínio da Silva Botelho Vila Real Vitalícia
-547-2026 João Ricardo Valejo Castanheiro Portimão 29/07/2031
- TÉCNICOS CREDENCIADOS EM FOGO CONTROLADO
-Atualização: 27 de agosto de 2026
+SAMPLE_LIST = """                                           TÉCNICOS CREDENCIADOS EM FOGO CONTROLADO
+                                                              Atualização: 27 de agosto de 2026
+Nº ICNF         Nome                                                  Concelho de Residência          Validade Credenciação
+3-2005          Hermínio da Silva Botelho                                     Vila Real                       Vitalícia
+7-2005          Miguel Gomes da Cruz                                                                           Vitalícia
+547-2026        João Ricardo Valejo Castanheiro                               Portimão                       29/07/2031
 """
 
 
@@ -55,10 +56,11 @@ class IcnfListTests(TestCase):
     def test_parse(self):
         list_date, rows = parse_list_text(SAMPLE_LIST)
         self.assertEqual(list_date, date(2026, 8, 27))
-        self.assertEqual(len(rows), 2)
-        self.assertEqual(rows[0], {'number': '3-2005', 'text': 'Hermínio da Silva Botelho Vila Real',
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[0], {'number': '3-2005', 'name': 'Hermínio da Silva Botelho', 'concelho': 'Vila Real',
                                    'lifetime': True, 'valid_until': None})
-        self.assertEqual(rows[1]['valid_until'], date(2031, 7, 29))
+        self.assertEqual((rows[1]['name'], rows[1]['concelho']), ('Miguel Gomes da Cruz', ''))
+        self.assertEqual((rows[2]['concelho'], rows[2]['valid_until']), ('Portimão', date(2031, 7, 29)))
 
     def test_normalize_number(self):
         self.assertEqual(normalize_number(' 547 / 2026 '), '547-2026')
@@ -183,10 +185,11 @@ class RegistrationAndValidationTests(TestCase):
         self.client.force_login(self.staff)
         fake = SimpleUploadedFile('lista.pdf', b'%PDF-fake', content_type='application/pdf')
         with mock.patch('operatives.icnf.parse_list_pdf',
-                        return_value=(date(2026, 9, 1), [{'number': '1-2020', 'text': 'A B', 'lifetime': True,
+                        return_value=(date(2026, 9, 1), [{'number': '1-2020', 'name': 'A B', 'concelho': 'Faro', 'lifetime': True,
                                                           'valid_until': None}])):
             r = self.client.post('/utilizadores/lista-icnf/', {'lista': fake}, follow=True)
         self.assertContains(r, 'Lista importada: 1 técnicos')
+        self.assertContains(r, '<td>Faro</td>')  # concelho in its own column
         self.assertEqual(list(IcnfTechnician.objects.values_list('number', flat=True)), ['1-2020'])
 
     def test_icnf_upload_updates_validated_validity(self):
@@ -196,7 +199,7 @@ class RegistrationAndValidationTests(TestCase):
         self.client.force_login(self.staff)
         fake = SimpleUploadedFile('lista.pdf', b'%PDF-fake', content_type='application/pdf')
         with mock.patch('operatives.icnf.parse_list_pdf',
-                        return_value=(None, [{'number': '547-2026', 'text': 'João Ricardo Valejo Castanheiro',
+                        return_value=(None, [{'number': '547-2026', 'name': 'João Ricardo Valejo Castanheiro', 'concelho': 'Portimão',
                                               'lifetime': False, 'valid_until': date(2035, 1, 1)}])):
             self.client.post('/utilizadores/lista-icnf/', {'lista': fake})
         op.refresh_from_db()

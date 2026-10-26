@@ -6,8 +6,8 @@ import re
 import unicodedata
 from datetime import date, datetime
 
-LINE_RE = re.compile(r'^(\d+-\d{4})\s+(.+?)\s+(Vitalícia|\d{2}/\d{2}/\d{4})\s*$')
 NUMBER_RE = re.compile(r'^\d+-\d{4}$')
+VALIDITY_RE = re.compile(r'^(Vitalícia|\d{2}/\d{2}/\d{4})$')
 LIST_DATE_RE = re.compile(r'Atualização:\s*(\d{1,2}) de (\w+) de (\d{4})', re.IGNORECASE)
 MONTHS = {m: i for i, m in enumerate(
     ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto',
@@ -36,14 +36,19 @@ def parse_list_text(text):
         list_date = date(int(m.group(3)), MONTHS[m.group(2).lower()], int(m.group(1)))
     rows = {}
     for line in text.splitlines():
-        m = LINE_RE.match(line.strip())
-        if not m:
+        # Layout-preserving text: columns are separated by 2+ spaces;
+        # the "concelho de residência" column may be empty.
+        parts = re.split(r'\s{2,}', line.strip())
+        if len(parts) == 3:
+            parts.insert(2, '')
+        if len(parts) != 4 or not NUMBER_RE.match(parts[0]) or not VALIDITY_RE.match(parts[3]):
             continue
-        number, rest, validity = m.groups()
+        number, name, concelho, validity = parts
         lifetime = validity == 'Vitalícia'
         rows[number] = {
             'number': number,
-            'text': rest.strip()[:200],
+            'name': name[:150],
+            'concelho': concelho[:100],
             'lifetime': lifetime,
             'valid_until': None if lifetime else datetime.strptime(validity, '%d/%m/%Y').date(),
         }
@@ -52,7 +57,7 @@ def parse_list_text(text):
 
 def parse_list_pdf(fileobj):
     from pypdf import PdfReader
-    text = '\n'.join(page.extract_text() or '' for page in PdfReader(fileobj).pages)
+    text = '\n'.join(page.extract_text(extraction_mode='layout') or '' for page in PdfReader(fileobj).pages)
     return parse_list_text(text)
 
 
@@ -73,12 +78,12 @@ def match(number, full_name):
     """
     Compare a declared credential with the ICNF list.
     Returns dict(record, found, name_match): name_match is True when every
-    word of the declared name (ignoring short connectors) appears in the list line.
+    word of the declared name (ignoring short connectors) appears in the listed name.
     """
     from .models import IcnfTechnician
     record = IcnfTechnician.objects.filter(number=normalize_number(number)).first()
     if not record:
         return {'record': None, 'found': False, 'name_match': False}
     words = [w for w in re.findall(r'\w+', _plain(full_name)) if len(w) > 2]
-    line = set(re.findall(r'\w+', _plain(record.text)))
+    line = set(re.findall(r'\w+', _plain(record.name)))
     return {'record': record, 'found': True, 'name_match': bool(words) and all(w in line for w in words)}

@@ -14,5 +14,5 @@ class OperativeAdmin(SimpleHistoryAdmin):
 
 @admin.register(IcnfTechnician)
 class IcnfTechnicianAdmin(admin.ModelAdmin):
-    list_display = ['number', 'text', 'lifetime', 'valid_until', 'list_date']
-    search_fields = ['number', 'text']
+    list_display = ['number', 'name', 'concelho', 'lifetime', 'valid_until', 'list_date']
+    search_fields = ['number', 'name', 'concelho']

@@ -164,7 +164,7 @@ def icnf_list(request):
     q = request.GET.get('q', '').strip()
     rows = IcnfTechnician.objects.all()
     if q:
-        rows = rows.filter(Q(number__icontains=q) | Q(text__icontains=q))
+        rows = rows.filter(Q(number__icontains=q) | Q(name__icontains=q) | Q(concelho__icontains=q))
     linked = dict(Operative.objects.exclude(credential_number='').values_list('credential_number', 'name'))
     return render(request, 'operatives/icnf_list.html', {
         'rows': [(r, linked.get(r.number)) for r in rows], 'q': q,

@@ -57,7 +57,7 @@
           {% if op.icnf.found %}
             {% if op.icnf.name_match %}<span class="badge badge-green">✓ N.º e nome coincidem</span>
             {% else %}<span class="badge badge-orange">⚠ N.º existe, nome diferente</span>{% endif %}
-            <div style="font-size:12px;margin-top:4px">{{ op.icnf.record.text }} · validade:
+            <div style="font-size:12px;margin-top:4px">{{ op.icnf.record.name }}{% if op.icnf.record.concelho %} ({{ op.icnf.record.concelho }}){% endif %} · validade:
               {% if op.icnf.record.lifetime %}vitalícia{% else %}{{ op.icnf.record.valid_until|date:"d/m/Y" }}{% endif %}</div>
           {% else %}
             <span class="badge badge-red">✗ N.º não consta da lista</span>
