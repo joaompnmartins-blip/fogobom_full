@@ -1,8 +1,9 @@
 import io
-import json
 import shutil
 import tempfile
 import zipfile
+from datetime import date, time
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
@@ -12,16 +13,34 @@ from PIL import Image
 
 from operatives.models import Operative
 from parcelas.models import FireParcel
-from .models import FireAction, BurningPlan, BurningPlanPhoto
-from .report import generate_bp_docx
+from .models import (BurningPlan, BurningPlanPhoto, CostLine, ExecutionMember, FireAction, ParcelExecution,
+                     WeatherReading)
+from .poq import generate_poq_execucao
 
 MEDIA = tempfile.mkdtemp()
+SQUARE = 'POLYGON((-8 37.1,-7.999 37.1,-7.999 37.101,-8 37.101,-8 37.1))'
 
 
 def image_bytes(fmt='PNG', size=(40, 30)):
     buf = io.BytesIO()
     Image.new('RGB', size, 'orange').save(buf, fmt)
     return buf.getvalue()
+
+
+def formset_data(fs):
+    """POST data reproducing a rendered formset (management form + current values)."""
+    data = {f'{fs.prefix}-{k}': v for k, v in fs.management_form.initial.items()}
+    for form in fs.forms:
+        for name in form.fields:
+            value = form[name].value()
+            if value is None or value is False:
+                continue
+            data[form.add_prefix(name)] = value
+    return data
+
+
+def docx_text(content):
+    return zipfile.ZipFile(io.BytesIO(content)).read('word/document.xml').decode()
 
 
 @override_settings(SECURE_SSL_REDIRECT=False, MEDIA_ROOT=MEDIA)
@@ -35,19 +54,28 @@ class FireActionTests(TestCase):
         self.user = User.objects.create_user('u', password='x')
         self.staff = User.objects.create_user('s', password='x', is_staff=True)
         self.client.force_login(self.user)
-        self.parcel = FireParcel.objects.create(
-            name='P', geometry='POLYGON((-8 37.1,-7.999 37.1,-7.999 37.101,-8 37.101,-8 37.1))', status='apta')
+        self.parcel = FireParcel.objects.create(name='P', geometry=SQUARE, status='apta', area_ha=1.2,
+                                                vegetation_type='matos')
         self.op = Operative.objects.create(name='Op', email='o@example.com', phone='1', certification_level='A')
         self.pp = FireAction.objects.create(name='PP', scheduled_date='2026-11-05', created_by=self.user)
         self.pp.parcels.set([self.parcel])
 
-    def bp_data(self, **overrides):
-        return {'pre_plan': self.pp.pk, 'execution_date': '2026-11-06', 'num_men': '5', 'vfci': '2',
-                'vfcm': '1', 'other_veh': 'Trator', 'operatives': [self.op.pk], 'fire_conduct': '3',
-                **overrides}
-
     def create_bp(self, **overrides):
-        return self.client.post(f'/acoes/burning/novo/{self.pp.pk}/', self.bp_data(**overrides))
+        return self.client.post(f'/acoes/burning/novo/{self.pp.pk}/',
+                                {'pre_plan': self.pp.pk, 'execution_date': '2026-11-06', **overrides})
+
+    def edit_data(self, ex, **overrides):
+        r = self.client.get(f'/acoes/execucao/{ex.pk}/')
+        data = {}
+        for name in ('members', 'readings', 'strips', 'costs'):
+            data.update(formset_data(r.context[name]))
+        form = r.context['form']
+        for name in form.fields:
+            value = form[name].value()
+            if value not in (None, False, ''):
+                data[name] = value
+        data.update(overrides)
+        return data
 
     # Pre-plans
 
@@ -69,51 +97,103 @@ class FireActionTests(TestCase):
         self.client.post(f'/acoes/{self.pp.pk}/eliminar/')
         self.assertTrue(FireAction.objects.filter(pk=self.pp.pk).exists())
 
-    # Burning plans
+    # Execution (POQ)
 
-    def test_create_burning_plan(self):
-        photo = SimpleUploadedFile('f.png', image_bytes(), content_type='image/png')
-        r = self.create_bp(photos=[photo])
+    def test_create_execution_creates_parcel_rows(self):
+        r = self.create_bp()
         bp = BurningPlan.objects.get()
         self.assertRedirects(r, f'/acoes/burning/{bp.pk}/', fetch_redirect_response=False)
-        self.assertEqual(json.loads(bp.vehicles), {'VFCI': 2, 'VFCM': 1, 'Outro': 'Trator'})
-        self.assertEqual(list(bp.operatives.all()), [self.op])
-        self.assertEqual(bp.photos.count(), 1)
+        ex = bp.executions.get()
+        self.assertEqual((ex.parcel, str(ex.date), ex.formation, ex.area_treated_ha),
+                         (self.parcel, '2026-11-06', 'mato', 1.2))
+        self.assertEqual(sorted(ex.strips.values_list('side', flat=True)), ['baixo', 'cima', 'lado1', 'lado2'])
         self.pp.refresh_from_db()
         self.assertEqual((self.pp.status, str(self.pp.execution_date)), ('realizada', '2026-11-06'))
-
-    def test_invalid_inputs_save_nothing(self):
-        bad_photo = SimpleUploadedFile('x.png', b'not an image', content_type='image/png')
-        for overrides in [{'num_men': '-3'}, {'photos': [bad_photo]}, {'execution_date': ''}]:
-            r = self.create_bp(**overrides)
-            self.assertEqual(r.status_code, 200, overrides)
-        self.assertFalse(BurningPlan.objects.exists())
-        self.assertContains(r, 'value="Trator"')
-        self.assertEqual(r.context['selected_operatives'], [self.op.pk])
+        self.assertContains(self.client.get(f'/acoes/burning/{bp.pk}/'), 'Preencher')
 
     def test_second_plan_for_same_preplan_rejected(self):
         self.create_bp()
-        r = self.client.post('/acoes/burning/novo/', self.bp_data())
+        r = self.client.post('/acoes/burning/novo/', {'pre_plan': self.pp.pk, 'execution_date': '2026-11-06'})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(BurningPlan.objects.count(), 1)
 
-    def test_edit_syncs_preplan_date(self):
+    def test_incident_requires_circumstances(self):
+        r = self.create_bp(incident='on')
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(BurningPlan.objects.exists())
+
+    def test_fill_execution(self):
+        self.create_bp()
+        ex = ParcelExecution.objects.get()
+        data = self.edit_data(ex, start_time='10:00', end_time='13:30', n_vfci='1', problems=['ignicao', 'fumo'],
+                              rating_objectives='4', fuel_method='B', fuel_superficial='C',
+                              **{'members-0-operative': self.op.pk, 'members-0-function': 'ignicao',
+                                 'readings-0-time': '10:15', 'readings-0-temp': '14', 'readings-0-rh': '55',
+                                 'readings-0-weather': '1', 'readings-0-wind_dir': 'NW', 'readings-0-conduct': '1',
+                                 'strips-0-means': '7', 'strips-0-width_m': '4',
+                                 'costs-0-category': 'pessoal', 'costs-0-description': 'Sapadores',
+                                 'costs-0-qty_burn': '8', 'costs-0-qty_extinction': '2',
+                                 'costs-0-unit_price': '10.50',
+                                 'photo_moment': 'antes', 'photo_caption': 'Antes da queima',
+                                 'photos': [SimpleUploadedFile('f.png', image_bytes(), content_type='image/png')]})
+        r = self.client.post(f'/acoes/execucao/{ex.pk}/', data)
+        self.assertRedirects(r, f'/acoes/burning/{ex.plan_id}/', fetch_redirect_response=False)
+        ex.refresh_from_db()
+        self.assertEqual((ex.problems_list, ex.duration_hours, ex.n_vfci), (['ignicao', 'fumo'], 3.5, 1))
+        self.assertEqual(ExecutionMember.objects.get().function, 'ignicao')
+        self.assertEqual(WeatherReading.objects.get().wind_dir, 'NW')
+        self.assertEqual(ex.strips.get(side='cima').width_m, 4)
+        self.assertEqual(ex.cost_total, Decimal('105.00'))
+        photo = BurningPlanPhoto.objects.get()
+        self.assertEqual((photo.parcel, photo.moment, photo.taken_on), (self.parcel, 'antes', date(2026, 11, 6)))
+
+    def test_invalid_execution_saves_nothing(self):
+        self.create_bp()
+        ex = ParcelExecution.objects.get()
+        for overrides in [{'start_time': '12:00', 'end_time': '11:00'}, {'eff_crowns_pct': '140'},
+                          {'readings-0-temp': '20'},   # reading without time
+                          {'photos': [SimpleUploadedFile('x.png', b'not an image', content_type='image/png')]}]:
+            r = self.client.post(f'/acoes/execucao/{ex.pk}/', self.edit_data(ex, **overrides))
+            self.assertEqual(r.status_code, 200, overrides)
+        ex.refresh_from_db()
+        self.assertIsNone(ex.start_time)
+        self.assertFalse(WeatherReading.objects.exists() or BurningPlanPhoto.objects.exists())
+
+    def test_add_execution_other_day_and_duplicate(self):
         self.create_bp()
         bp = BurningPlan.objects.get()
-        self.assertContains(self.client.get(f'/acoes/burning/{bp.pk}/editar/'), 'value="2026-11-06"')
-        self.client.post(f'/acoes/burning/{bp.pk}/editar/', self.bp_data(execution_date='2026-11-08'))
+        r = self.client.post(f'/acoes/burning/{bp.pk}/parcela/', {'parcel': self.parcel.pk, 'date': '2026-11-04'})
+        ex = bp.executions.get(date='2026-11-04')
+        self.assertRedirects(r, f'/acoes/execucao/{ex.pk}/', fetch_redirect_response=False)
+        self.client.post(f'/acoes/burning/{bp.pk}/parcela/', {'parcel': self.parcel.pk, 'date': '2026-11-04'})
+        self.assertEqual(bp.executions.count(), 2)
         self.pp.refresh_from_db()
-        self.assertEqual(str(self.pp.execution_date), '2026-11-08')
+        self.assertEqual(str(self.pp.execution_date), '2026-11-04')   # first day of execution
+
+        self.client.post(f'/acoes/execucao/{ex.pk}/eliminar/')
+        self.pp.refresh_from_db()
+        self.assertEqual(str(self.pp.execution_date), '2026-11-06')
+
+    def test_only_managers_edit_executions(self):
+        self.create_bp()
+        ex = ParcelExecution.objects.get()
+        self.client.force_login(User.objects.create_user('outro', password='x'))
+        r = self.client.get(f'/acoes/execucao/{ex.pk}/')
+        self.assertRedirects(r, f'/acoes/burning/{ex.plan_id}/', fetch_redirect_response=False)
+        self.client.post(f'/acoes/execucao/{ex.pk}/eliminar/')
+        self.assertTrue(ParcelExecution.objects.exists())
 
     def test_delete_permissions_and_cleanup(self):
-        self.create_bp(photos=[SimpleUploadedFile('f.png', image_bytes(), content_type='image/png')])
+        self.create_bp()
         bp = BurningPlan.objects.get()
+        photo = BurningPlanPhoto.objects.create(image=SimpleUploadedFile('f.png', image_bytes()), parcel=self.parcel)
+        bp.photos.add(photo)
         self.client.post(f'/acoes/burning/{bp.pk}/eliminar/')
         self.assertTrue(BurningPlan.objects.exists())  # non-staff blocked
 
         self.client.force_login(self.staff)
         self.client.post(f'/acoes/burning/{bp.pk}/eliminar/')
-        self.assertFalse(BurningPlan.objects.exists())
+        self.assertFalse(BurningPlan.objects.exists() or ParcelExecution.objects.exists())
         self.assertFalse(BurningPlanPhoto.objects.exists())
         self.pp.refresh_from_db()
         self.assertEqual((self.pp.status, self.pp.execution_date), ('prevista', None))
@@ -130,15 +210,20 @@ class FireActionTests(TestCase):
 
         self.create_bp()
         bp = BurningPlan.objects.get()
+        self.assertEqual(bp.executions.count(), 2)
         self.assertEqual(bp.history.first().history_user, self.user)
         self.assertContains(self.client.get(f'/acoes/burning/{bp.pk}/'), 'Histórico de alterações')
 
-    # Report
+    # POQ-Execução (Word)
 
-    def test_report_includes_photos_and_vfcm(self):
+    def test_poq_includes_tables_photos_and_field_sheet(self):
         self.create_bp()
         bp = BurningPlan.objects.get()
-        photo = BurningPlanPhoto(caption='Frente de chamas')
+        ex = bp.executions.get()
+        ExecutionMember.objects.create(execution=ex, operative=self.op, function='ignicao')
+        WeatherReading.objects.create(execution=ex, time=time(10, 0), temp=15, rh=60, weather=1, wind_dir='N')
+        CostLine.objects.create(execution=ex, description='Sapadores', qty_burn=4, unit_price=Decimal('12'))
+        photo = BurningPlanPhoto(caption='Frente de chamas', parcel=self.parcel, moment='durante')
         photo.image.save('big.jpg', ContentFile(image_bytes('JPEG', (2400, 1800))), save=True)
         missing = BurningPlanPhoto.objects.create(image='bp_photos/nao_existe.jpg')
         bp.photos.add(photo, missing)
@@ -146,15 +231,22 @@ class FireActionTests(TestCase):
         r = self.client.get(f'/acoes/burning/{bp.pk}/relatorio/')
         self.assertEqual(r.status_code, 200)
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        xml = z.read('word/document.xml').decode()
         jpgs = [n for n in z.namelist() if n.endswith('.jpg')]
         self.assertEqual(len(jpgs), 1)
         self.assertLessEqual(max(Image.open(io.BytesIO(z.read(jpgs[0]))).size), 1600)
-        for text in ['Frente de chamas', '1 fotografia(s) indisponível', 'VFCM', '10. Assinaturas']:
+        xml = z.read('word/document.xml').decode()
+        for text in ['POQ - Execução', 'Parcela: P', 'Técnicos envolvidos na queima', 'Meteorologia',
+                     'Frente de chamas', 'Sapadores', 'Avaliação económica', 'MATOS']:
             self.assertIn(text, xml)
-        self.assertNotIn('VLCI', xml)
+        self.assertNotIn('Plano de Fogo Controlado n.º', xml)
 
-    def test_report_without_geometry(self):
+    def test_poq_without_geometry_or_data(self):
         self.pp.parcels.clear()
         self.create_bp()
-        self.assertTrue(generate_bp_docx(BurningPlan.objects.get())[:2] == b'PK')
+        self.assertEqual(generate_poq_execucao(BurningPlan.objects.get())[:2], b'PK')
+
+    def test_poq_incident_section(self):
+        self.create_bp(incident='on', incident_circumstances='Projeção de faúlhas', incident_area_ha='0.3')
+        xml = docx_text(generate_poq_execucao(BurningPlan.objects.get()))
+        self.assertIn('Projeção de faúlhas', xml)
+        self.assertIn('Fuga do fogo', xml)

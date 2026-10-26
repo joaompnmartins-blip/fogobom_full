@@ -68,8 +68,8 @@
       <li><a href="#operacionais">Operacionais</a></li>
       <li><a href="#preplanos">Ações de fogo</a></li>
       <li><a href="#pfc">Planos de Fogo Controlado</a></li>
-      <li><a href="#planos">Planos de Queima</a></li>
-      <li><a href="#relatorio">Relatório Word</a></li>
+      <li><a href="#planos">Execuções (POQ)</a></li>
+      <li><a href="#relatorio">POQ-Execução (Word)</a></li>
       <li><a href="#calendario">Calendário</a></li>
       <li><a href="#meteorologia">Meteorologia</a></li>
       <li><a href="#faq">Perguntas frequentes</a></li>
@@ -83,7 +83,7 @@
 
     <p>O trabalho na plataforma segue normalmente esta sequência:</p>
     <div class="flow">
-      <span>🗺️ Parcela</span><b>→</b><span>📢 Ação</span><b>→</b><span>📄 Plano de Queima</span><b>→</b><span>📥 Relatório Word</span>
+      <span>🗺️ Parcela</span><b>→</b><span>📢 Ação</span><b>→</b><span>📄 Execução</span><b>→</b><span>📥 POQ-Execução</span>
     </div>
 
     <!-- 1 ─────────────────────────────────────────────────────────── -->
@@ -148,14 +148,14 @@
         <tr><td>📢 Próximas ações</td><td>Ações anunciadas: probabilidade de realização e inscrições</td></tr>
         <tr><td>📋 Ações</td><td>Todas as ações (fogo controlado e queimadas), com filtro por estado</td></tr>
         <tr><td>🗂️ Planos (PFC)</td><td>Planos de Fogo Controlado: parcelas, prescrição, aprovação e custos</td></tr>
-        <tr><td>📄 Planos de Queima</td><td>Registo da execução de cada queima e relatório Word</td></tr>
+        <tr><td>📄 Execuções (POQ)</td><td>Registo da execução de cada queima, por parcela e dia, e POQ-Execução em Word</td></tr>
         <tr><td>📅 Calendário</td><td>Vista mensal das queimas planeadas e executadas</td></tr>
         <tr><td>👷 Operacionais</td><td>Pessoas que participam nas queimas</td></tr>
         <tr><td>🌤️ Meteorologia</td><td>Previsão da humidade do combustível e recomendação para fogo controlado</td></tr>
       </table>
       <p>Nas listas, os botões de cada linha têm este significado:
         <span class="ui">👁️</span> ver detalhe · <span class="ui">✏️</span> editar ·
-        <span class="ui">📄 Queima</span> criar o plano de queima · <span class="ui">📥 Relatório</span> descarregar o relatório Word.
+        <span class="ui">📥 POQ</span> descarregar o POQ-Execução em Word.
         O botão principal de cada página (por exemplo <span class="ui">+ Nova Parcela</span>) está no canto superior direito.</p>
       <div class="note">A plataforma foi pensada para utilização em computador. Este manual está sempre
         disponível na página de entrada e no menu lateral (<span class="ui">📖 Manual</span>).</div>
@@ -166,9 +166,9 @@
       <h2>3. Dashboard</h2>
       <p>É a página inicial após iniciar sessão. Mostra:</p>
       <ul>
-        <li><strong>Totais</strong>: parcelas, ações por realizar, planos de queima e operacionais.</li>
+        <li><strong>Totais</strong>: parcelas, ações por realizar, execuções e operacionais.</li>
         <li><strong>Próximas ações</strong>: ações dos próximos 30 dias, com o estado e a probabilidade de realização.</li>
-        <li><strong>Planos recentes</strong>: os últimos planos de queima registados.</li>
+        <li><strong>Execuções recentes</strong>: as últimas execuções registadas.</li>
         <li><strong>Ações rápidas</strong>: atalhos para propor parcela, anunciar ação, criar operacional ou abrir a meteorologia.</li>
       </ul>
     </section>
@@ -188,7 +188,7 @@
       <h3>Lista e mapa</h3>
       <p>O mapa e a tabela mostram as parcelas com a cor do respetivo estado. Pode filtrar por estado (com o número de
         parcelas em cada um), por tipologia e por concelho. A tabela indica também a <strong>data da última queima</strong>,
-        calculada automaticamente a partir dos planos de queima.</p>
+        calculada automaticamente a partir das execuções.</p>
 
       <h3>Propor uma parcela</h3>
       <ol>
@@ -236,7 +236,7 @@
     <!-- 5 ─────────────────────────────────────────────────────────── -->
     <section id="operacionais">
       <h2>5. Operacionais</h2>
-      <p>Registe aqui as pessoas que participam nas queimas, para as poder associar aos planos de queima.</p>
+      <p>Registe aqui as pessoas que participam nas queimas, para as poder incluir na equipa de cada execução.</p>
       <ol>
         <li>Em <span class="ui">Operacionais</span>, carregue em <span class="ui">+ Novo Operacional</span>.</li>
         <li>Preencha o nome (obrigatório) e, opcionalmente, NIF, email, telefone, nível de certificação e notas.</li>
@@ -295,7 +295,7 @@
         <tr><td>Confirmada</td><td>Enquadramento legal completo e condições permitidas — vai realizar-se</td></tr>
         <tr><td>Adiada</td><td>Sem nova data definida (se indicar uma nova data, volta a “Prevista” nessa data)</td></tr>
         <tr><td>Cancelada</td><td>Não se realiza (com o motivo); pode ser reaberta</td></tr>
-        <tr><td>Realizada</td><td>Já tem a execução registada (plano de queima) — passa a este estado automaticamente</td></tr>
+        <tr><td>Realizada</td><td>Já tem a execução registada — passa a este estado automaticamente</td></tr>
       </table>
       <p>Quem anunciou a ação, o técnico responsável, os técnicos credenciados e os administradores podem editá-la e
         mudar o estado. Os inscritos recebem um email sempre que a ação é confirmada, adiada, cancelada ou muda de data.</p>
@@ -307,7 +307,7 @@
         <li>O técnico <strong>confirma</strong> os participantes (respeitando as vagas). Recebe um email com a decisão.</li>
         <li>Na véspera da ação recebe um <strong>lembrete</strong> por email.</li>
         <li>Com <span class="ui">📅 .ics</span> pode adicionar a ação à sua agenda (Google, Outlook, telemóvel).</li>
-        <li>Ao registar a execução (plano de queima), os participantes confirmados ficam pré-selecionados como operacionais.</li>
+        <li>Ao registar a execução, os participantes confirmados entram na equipa com a função que escolheram.</li>
       </ul>
       <p>Pode escolher que emails recebe em <span class="ui">👤 O meu perfil</span> → <em>Avisos por email</em>.</p>
 
@@ -364,56 +364,75 @@
 
     <!-- 7 ─────────────────────────────────────────────────────────── -->
     <section id="planos">
-      <h2>8. Planos de Queima</h2>
-      <p>O plano de queima regista a execução: data, equipa, meios, humidade dos combustíveis, meteorologia,
-        resultados e fotografias. Cada ação tem <strong>um único</strong> plano de queima.</p>
+      <h2>8. Execuções (POQ)</h2>
+      <p>A execução regista o que aconteceu no terreno e dá origem ao <strong>POQ-Execução</strong> (Plano Operacional
+        de Queima) no modelo do ICNF. Cada ação tem <strong>uma</strong> execução, com uma linha por
+        <strong>parcela e dia</strong>: se uma parcela for queimada em dois dias, ou uma parcela ficar para outro dia,
+        acrescentam-se linhas.</p>
 
-      <h3>Criar um plano de queima</h3>
-      <p>Pode começar de duas formas:</p>
-      <ul>
-        <li>No detalhe da ação, carregue em <span class="ui">📄 Registar execução</span> (recomendado); ou</li>
-        <li>Em <span class="ui">Planos de Queima</span> → <span class="ui">+ Novo Plano</span> e escolha a ação na lista
-          (só aparecem ações ainda sem plano).</li>
-      </ul>
-      <p>O formulário está organizado em secções:</p>
+      <h3>Registar a execução</h3>
+      <ol>
+        <li>No detalhe da ação, carregue em <span class="ui">📄 Registar execução</span> (ou em
+          <span class="ui">Execuções (POQ)</span> → <span class="ui">+ Registar execução</span> e escolha a ação).</li>
+        <li>Indique a data do 1.º dia, observações gerais e, se for o caso, a <strong>fuga do fogo</strong> (ver abaixo).</li>
+        <li>É criada uma linha para cada parcela da ação, já com os <strong>participantes confirmados</strong> e as
+          funções que escolheram, o técnico responsável na coordenação, a área da parcela e a formação
+          (mato ou povoamento) sugerida pela tipologia.</li>
+        <li>Em cada linha carregue em <span class="ui">✏️ Preencher</span>.</li>
+      </ol>
+      <p>A ação passa a <strong>Realizada</strong> com a data do primeiro dia de execução.</p>
+
+      <h3>Preencher a execução de uma parcela</h3>
       <table>
         <tr><th>Secção</th><th>O que registar</th></tr>
-        <tr><td>Execução</td><td>Data de execução (obrigatória), n.º de homens e operacionais envolvidos</td></tr>
-        <tr><td>Meios</td><td>N.º de VFCI e VFCM e outros veículos</td></tr>
-        <tr><td>Humidade dos Combustíveis</td><td>Superficial, manta morta F e manta morta H (%)</td></tr>
-        <tr><td>Meteorologia</td><td>Estado do tempo, direção e velocidade do vento (Beaufort e km/h), condução do fogo
-          (se escolher “5 — Outro”, descreva-a)</td></tr>
-        <tr><td>Resultados</td><td>Efeitos da queima, eficácia, problemas identificados e notas</td></tr>
-        <tr><td>Fotografias</td><td>Uma ou várias imagens (ver abaixo)</td></tr>
-        <tr><td>Esquema Tático</td><td>Mapa com o limite das parcelas, apenas para visualização</td></tr>
+        <tr><td>Equipa e meios</td><td>Hora de início e fim, área tratada, formação, n.º de técnicos, homens, VLCI e VFCI
+          (com a capacidade), e a lista de técnicos e operacionais com a função de cada um</td></tr>
+        <tr><td>Meteorologia</td><td>Uma leitura no início, outra no fim e sempre que o comportamento do fogo mude:
+          temperatura, humidade relativa, estado do tempo (0–8), vento (Beaufort, km/h e direção), condução do fogo (1–5),
+          chama e velocidade de propagação</td></tr>
+        <tr><td>Combustível</td><td>Metodologia (A–D), humidade superficial e da manta morta F e H, espessura da manta morta,
+          dias sem chuva e índices do sistema canadiano (FWI, ISI, FFMC, BUI, DMC, DC)</td></tr>
+        <tr><td>Faixas</td><td>Para cada lado (cima, baixo, lado 1, lado 2): meio utilizado, largura e tempo de execução</td></tr>
+        <tr><td>Operação e problemas</td><td>Técnicas de ignição, descrição operacional, problemas (escolha na lista e
+          descreva) e o esquema de condução (imagem)</td></tr>
+        <tr><td>Efeitos e eficácia</td><td>Efeitos imediatos na vegetação e na manta morta (%) e avaliação da eficácia
+          (de “muito insatisfatória” a “muito boa”) com a justificação</td></tr>
+        <tr><td>Custos</td><td>Custos reais por linha: pessoal (n.º homens × horas), máquinas, viaturas (km), combustível (l)…</td></tr>
+        <tr><td>Fotografias</td><td>Indique se são de antes, durante ou depois da queima e uma legenda</td></tr>
       </table>
-      <p>Ao guardar, a ação passa a <strong>Realizada</strong> com a data de execução do plano.
-        Se mais tarde alterar a data no plano, a da ação é atualizada automaticamente.</p>
+      <p>Use <span class="ui">💾 Guardar e continuar</span> para gravar sem sair da página (aparecem mais linhas vazias
+        nas tabelas). Se a ação tiver um PFC, as leituras de meteorologia <strong>fora da prescrição</strong> da parcela
+        ficam a vermelho, e a página da execução compara o custo real com a <strong>estimativa CAOF</strong>.</p>
+
+      <h3>Fuga do fogo</h3>
+      <p>Se o fogo ultrapassou os limites da área a tratar e originou um incêndio que exigiu equipas complementares,
+        assinale-o na execução (<span class="ui">✏️ Editar</span>) e descreva circunstâncias, entidades contactadas,
+        equipas, responsável pelo combate, estratégia, área afetada e prejuízos. Nesse caso o POQ tem de ser enviado ao
+        ICNF no prazo de <strong>15 dias</strong>.</p>
 
       <h3>Fotografias</h3>
       <ul>
         <li>Aceita imagens (JPG, PNG, …) até <strong>15 MB</strong> cada; pode selecionar várias de uma vez.</li>
-        <li>Ao editar o plano, as novas fotografias são <strong>acrescentadas</strong> às existentes.</li>
+        <li>As novas fotografias são <strong>acrescentadas</strong> às existentes e ficam associadas à parcela e ao dia.</li>
         <li>Se algum ficheiro não for uma imagem válida, nada é guardado e a página indica qual o ficheiro com problema.</li>
       </ul>
     </section>
 
     <!-- 8 ─────────────────────────────────────────────────────────── -->
     <section id="relatorio">
-      <h2>9. Relatório Word</h2>
-      <p>No detalhe de um plano de queima carregue em <span class="ui">📥 Relatório Word</span>
-        (ou em <span class="ui">📥 Relatório</span> na lista). É descarregado um ficheiro <code>.docx</code> com:</p>
+      <h2>9. POQ-Execução (Word)</h2>
+      <p>Na página da execução carregue em <span class="ui">📥 POQ-Execução (Word)</span> (ou em
+        <span class="ui">📥 POQ</span> na lista). É descarregado um ficheiro <code>.docx</code> que segue o modelo do ICNF:</p>
       <ol>
-        <li>Identificação (ação, parcelas, responsável, data)</li>
-        <li>Equipa e meios</li>
-        <li>Problemas identificados</li>
-        <li>Humidade dos combustíveis</li>
-        <li>Meteorologia e condução do fogo</li>
-        <li>Efeitos e eficácia</li>
-        <li>Notas adicionais (se existirem)</li>
-        <li>Esquema tático — desenho do limite das parcelas, para completar à mão</li>
-        <li>Fotografias (se existirem)</li>
-        <li>Espaço para assinaturas</li>
+        <li>Cabeçalho: n.º do PFC (ou, numa queimada sem PFC, a designação da parcela), técnico responsável e período de queima</li>
+        <li>Técnicos envolvidos, problemas operacionais e humidade do combustível</li>
+        <li>Meteorologia e comportamento do fogo</li>
+        <li>Esquema de condução — a imagem que carregou ou, sem ela, o desenho do limite da parcela</li>
+        <li>Meios, faixas de segurança, efeitos imediatos e eficácia</li>
+        <li>Avaliação económica e índice de fotografias</li>
+        <li>Fuga do fogo (se registada), observações e fotografias</li>
+        <li>Anexo com a classificação da dificuldade da operação</li>
+        <li>Ficha de campo de cada parcela, para levar para o terreno</li>
       </ol>
       <p>O ficheiro pode ser editado no Word antes de ser impresso ou enviado.</p>
     </section>
@@ -487,7 +506,7 @@
       <h2>12. Perguntas frequentes</h2>
 
       <h3>Não encontro o botão para eliminar um registo.</h3>
-      <p>Eliminar parcelas, operacionais, ações ou planos de queima está reservado aos administradores.
+      <p>Eliminar parcelas, operacionais, ações ou execuções está reservado aos administradores.
         Se precisar de eliminar algo, peça a um administrador.</p>
 
       <h3>Ao guardar, a página voltou com mensagens a vermelho.</h3>
@@ -495,10 +514,10 @@
         As mensagens indicam o campo; o que escreveu mantém-se, basta corrigir e guardar de novo.</p>
 
       <h3>Não consigo registar a execução de uma ação.</h3>
-      <p>Cada ação só pode ter um plano de queima. Se já existir, use <span class="ui">✏️ Editar</span> no plano existente.</p>
+      <p>Cada ação só tem uma execução. Se já existir, abra-a e use <span class="ui">+ Acrescentar execução</span> para outra parcela ou outro dia.</p>
 
       <h3>A data da última queima de uma parcela está vazia.</h3>
-      <p>Esta data vem dos planos de queima. Aparece quando existir um plano de queima de uma ação que inclua essa parcela.</p>
+      <p>Esta data vem das execuções: aparece quando existir uma execução dessa parcela.</p>
 
       <h3>O mapa da Meteorologia não mostra previsão.</h3>
       <p>A previsão vem de serviços externos e precisa de ligação à internet. Aguarde alguns segundos e clique de novo;

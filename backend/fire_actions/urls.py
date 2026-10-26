@@ -17,7 +17,7 @@ urlpatterns = [
     path('<int:pk>/editar/',               views.preplan_edit,          name='edit'),
     path('<int:pk>/eliminar/',             views.preplan_delete,        name='delete'),
 
-    # Planos de Queima
+    # Execuções (POQ)
     path('burning/',                        views.burning_plan_list,    name='burning_plan_list'),
     path('burning/novo/',                   views.burning_plan_create,  name='burning_plan_create'),
     path('burning/novo/<int:preplan_pk>/',  views.burning_plan_create,  name='burning_plan_create_from'),
@@ -25,4 +25,7 @@ urlpatterns = [
     path('burning/<int:pk>/editar/',       views.burning_plan_edit,     name='burning_plan_edit'),
     path('burning/<int:pk>/eliminar/',     views.burning_plan_delete,   name='burning_plan_delete'),
     path('burning/<int:pk>/relatorio/',    views.burning_plan_report,   name='burning_plan_report'),
+    path('burning/<int:pk>/parcela/',      views.execution_add,         name='execution_add'),
+    path('execucao/<int:pk>/',             views.execution_edit,        name='execution_edit'),
+    path('execucao/<int:pk>/eliminar/',    views.execution_delete,      name='execution_delete'),
 ]

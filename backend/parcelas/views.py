@@ -20,12 +20,6 @@ from .forms import EvaluationForm, FireParcelForm, parse_polygon
 from .geo import admin_location, apply_location, area_ha, overlapping_parcels, terrain
 from .models import EvaluationVegetation, FireParcel, ParcelEvaluation, ParcelPhoto
 
-try:
-    from fire_actions.models import BurningPlan
-    HAS_BP = True
-except ImportError:
-    HAS_BP = False
-
 VegetationFormSet = inlineformset_factory(
     ParcelEvaluation, EvaluationVegetation, fields=['species', 'cover_pct', 'height_m', 'age_years'],
     extra=3, can_delete=True)
@@ -55,14 +49,8 @@ def _tecnico_emails():
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def last_burn_date_for_parcela(parcela):
-    """Return the most recent BurningPlan execution_date for this parcela, or None."""
-    if not HAS_BP:
-        return None
-    return (BurningPlan.objects
-            .filter(pre_plan__parcels=parcela)
-            .order_by('-execution_date')
-            .values_list('execution_date', flat=True)
-            .first())
+    """Return the most recent execution date of this parcela, or None."""
+    return parcela.executions.order_by('-date').values_list('date', flat=True).first()
 
 
 def parcel_centroids():
@@ -77,7 +65,7 @@ def parcel_centroids():
 
 @login_required
 def parcela_list(request):
-    qs = FireParcel.objects.annotate(last_burn=Max('fire_actions__burningplan__execution_date'))
+    qs = FireParcel.objects.annotate(last_burn=Max('executions__date'))
     filters = {k: request.GET.get(k, '') for k in ('status', 'tipologia', 'concelho')}
     if filters['status']:
         qs = qs.filter(status=filters['status'])

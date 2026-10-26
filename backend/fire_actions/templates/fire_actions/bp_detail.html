@@ -1,69 +1,76 @@
 {% extends "core/base.html" %}
-{% load history_tags %}
-{% block title %}Plano de Queima — {{ bp.pre_plan.name }}{% endblock %}
-{% block page_title %}Plano de Queima #{{ bp.pk }}{% endblock %}
+{% load history_tags humanize_pt %}
+{% block title %}Execução — {{ action.name }}{% endblock %}
+{% block page_title %}Execução (POQ) — {{ action.name }}{% endblock %}
 {% block nav_bp %}active{% endblock %}
 {% block topbar_actions %}
-  <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 Relatório Word</a>
-  <a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>
+  <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 POQ-Execução (Word)</a>
+  {% if can_manage %}<a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
+{% endblock %}
+{% block extra_head %}
+<style>
+  .kv td:first-child { color:var(--dim); width:38% }
+  .num { text-align:right; white-space:nowrap }
+  .inline-form { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap }
+  .inline-form select, .inline-form input { width:auto }
+  .photos { display:flex; flex-wrap:wrap; gap:10px }
+  .photos figure { margin:0; font-size:11.5px; color:var(--dim); max-width:140px }
+  .photos img { height:90px; border-radius:4px; object-fit:cover; display:block }
+</style>
 {% endblock %}
 {% block content %}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-  <div>
-    <div class="card">
-      <div class="card-title">Identificação</div>
-      <table><tbody>
-        <tr><td style="color:var(--dim);width:45%">Ação</td><td><a href="{% url 'fire_actions:detail' bp.pre_plan.pk %}">{{ bp.pre_plan.name }}</a></td></tr>
-        <tr><td style="color:var(--dim)">Parcela(s)</td><td>{% for p in bp.pre_plan.parcels.all %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
-        <tr><td style="color:var(--dim)">Data Execução</td><td>{{ bp.execution_date|date:"d/m/Y" }}</td></tr>
-        <tr><td style="color:var(--dim)">Operacionais</td><td>{% for o in bp.operatives.all %}{{ o.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
-        <tr><td style="color:var(--dim)">Nº Homens</td><td>{{ bp.num_men|default:"—" }}</td></tr>
-        <tr><td style="color:var(--dim)">VFCI / VFCM</td><td>{{ vehicles.VFCI|default:0 }} / {{ vehicles.VFCM|default:0 }}</td></tr>
-      </tbody></table>
-    </div>
-    <div class="card">
-      <div class="card-title">Meteorologia</div>
-      <table><tbody>
-        <tr><td style="color:var(--dim);width:45%">Estado tempo</td><td>{{ bp.weather_state|default:"—" }}</td></tr>
-        <tr><td style="color:var(--dim)">Vento</td><td>{{ bp.wind_speed_beaufort|default:"—" }} Bft / {{ bp.wind_speed_kmh|default:"—" }} km/h {{ bp.wind_direction|default:"" }}</td></tr>
-        <tr><td style="color:var(--dim)">Condução fogo</td><td>{{ bp.get_fire_conduct_display|default:"—" }}</td></tr>
-      </tbody></table>
-    </div>
-  </div>
-  <div>
-    <div class="card">
-      <div class="card-title">Humidade Combustíveis</div>
-      <table><tbody>
-        <tr><td style="color:var(--dim)">Superficial</td><td>{{ bp.fuel_superficial|default:"—" }} %</td></tr>
-        <tr><td style="color:var(--dim)">Manta F</td><td>{{ bp.fuel_manta_f|default:"—" }} %</td></tr>
-        <tr><td style="color:var(--dim)">Manta H</td><td>{{ bp.fuel_manta_h|default:"—" }} %</td></tr>
-      </tbody></table>
-    </div>
-    <div class="card">
-      <div class="card-title">Resultados</div>
-      <p style="color:var(--dim);font-size:11px;margin-bottom:4px">EFEITOS</p>
-      <p style="margin-bottom:12px">{{ bp.burn_effects|default:"—" }}</p>
-      <p style="color:var(--dim);font-size:11px;margin-bottom:4px">EFICÁCIA</p>
-      <p>{{ bp.burn_efficiency|default:"—" }}</p>
-    </div>
-    {% if bp.photos.all %}
-    <div class="card">
-      <div class="card-title">Fotografias</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        {% for photo in bp.photos.all %}
-        <a href="{{ photo.image.url }}" target="_blank"><img src="{{ photo.image.url }}" style="height:80px;border-radius:4px;object-fit:cover"></a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-  </div>
+{% if bp.incident %}<div class="msg msg-error"><strong>Fuga do fogo registada.</strong> {{ bp.incident_circumstances }} — o POQ deve ser enviado ao ICNF no prazo de 15 dias.</div>{% endif %}
 
-  {% if schema_url %}
-  <div class="card" style="grid-column:1/-1">
-    <div class="card-title">🗺️ Esquema Tático</div>
-    <img src="{{ schema_url }}" style="max-width:100%;border-radius:4px;border:1px solid var(--border)">
-  </div>
+<div class="card">
+  <div class="card-title">Cabeçalho do POQ</div>
+  <table class="kv"><tbody>
+    <tr><td>Ação</td><td><a href="{% url 'fire_actions:detail' action.pk %}">{{ action.name }}</a> · {{ action.get_action_type_display }}{% if action.purpose %} — {{ action.get_purpose_display }}{% endif %}{% if action.training %} · formação{% endif %}</td></tr>
+    <tr><td>{% if action.pfc or action.pfc_reference %}Plano de Fogo Controlado n.º{% else %}Parcela(s){% endif %}</td>
+      <td>{% if action.pfc %}<a href="{% url 'pfc:detail' action.pfc.pk %}">{{ action.pfc.number }}</a>{% elif action.pfc_reference %}{{ action.pfc_reference }}{% else %}{% for p in action.parcels.all %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}</td></tr>
+    <tr><td>Técnico responsável</td><td>{% if action.responsible_user %}{{ action.responsible_user.operative.name|default:action.responsible_user.username }}{% if action.responsible_user.operative.credential_number %} (n.º {{ action.responsible_user.operative.credential_number }}){% endif %}{% else %}{{ action.responsible|default:"—" }}{% endif %}</td></tr>
+    <tr><td>Período de queima</td><td>{{ burn_period|default:"—" }}</td></tr>
+    {% if bp.notes %}<tr><td>Observações</td><td>{{ bp.notes|linebreaksbr }}</td></tr>{% endif %}
+  </tbody></table>
+</div>
+
+<div class="card">
+  <div class="card-title">Execução por parcela e data</div>
+  {% if rows %}
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>Parcela</th><th>Data</th><th>Horário</th><th>Equipa</th><th>Leituras</th><th>Problemas</th><th>Eficácia</th><th class="num">Custo real</th><th class="num">Estimativa CAOF</th><th></th></tr></thead>
+    <tbody>{% for r in rows %}{% with ex=r.ex %}
+      <tr>
+        <td><a href="{% url 'parcelas:detail' ex.parcel.pk %}">{{ ex.parcel.name }}</a><br><span style="font-size:11.5px;color:var(--dim)">{{ ex.area_treated_ha|default:"?" }} ha · {{ ex.get_formation_display }}</span></td>
+        <td>{{ ex.date|date:"d/m/Y" }}</td>
+        <td style="white-space:nowrap">{{ ex.start_time|time:"H:i"|default:"—" }} – {{ ex.end_time|time:"H:i"|default:"—" }}</td>
+        <td>{{ ex.members.count }}</td>
+        <td>{{ ex.readings.count }}{% if r.issues %} <span class="badge badge-red" title="Leituras fora da prescrição do PFC">⚠ {{ r.issues|length }} fora da prescrição</span>{% endif %}</td>
+        <td style="font-size:12px">{{ ex.problems_display|default:"—" }}</td>
+        <td style="font-size:12px">{{ ex.get_rating_objectives_display|default:"—" }}</td>
+        <td class="num">{% if r.real %}{{ r.real|eur }}{% else %}—{% endif %}</td>
+        <td class="num">{% if r.estimate %}{{ r.estimate.total|eur }}{% else %}—{% endif %}</td>
+        <td style="white-space:nowrap">{% if can_manage %}<a href="{% url 'fire_actions:execution_edit' ex.pk %}" class="btn btn-primary btn-sm">✏️ Preencher</a>{% endif %}</td>
+      </tr>{% endwith %}{% endfor %}</tbody>
+  </table></div>
+  <p style="font-size:11.5px;color:var(--dim);margin-top:6px">A estimativa CAOF usa os dados de custo da parcela no PFC ou, sem PFC, a avaliação técnica da parcela.</p>
+  {% else %}<p style="color:var(--dim);font-size:13px">Ainda sem execuções de parcela.</p>{% endif %}
+  {% if can_manage %}
+  <form method="post" action="{% url 'fire_actions:execution_add' bp.pk %}" class="inline-form" style="margin-top:12px">{% csrf_token %}
+    <div class="field"><label>Parcela</label>{{ add_form.parcel }}</div>
+    <div class="field"><label>Data</label>{{ add_form.date }}</div>
+    <button class="btn btn-secondary btn-sm">+ Acrescentar execução (outra parcela ou outro dia)</button>
+  </form>
   {% endif %}
 </div>
+
+<div class="card">
+  <div class="card-title">Índice de fotografias ({{ photos|length }})</div>
+  {% if photos %}<div class="photos">{% for ph in photos %}
+    <figure><a href="{{ ph.image.url }}" target="_blank"><img src="{{ ph.image.url }}" alt=""></a>
+      Foto {{ forloop.counter }} · {{ ph.parcel.name|default:"—" }}<br>{{ ph.get_moment_display|default:"" }} {{ ph.taken_on|date:"d/m/Y" }}{% if ph.caption %}<br>{{ ph.caption }}{% endif %}</figure>
+  {% endfor %}</div>
+  {% else %}<p style="color:var(--dim);font-size:13px">Sem fotografias. Junte-as em cada execução de parcela, indicando se são de antes ou depois da queima.</p>{% endif %}
+</div>
+
 <div style="margin-top:16px">{% change_history bp %}</div>
 {% endblock %}
