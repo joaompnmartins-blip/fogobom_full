@@ -1,0 +1,82 @@
+{% extends "core/base.html" %}
+{% block title %}Parcela do PFC{% endblock %}
+{% block page_title %}PFC {{ pfc.number }} — {% if pp.pk %}parcela {{ pp.number }}{% else %}acrescentar parcela{% endif %}{% endblock %}
+{% block nav_pfc %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .fgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px 14px }
+  .fgrid .wide { grid-column:1/-1 }
+  .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
+  table.presc td { padding:4px 6px } table.presc input { width:90px }
+</style>
+{% endblock %}
+{% block content %}
+<form method="post">{% csrf_token %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start">
+  <div>
+    <div class="card">
+      <div class="card-title">Parcela</div>
+      <div class="fgrid">
+        <div class="field wide"><label>{{ form.parcel.label }} *</label>{{ form.parcel }}
+          {% if not pp.pk %}<div class="hint">Ao escolher a parcela, a ocupação, o objetivo e os dados de custo são sugeridos a partir da avaliação técnica.</div>{% endif %}</div>
+        <div class="field"><label>N.º da parcela no PFC *</label>{{ form.number }}</div>
+        <div class="field"><label>{{ form.season.label }}</label>{{ form.season }}</div>
+        <div class="field wide"><label>Ocupação</label>{{ form.occupation }}
+          <div class="hint">Ex.: “80% de pinheiro-bravo com 28 anos; 70% tojo com 50 cm…”</div></div>
+        <div class="field wide"><label>Objetivo</label>{{ form.objective }}</div>
+        <div class="field wide"><label>Técnica de ignição</label>{{ form.ignition }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Meios necessários</div>
+      <div class="fgrid">
+        <div class="field"><label>Técnicos FC</label>{{ form.n_tecnicos }}</div>
+        <div class="field"><label>Operacionais de queima</label>{{ form.n_operacionais }}</div>
+        <div class="field"><label>Equipas de apoio</label>{{ form.n_equipas }}</div>
+        <div class="field"><label>Elementos de apoio</label>{{ form.n_elementos }}</div>
+        <div class="field"><label>VFCI</label>{{ form.n_vfci }}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Estimativa de custo (matriz CAOF)</div>
+      <div class="fgrid">
+        <div class="field"><label>Tipo</label>{{ form.cost_type }}</div>
+        <div class="field"><label>Declive</label>{{ form.cost_slope }}</div>
+        <div class="field"><label>Carga de combustível</label>{{ form.cost_load }}<div class="hint">Só conta em povoamentos.</div></div>
+      </div>
+      <p class="hint">A classe de área é calculada a partir da área da parcela.</p>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-title">Prescrição (mínimo – máximo)</div>
+      <table class="presc"><tbody>
+        <tr><td>Dias sem chuva</td><td>{{ form.dry_days_min }}</td><td>{{ form.dry_days_max }}</td></tr>
+        <tr><td>Temperatura (°C)</td><td>{{ form.temp_min }}</td><td>{{ form.temp_max }}</td></tr>
+        <tr><td>Humidade relativa (%)</td><td>{{ form.rh_min }}</td><td>{{ form.rh_max }}</td></tr>
+        <tr><td>Humidade do combustível (%)</td><td>{{ form.fuel_moisture }}</td><td></td></tr>
+        <tr><td>Humidade da folhada (%)</td><td>{{ form.litter_moisture_min }}</td><td>{{ form.litter_moisture_max }}</td></tr>
+        <tr><td>Velocidade do vento (km/h)</td><td>{{ form.wind_min }}</td><td>{{ form.wind_max }}</td></tr>
+        <tr><td>Velocidade de propagação (m/min)</td><td>{{ form.spread_min }}</td><td>{{ form.spread_max }}</td></tr>
+        <tr><td>Comprimento de chama (m)</td><td>{{ form.flame_min }}</td><td>{{ form.flame_max }}</td></tr>
+      </tbody></table>
+      <p class="hint" style="margin-top:8px">A previsão das ações de fogo controlado deste PFC é comparada com a temperatura, a humidade relativa, o vento e os dias sem chuva.</p>
+    </div>
+  </div>
+</div>
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 Guardar parcela</button>
+  <a href="{% url 'pfc:detail' pfc.pk %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+{% endblock %}
+{% block extra_js %}
+{% if not pp.pk %}
+<script>
+// Reload with the chosen parcel so its evaluation data pre-fill the form
+document.querySelector('[name=parcel]').addEventListener('change', e => {
+  if (e.target.value) window.location.search = '?parcel=' + encodeURIComponent(e.target.value);
+});
+</script>
+{% endif %}
+{% endblock %}

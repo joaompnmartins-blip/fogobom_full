@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'parcelas',
     'operatives',
     'fire_actions',
+    'pfc',
 ]
 
 MIDDLEWARE = [

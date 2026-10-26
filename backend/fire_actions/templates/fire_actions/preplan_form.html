@@ -66,9 +66,11 @@
   <div>
     <div class="card">
       <div class="card-title">Enquadramento legal</div>
-      <div id="legal-fc">
-        <div class="field"><label>N.º do PFC aprovado</label>{{ form.pfc_reference }}
-          <div class="hint">O fogo controlado executa-se ao abrigo de um Plano de Fogo Controlado aprovado (n.º/credenciação/ano).</div></div>
+      <div id="legal-fc" class="fgrid">
+        <div class="field wide"><label>PFC aprovado (na plataforma)</label>{{ form.pfc }}
+          <div class="hint">Só aparecem PFC aprovados (incluindo aprovação tácita) e dentro da validade. As parcelas da ação têm de fazer parte do PFC.</div></div>
+        <div class="field wide"><label>Ou n.º de um PFC que não está na plataforma</label>{{ form.pfc_reference }}
+          <div class="hint">Formato n.º sequencial / n.º de credenciação / ano de aprovação.</div></div>
       </div>
       <div id="legal-queimada" class="fgrid">
         <div class="field wide"><label>Comunicação / autorização do município</label>{{ form.legal_mode }}
@@ -113,7 +115,7 @@
 const typeSel = document.querySelector('[name=action_type]');
 function toggleType() {
   const fc = typeSel.value === 'fogo_controlado';
-  document.getElementById('legal-fc').style.display = fc ? 'block' : 'none';
+  document.getElementById('legal-fc').style.display = fc ? 'grid' : 'none';
   document.getElementById('legal-queimada').style.display = fc ? 'none' : 'grid';
   document.getElementById('f-purpose').style.display = fc ? 'none' : 'block';
 }

@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+{% block title %}{% if pfc %}Editar PFC{% else %}Novo PFC{% endif %}{% endblock %}
+{% block page_title %}{% if pfc %}Editar PFC {{ pfc.number }}{% else %}Novo Plano de Fogo Controlado{% endif %}{% endblock %}
+{% block nav_pfc %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .fgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px 14px }
+  .fgrid .wide { grid-column:1/-1 }
+  .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
+</style>
+{% endblock %}
+{% block content %}
+<form method="post">{% csrf_token %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start">
+  <div>
+    <div class="card">
+      <div class="card-title">Identificação</div>
+      <div class="fgrid">
+        <div class="field"><label>N.º sequencial *</label>{{ form.sequence }}
+          <div class="hint">N.º do PFC = {{ form.sequence.value|default:"?" }} / {{ credential_number }} / ano de aprovação</div></div>
+        <div class="field"><label>N.º de credenciação</label><input type="text" value="{{ credential_number }}" disabled></div>
+        <div class="field wide"><label>Designação *</label>{{ form.name }}</div>
+        <div class="field"><label>Entidade proponente *</label>{{ form.proponent }}</div>
+        <div class="field"><label>Contacto do proponente</label>{{ form.proponent_contact }}</div>
+        <div class="field wide"><label>Mata Nacional / Perímetro Florestal / Área Protegida / ZIF / OPF</label>{{ form.management_unit }}
+          <div class="hint">Quando aplicável.</div></div>
+        <div class="field"><label>DCNF</label>{{ form.dcnf }}</div>
+        <div class="field"><label>Folhas da Carta Militar 1:25 000</label>{{ form.military_map_sheets }}</div>
+        <div class="field"><label>Início da validade *</label>{{ form.validity_start }}</div>
+        <div class="field"><label>Fim da validade *</label>{{ form.validity_end }}<div class="hint">No máximo 5 anos.</div></div>
+        <div class="field wide"><label>Entidade que aprova</label>{{ form.approval_entity }}
+          <div class="hint">Comissão municipal de gestão integrada de fogos rurais (ou a CMDF, onde ainda não tiver sido constituída).</div></div>
+      </div>
+      <p class="hint" style="margin-top:8px">O concelho, as freguesias e o distrito são obtidos automaticamente a partir das parcelas.</p>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-title">Conteúdos do plano (art. 12.º)</div>
+      <div class="form-row"><div class="field"><label>Caracterização da área</label>{{ form.characterization }}
+        <div class="hint">Orografia, uso do solo, formações vegetais e tipos de combustíveis.</div></div></div>
+      <div class="form-row"><div class="field"><label>História do fogo</label>{{ form.fire_history }}
+        <div class="hint">Áreas ardidas, estatística dos incêndios, perigosidade e risco, causas.</div></div></div>
+      <div class="form-row"><div class="field"><label>Infraestruturas de DFCI</label>{{ form.dfci_infrastructure }}</div></div>
+      <div class="form-row"><div class="field"><label>Objetivos específicos</label>{{ form.objectives }}
+        <div class="hint">Prevenção DFCI, silvícola, pastoreio, cinegético, conservação…</div></div></div>
+      <div class="form-row"><div class="field"><label>Meios humanos e materiais</label>{{ form.means }}</div></div>
+      <div class="form-row"><div class="field"><label>Plano de emergência e de contingência</label>{{ form.emergency_plan }}
+        <div class="hint">Contactos das entidades de combate, pontos críticos, rotas de fuga e zonas de segurança. Obrigatório a partir de 50 ha.</div></div></div>
+      <div class="form-row"><div class="field"><label>Outros elementos</label>{{ form.other_elements }}</div></div>
+    </div>
+  </div>
+</div>
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 Guardar</button>
+  <a href="{% if pfc %}{% url 'pfc:detail' pfc.pk %}{% else %}{% url 'pfc:list' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+{% endblock %}

@@ -67,6 +67,7 @@
       <li><a href="#parcelas">Parcelas</a></li>
       <li><a href="#operacionais">Operacionais</a></li>
       <li><a href="#preplanos">Ações de fogo</a></li>
+      <li><a href="#pfc">Planos de Fogo Controlado</a></li>
       <li><a href="#planos">Planos de Queima</a></li>
       <li><a href="#relatorio">Relatório Word</a></li>
       <li><a href="#calendario">Calendário</a></li>
@@ -146,6 +147,7 @@
         <tr><td>🗺️ Parcelas</td><td>Áreas de intervenção, com mapa</td></tr>
         <tr><td>📢 Próximas ações</td><td>Ações anunciadas: probabilidade de realização e inscrições</td></tr>
         <tr><td>📋 Ações</td><td>Todas as ações (fogo controlado e queimadas), com filtro por estado</td></tr>
+        <tr><td>🗂️ Planos (PFC)</td><td>Planos de Fogo Controlado: parcelas, prescrição, aprovação e custos</td></tr>
         <tr><td>📄 Planos de Queima</td><td>Registo da execução de cada queima e relatório Word</td></tr>
         <tr><td>📅 Calendário</td><td>Vista mensal das queimas planeadas e executadas</td></tr>
         <tr><td>👷 Operacionais</td><td>Pessoas que participam nas queimas</td></tr>
@@ -315,9 +317,54 @@
         Depois, registe a execução com <span class="ui">📄 Registar execução</span>.</p>
     </section>
 
+    <section id="pfc">
+      <h2>7. Planos de Fogo Controlado (PFC)</h2>
+      <p>O PFC programa, por um período até <strong>5 anos</strong>, as ações de fogo controlado numa área: as parcelas,
+        a época de queima de cada uma, a prescrição, a técnica de ignição e os meios. É elaborado por um
+        <strong>técnico credenciado</strong> e aprovado pela comissão municipal (gestão integrada de fogos rurais).</p>
+
+      <h3>Criar um PFC (técnicos credenciados)</h3>
+      <ol>
+        <li>Em <span class="ui">🗂️ Planos (PFC)</span>, carregue em <span class="ui">+ Novo PFC</span>.</li>
+        <li>O <strong>n.º do PFC</strong> segue o formato <em>n.º sequencial / n.º de credenciação / ano de aprovação</em>:
+          a plataforma sugere o sequencial seguinte e usa o seu n.º de credenciação; o ano é preenchido quando o plano é aprovado.</li>
+        <li>Indique a designação, o proponente, a unidade de gestão (Mata Nacional, ZIF…), a DCNF, as folhas da Carta
+          Militar e o <strong>período de validade</strong> (no máximo 5 anos).</li>
+        <li>Preencha os conteúdos obrigatórios: caracterização da área, história do fogo, infraestruturas de DFCI,
+          objetivos, meios e, a partir de 50 ha, o <strong>plano de emergência</strong>.</li>
+        <li>Acrescente as parcelas (só parcelas aptas). Ao escolher a parcela, a ocupação, o objetivo e os dados de custo
+          são sugeridos a partir da avaliação técnica. Defina a <strong>época de queima</strong>, a <strong>prescrição</strong>
+          (mínimo–máximo de dias sem chuva, temperatura, humidade relativa, humidade do combustível e da folhada, vento,
+          velocidade de propagação e comprimento de chama), a técnica de ignição e os meios.</li>
+      </ol>
+      <p>O concelho, as freguesias e o distrito do PFC são obtidos das parcelas.</p>
+
+      <h3>Aprovação</h3>
+      <ul>
+        <li>Registe o <strong>envio à comissão municipal</strong> (só possível com os conteúdos obrigatórios e parcelas).</li>
+        <li>Registe a <strong>aprovação</strong> com a data. Sem decisão em <strong>45 dias</strong>, o PFC considera-se
+          <strong>aprovado tacitamente</strong> (a plataforma assinala-o automaticamente).</li>
+        <li>Um PFC pode ser posto em <strong>revisão</strong> (volta a precisar de aprovação), <strong>suspenso</strong> pela
+          comissão ou <strong>concluído</strong>. Depois do fim da validade aparece como expirado.</li>
+      </ul>
+
+      <h3>Estimativa de custos</h3>
+      <p>Para cada parcela a plataforma estima o custo pela <strong>matriz CAOF</strong>: jornas de trabalho por hectare
+        (127,99 €/jorna), de 1 jorna/ha nas condições mais fáceis até 5 (povoamentos) ou 4 (matos), consoante o
+        <strong>declive</strong>, a <strong>área</strong> e a <strong>carga de combustível</strong>. Acrescenta a elaboração
+        do plano e as faixas de contenção (pelo perímetro da parcela) e compara com o <strong>apoio do ICNF</strong>
+        (304 €/ha em matos, 365 €/ha em povoamentos): uma cobertura abaixo de 100% assinala uma queima subfinanciada.</p>
+
+      <h3>Documento e ações</h3>
+      <p><span class="ui">📥 Documento Word</span> gera o PFC no formato do modelo do ICNF, com o Anexo 3 (quadro de
+        identificação das parcelas). Ao anunciar uma ação de <strong>fogo controlado</strong>, escolha o PFC aprovado: só
+        aparecem PFC em vigor, as parcelas da ação têm de fazer parte do PFC e a previsão do tempo é comparada com a
+        prescrição.</p>
+    </section>
+
     <!-- 7 ─────────────────────────────────────────────────────────── -->
     <section id="planos">
-      <h2>7. Planos de Queima</h2>
+      <h2>8. Planos de Queima</h2>
       <p>O plano de queima regista a execução: data, equipa, meios, humidade dos combustíveis, meteorologia,
         resultados e fotografias. Cada ação tem <strong>um único</strong> plano de queima.</p>
 
@@ -353,7 +400,7 @@
 
     <!-- 8 ─────────────────────────────────────────────────────────── -->
     <section id="relatorio">
-      <h2>8. Relatório Word</h2>
+      <h2>9. Relatório Word</h2>
       <p>No detalhe de um plano de queima carregue em <span class="ui">📥 Relatório Word</span>
         (ou em <span class="ui">📥 Relatório</span> na lista). É descarregado um ficheiro <code>.docx</code> com:</p>
       <ol>
@@ -373,7 +420,7 @@
 
     <!-- 9 ─────────────────────────────────────────────────────────── -->
     <section id="calendario">
-      <h2>9. Calendário</h2>
+      <h2>10. Calendário</h2>
       <p>Mostra as ações na respetiva <strong>data prevista</strong>, com a cor do estado:
         <span class="dot" style="background:#e8541a"></span>prevista ·
         <span class="dot" style="background:#2e9e4f"></span>confirmada ·
@@ -385,7 +432,7 @@
 
     <!-- 10 ────────────────────────────────────────────────────────── -->
     <section id="meteorologia">
-      <h2>10. Meteorologia</h2>
+      <h2>11. Meteorologia</h2>
       <p>Ferramenta de apoio à decisão que estima a <strong>humidade do combustível fino morto (HC)</strong>
         para os próximos 5 dias, no período diurno (08h–18h), a partir da previsão meteorológica.</p>
 
@@ -437,7 +484,7 @@
 
     <!-- 11 ────────────────────────────────────────────────────────── -->
     <section id="faq">
-      <h2>11. Perguntas frequentes</h2>
+      <h2>12. Perguntas frequentes</h2>
 
       <h3>Não encontro o botão para eliminar um registo.</h3>
       <p>Eliminar parcelas, operacionais, ações ou planos de queima está reservado aos administradores.

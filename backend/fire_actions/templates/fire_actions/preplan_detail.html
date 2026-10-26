@@ -67,7 +67,7 @@
     <div class="card">
       <div class="card-title">Enquadramento legal</div>
       {% if action.action_type == 'fogo_controlado' %}
-        <table class="kv"><tbody><tr><td>PFC</td><td>{{ action.pfc_reference|default:"—" }}</td></tr></tbody></table>
+        <table class="kv"><tbody><tr><td>PFC</td><td>{% if action.pfc %}<a href="{% url 'pfc:detail' action.pfc.pk %}">PFC {{ action.pfc.number }} — {{ action.pfc.name }}</a> ({{ action.pfc.display_status|lower }}, válido até {{ action.pfc.validity_end|date:"d/m/Y" }}){% else %}{{ action.pfc_reference|default:"—" }}{% endif %}</td></tr></tbody></table>
       {% else %}
         <table class="kv"><tbody>
           <tr><td>Município</td><td>{{ action.get_legal_mode_display|default:"—" }}</td></tr>

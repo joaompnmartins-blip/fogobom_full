@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+{% block title %}Planos de Fogo Controlado{% endblock %}
+{% block page_title %}Planos de Fogo Controlado (PFC){% endblock %}
+{% block nav_pfc %}active{% endblock %}
+{% block topbar_actions %}{% if can_create %}<a href="{% url 'pfc:create' %}" class="btn btn-primary btn-sm">+ Novo PFC</a>{% endif %}{% endblock %}
+{% block content %}
+<p style="color:var(--dim);font-size:13px;margin-bottom:12px">O PFC programa, por um período até 5 anos, as ações de fogo controlado numa área,
+  com as parcelas, as épocas de queima e a prescrição de cada uma. É elaborado por um técnico credenciado e aprovado pela comissão municipal.</p>
+<div class="card">
+  <div class="card-title">{{ pfcs|length }} PFC</div>
+  {% if pfcs %}
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>N.º</th><th>Designação</th><th>Proponente</th><th>Técnico</th><th>Validade</th><th>Parcelas</th><th>Estado</th></tr></thead>
+    <tbody>{% for p in pfcs %}
+      <tr><td style="white-space:nowrap"><a href="{% url 'pfc:detail' p.pk %}">{{ p.number }}</a></td>
+        <td><a href="{% url 'pfc:detail' p.pk %}">{{ p.name }}</a></td>
+        <td>{{ p.proponent }}</td>
+        <td>{{ p.technician.operative.name|default:p.technician.username }}</td>
+        <td style="white-space:nowrap">{{ p.validity_start|date:"m/Y" }} – {{ p.validity_end|date:"m/Y" }}</td>
+        <td>{{ p.plan_parcels.count }}</td>
+        <td>{% with s=p.display_status %}<span class="badge {% if s == 'Aprovado' or s == 'Aprovado tacitamente' %}badge-green{% elif s == 'Suspenso' or s == 'Expirado' %}badge-red{% else %}badge-orange{% endif %}">{{ s }}</span>{% endwith %}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <p style="color:var(--dim)">Ainda não há PFC.{% if can_create %} <a href="{% url 'pfc:create' %}">Criar o primeiro →</a>{% else %} Só técnicos credenciados (com credenciação validada) podem criar PFC.{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}

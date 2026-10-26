@@ -23,7 +23,7 @@ class PrePlanForm(forms.ModelForm):
         fields = ['name', 'action_type', 'training', 'purpose', 'objectives', 'responsible_user',
                   'scheduled_date', 'alt_date_1', 'alt_date_2', 'start_time', 'meeting_notes', 'requirements',
                   'slots', 'probability_manual', 'legal_mode', 'legal_reference', 'legal_date', 'legal_document',
-                  'accompaniment', 'pfc_reference', 'notes', 'parcels']
+                  'accompaniment', 'pfc', 'pfc_reference', 'notes', 'parcels']
         labels = {'name': 'Nome da ação', 'scheduled_date': 'Data prevista', 'notes': 'Notas', 'parcels': 'Parcelas'}
 
     def __init__(self, *args, **kwargs):
@@ -38,6 +38,13 @@ class PrePlanForm(forms.ModelForm):
         self.fields['parcels'].error_messages['invalid_choice'] = \
             'Só podem ser usadas parcelas avaliadas como aptas.'
         self.fields['action_type'].required = False
+        from pfc.models import PFC
+        in_force = [p.pk for p in PFC.objects.all() if p.effective_approval_date and p.status != PFC.STATUS_SUSPENSO
+                    and not p.is_expired]
+        if self.instance.pfc_id:
+            in_force.append(self.instance.pfc_id)
+        self.fields['pfc'].queryset = PFC.objects.filter(pk__in=in_force)
+        self.fields['pfc'].label = 'PFC aprovado'
         if self.instance.pk:
             self.initial['objectives'] = self.instance.objectives_list
             if self.instance.meeting_point:
@@ -64,6 +71,14 @@ class PrePlanForm(forms.ModelForm):
             self.add_error('legal_mode',
                            'A comunicação prévia só se aplica a queimadas com técnico credenciado; '
                            'caso contrário é necessária autorização do município.')
+        pfc, d = data.get('pfc'), data.get('scheduled_date')
+        if data.get('action_type') == FireAction.TYPE_FOGO_CONTROLADO and pfc:
+            if d and not pfc.in_force_on(d):
+                self.add_error('pfc', f'O PFC {pfc.number} não está em vigor nessa data.')
+            outside = [p.name for p in data.get('parcels') or []
+                       if not pfc.plan_parcels.filter(parcel=p).exists()]
+            if outside:
+                self.add_error('parcels', 'Parcelas que não fazem parte do PFC escolhido: ' + ', '.join(outside))
         lat, lng = data.get('meeting_lat'), data.get('meeting_lng')
         if (lat is None) != (lng is None):
             self.add_error(None, 'Ponto de encontro incompleto.')

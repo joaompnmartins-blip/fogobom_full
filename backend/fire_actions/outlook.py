@@ -188,6 +188,30 @@ def fuel_forecast(lat, lng, d, terrain=None):
 
 # ── Outlook ──────────────────────────────────────────────────────────────────
 
+def prescription_issues(action, parcels, fuel):
+    """Forecast values outside the PFC prescription of the action's first parcel."""
+    pfc_id = getattr(action, 'pfc_id', None)
+    if not pfc_id or not parcels:
+        return []
+    from pfc.models import PFCParcel
+    pp = PFCParcel.objects.filter(pfc_id=pfc_id, parcel=parcels[0]).first()
+    if not pp:
+        return []
+    issues = []
+    checks = [('temperatura máx.', fuel['t_max'], pp.temp_min, pp.temp_max, '°C'),
+              ('HR mín.', fuel['rh_min'], pp.rh_min, pp.rh_max, '%'),
+              ('vento máx.', fuel['wind_max'], pp.wind_min, pp.wind_max, 'km/h'),
+              ('dias sem chuva', fuel['dry_days'], pp.dry_days_min, pp.dry_days_max, '')]
+    for label, value, lo, hi, unit in checks:
+        if value is None:
+            continue
+        if lo is not None and value < lo:
+            issues.append(f'{label} {value:g}{unit} < {lo:g}{unit}')
+        elif hi is not None and value > hi:
+            issues.append(f'{label} {value:g}{unit} > {hi:g}{unit}')
+    return issues
+
+
 PROB_LABELS = {'alta': 'Alta', 'media': 'Média', 'baixa': 'Baixa'}
 GO_TO_PROB = {'GO': 'alta', 'CUIDADO': 'media', 'NAO-GO': 'baixa'}
 RANK = {'baixa': 0, 'media': 1, 'alta': 2}
@@ -214,6 +238,11 @@ def action_outlook(action, d=None):
         suggestion = GO_TO_PROB[fuel['go']]
         reasons.append(f"Humidade do combustível prevista {fuel['fm_mean']}% ({fuel['label']})"
                        + (f" — {fuel['note']}" if fuel['note'] else ''))
+        outside = prescription_issues(action, parcels, fuel)
+        if outside:
+            reasons.append('Fora da prescrição do PFC: ' + '; '.join(outside))
+            if suggestion == 'alta':
+                suggestion = 'media'
     if danger:
         reasons.append(f"Perigo de incêndio rural (IPMA): {danger['label']}")
         if danger['blocking']:

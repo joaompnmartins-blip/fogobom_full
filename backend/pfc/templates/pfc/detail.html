@@ -1,0 +1,161 @@
+{% extends "core/base.html" %}
+{% load history_tags humanize_pt %}
+{% block title %}PFC {{ pfc.number }}{% endblock %}
+{% block page_title %}PFC {{ pfc.number }} — {{ pfc.name }}{% endblock %}
+{% block nav_pfc %}active{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'pfc:docx' pfc.pk %}" class="btn btn-primary btn-sm">📥 Documento Word</a>
+  {% if can_edit %}<a href="{% url 'pfc:edit' pfc.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
+{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .kv td:first-child { color:var(--dim); width:40% }
+  .inline-form { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:8px }
+  .inline-form input { width:auto }
+  .num { text-align:right; white-space:nowrap }
+  .cov-low { color:#e57373; font-weight:600 } .cov-ok { color:#6fcf97 }
+</style>
+{% endblock %}
+{% block content %}
+{% with s=pfc.display_status %}
+{% if s == 'Aprovado tacitamente' %}<div class="msg msg-ok">Sem decisão da comissão municipal em 45 dias: o PFC considera-se <strong>aprovado tacitamente</strong> desde {{ pfc.tacit_approval_date|date:"d/m/Y" }} (art. 13.º).</div>
+{% elif s == 'Submetido à comissão municipal' %}<div class="msg msg-info">Enviado em {{ pfc.submitted_on|date:"d/m/Y" }}. Sem decisão até {{ pfc.tacit_approval_date|date:"d/m/Y" }}, considera-se aprovado tacitamente.</div>
+{% elif s == 'Expirado' %}<div class="msg msg-error">A validade do PFC terminou a {{ pfc.validity_end|date:"d/m/Y" }}.</div>
+{% elif s == 'Suspenso' %}<div class="msg msg-error"><strong>PFC suspenso.</strong> {{ pfc.status_notes }}</div>{% endif %}
+{% endwith %}
+{% if pfc.missing_contents and pfc.status == 'preparacao' or pfc.missing_contents and pfc.status == 'em_revisao' %}
+<div class="msg msg-info">Para enviar à comissão municipal falta: {{ pfc.missing_contents|join:"; " }}.</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;align-items:start">
+  <div class="card">
+    <div class="card-title">Identificação</div>
+    <table class="kv"><tbody>
+      <tr><td>N.º</td><td><strong>{{ pfc.number }}</strong></td></tr>
+      <tr><td>Estado</td><td>{{ pfc.display_status }}</td></tr>
+      <tr><td>Técnico</td><td>{{ pfc.technician.operative.name|default:pfc.technician.username }} (n.º {{ pfc.credential_number }})</td></tr>
+      <tr><td>Proponente</td><td>{{ pfc.proponent }}{% if pfc.proponent_contact %} · {{ pfc.proponent_contact }}{% endif %}</td></tr>
+      {% if pfc.management_unit %}<tr><td>Unidade de gestão</td><td>{{ pfc.management_unit }}</td></tr>{% endif %}
+      <tr><td>Validade</td><td>{{ pfc.validity_start|date:"d/m/Y" }} – {{ pfc.validity_end|date:"d/m/Y" }}</td></tr>
+      <tr><td>Épocas de queima</td><td>{{ pfc.seasons|join:", " }}</td></tr>
+      <tr><td>Localização</td><td>{{ pfc.get_dcnf_display }} · {{ pfc.location.distritos|join:", "|default:"—" }} · {{ pfc.location.concelhos|join:", "|default:"—" }}</td></tr>
+      <tr><td>Freguesias</td><td>{{ pfc.location.freguesias|join:", "|default:"—" }}</td></tr>
+      <tr><td>Área total</td><td>{{ pfc.total_area_ha }} ha{% if pfc.emergency_plan_required %} · plano de emergência obrigatório{% endif %}</td></tr>
+      <tr><td>Aprovação</td><td>{{ pfc.approval_entity }}{% if pfc.submitted_on %} · enviado {{ pfc.submitted_on|date:"d/m/Y" }}{% endif %}{% if pfc.approved_on %} · aprovado {{ pfc.approved_on|date:"d/m/Y" }}{% if pfc.tacit_approval %} (tácito){% endif %}{% endif %}</td></tr>
+    </tbody></table>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="map" style="height:340px"></div></div>
+</div>
+
+<div class="card">
+  <div class="card-title">Parcelas ({{ estimate.rows|length }}) — Anexo 3</div>
+  {% if estimate.rows %}
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>N.º</th><th>Parcela</th><th>Época</th><th class="num">Área (ha)</th><th>Ocupação</th><th>Objetivo</th><th>Prescrição</th><th>Ignição</th>{% if can_edit %}<th></th>{% endif %}</tr></thead>
+    <tbody>{% for r in estimate.rows %}{% with pp=r.pp %}
+      <tr><td>{{ pp.number }}</td><td><a href="{% url 'parcelas:detail' pp.parcel.pk %}">{{ pp.parcel.name }}</a><br><span style="font-size:11.5px;color:var(--dim)">{{ pp.parcel.concelho }}</span></td>
+        <td>{{ pp.season|default:"—" }}</td><td class="num">{{ r.area_ha|floatformat:2 }}</td>
+        <td style="font-size:12px">{{ pp.occupation|default:"—"|linebreaksbr }}</td><td style="font-size:12px">{{ pp.objective|default:"—" }}</td>
+        <td style="font-size:12px">{% for label, value, unit in pp.prescription_rows %}{{ label }}: {{ value }} {{ unit }}<br>{% empty %}<span style="color:var(--dim)">por definir</span>{% endfor %}</td>
+        <td style="font-size:12px">{{ pp.get_ignition_display|default:"—" }}</td>
+        {% if can_edit %}<td style="white-space:nowrap"><a href="{% url 'pfc:parcel_edit' pfc.pk pp.pk %}" class="btn btn-secondary btn-sm" title="Editar">✏️</a>
+          <form method="post" action="{% url 'pfc:parcel_remove' pfc.pk pp.pk %}" style="display:inline" onsubmit="return confirm('Retirar esta parcela do PFC?')">{% csrf_token %}<button class="btn btn-secondary btn-sm" title="Retirar">✖</button></form></td>{% endif %}
+      </tr>{% endwith %}{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p style="color:var(--dim);font-size:13px">Ainda sem parcelas.</p>{% endif %}
+  {% if can_edit %}<div class="btn-group"><a href="{% url 'pfc:parcel_add' pfc.pk %}" class="btn btn-primary btn-sm">+ Acrescentar parcela</a></div>{% endif %}
+</div>
+
+{% if estimate.rows %}
+<div class="card">
+  <div class="card-title">Estimativa de custos (matriz CAOF) e apoio ICNF</div>
+  <div style="overflow-x:auto"><table>
+    <thead><tr><th>Parcela</th><th>Tipo</th><th>Declive</th><th>Área</th><th>Carga</th><th class="num">Jornas/ha</th><th class="num">€/ha</th><th class="num">Queima</th><th class="num">Faixas</th><th class="num">Total</th><th class="num">Apoio ICNF</th><th class="num">Cobertura</th></tr></thead>
+    <tbody>{% for r in estimate.rows %}
+      <tr><td>{{ r.pp.number }} — {{ r.pp.parcel.name }}</td><td>{{ r.pp.get_cost_type_display }}</td><td>{{ r.pp.get_cost_slope_display }}</td>
+        <td>{{ r.area_class }}</td><td>{% if r.pp.cost_type == 'povoamento' %}{{ r.pp.get_cost_load_display }}{% else %}—{% endif %}</td>
+        <td class="num">{{ r.jornas_ha|floatformat:1 }}</td><td class="num">{{ r.eur_ha|eur }}</td><td class="num">{{ r.burn|eur }}</td>
+        <td class="num" title="{{ r.perimeter_m }} m de perímetro">{{ r.strip|eur }}</td><td class="num"><strong>{{ r.total|eur }}</strong></td>
+        <td class="num">{{ r.support|eur }}</td>
+        <td class="num {% if r.coverage_pct < 100 %}cov-low{% else %}cov-ok{% endif %}">{{ r.coverage_pct }}%</td></tr>
+    {% endfor %}
+      <tr><td colspan="7">Elaboração do plano ({{ estimate.cfg.plan_jornas|floatformat:"-1" }} jornas)</td><td></td><td></td><td class="num">{{ estimate.plan|eur }}</td><td></td><td></td></tr>
+      <tr style="font-weight:600"><td colspan="7">Total ({{ estimate.area_ha }} ha · {{ estimate.eur_ha|eur }}/ha)</td><td class="num">{{ estimate.burn|eur }}</td><td class="num">{{ estimate.strip|eur }}</td><td class="num">{{ estimate.total|eur }}</td><td class="num">{{ estimate.support|eur }}</td>
+        <td class="num {% if estimate.coverage_pct < 100 %}cov-low{% else %}cov-ok{% endif %}">{{ estimate.coverage_pct }}%</td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:11.5px;color:var(--dim);margin-top:8px">
+    Jorna CAOF {{ estimate.cfg.jorna_eur|eur }} · 1 a {{ estimate.cfg.max_jornas_povoamento|floatformat:"-1" }} jornas/ha em povoamentos e 1 a {{ estimate.cfg.max_jornas_mato|floatformat:"-1" }} em matos, consoante declive, área e carga
+    (valores intermédios por regra aditiva configurável). Faixas: {{ estimate.cfg.strip_fraction|floatformat:"-2" }} do perímetro × {{ estimate.cfg.strip_eur_per_m|eur }}/m.
+    Apoio ICNF: {{ estimate.cfg.support_mato_eur_ha|eur }}/ha matos, {{ estimate.cfg.support_povoamento_eur_ha|eur }}/ha povoamentos. Cobertura &lt; 100% = queima subfinanciada. Fonte: {{ estimate.cfg.source_note }}.</p>
+</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;align-items:start">
+  <div class="card">
+    <div class="card-title">Ações de fogo controlado deste PFC</div>
+    {% for a in actions %}<div style="font-size:13px;margin-bottom:4px"><a href="{% url 'fire_actions:detail' a.pk %}">{{ a.name }}</a> · {{ a.scheduled_date|date:"d/m/Y" }} · {{ a.get_status_display }}</div>
+    {% empty %}<p style="color:var(--dim);font-size:13px">Ainda sem ações. Anuncie uma ação de fogo controlado e escolha este PFC.</p>{% endfor %}
+  </div>
+  {% if can_edit %}
+  <div class="card">
+    <div class="card-title">Aprovação e estado</div>
+    {% if pfc.status == 'preparacao' or pfc.status == 'em_revisao' %}
+    <form method="post" action="{% url 'pfc:status' pfc.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="submeter">
+      <input type="date" name="date" value="{{ today|date:'Y-m-d' }}"><button class="btn btn-primary btn-sm">📨 Registar envio à comissão municipal</button></form>
+    {% endif %}
+    {% if pfc.status == 'submetido' %}
+    <form method="post" action="{% url 'pfc:status' pfc.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="aprovar">
+      <input type="date" name="date" value="{{ today|date:'Y-m-d' }}"><input type="text" name="entity" placeholder="Entidade (opcional)">
+      <button class="btn btn-primary btn-sm">✅ Registar aprovação</button></form>
+    {% if pfc.effective_approval_date %}
+    <form method="post" action="{% url 'pfc:status' pfc.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="tacita">
+      <button class="btn btn-secondary btn-sm">Registar aprovação tácita ({{ pfc.tacit_approval_date|date:"d/m/Y" }})</button></form>{% endif %}
+    {% endif %}
+    {% if pfc.status == 'aprovado' or pfc.status == 'submetido' %}
+    <form method="post" action="{% url 'pfc:status' pfc.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="rever">
+      <input type="text" name="notes" placeholder="Motivo da revisão"><button class="btn btn-secondary btn-sm">✏️ Pôr em revisão</button></form>
+    <form method="post" action="{% url 'pfc:status' pfc.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="suspender">
+      <input type="text" name="notes" placeholder="Fundamento da suspensão"><button class="btn btn-danger btn-sm">⏸ Suspenso pela comissão</button></form>
+    {% endif %}
+    {% if pfc.status == 'aprovado' %}
+    <form method="post" action="{% url 'pfc:status' pfc.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="concluir"><button class="btn btn-secondary btn-sm">🏁 Concluir PFC</button></form>
+    {% endif %}
+    {% if pfc.status == 'suspenso' or pfc.status == 'concluido' %}
+    <form method="post" action="{% url 'pfc:status' pfc.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="action" value="reabrir"><button class="btn btn-secondary btn-sm">↺ Reabrir</button></form>
+    {% endif %}
+    <p style="font-size:11.5px;color:var(--dim)">A aprovação é da comissão municipal da área (art. 13.º). Sem resposta em 45 dias, o PFC considera-se aprovado. A alteração ou revisão volta a precisar de aprovação.</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-title">Conteúdos do plano</div>
+  <table class="kv"><tbody>
+    <tr><td>Caracterização da área</td><td>{{ pfc.characterization|default:"—"|linebreaksbr }}</td></tr>
+    <tr><td>História do fogo</td><td>{{ pfc.fire_history|default:"—"|linebreaksbr }}</td></tr>
+    <tr><td>Infraestruturas de DFCI</td><td>{{ pfc.dfci_infrastructure|default:"—"|linebreaksbr }}</td></tr>
+    <tr><td>Objetivos específicos</td><td>{{ pfc.objectives|default:"—"|linebreaksbr }}</td></tr>
+    <tr><td>Meios</td><td>{{ pfc.means|default:"—"|linebreaksbr }}</td></tr>
+    <tr><td>Plano de emergência</td><td>{{ pfc.emergency_plan|default:"—"|linebreaksbr }}</td></tr>
+    {% if pfc.other_elements %}<tr><td>Outros elementos</td><td>{{ pfc.other_elements|linebreaksbr }}</td></tr>{% endif %}
+  </tbody></table>
+</div>
+<div style="margin-top:16px">{% change_history pfc %}</div>
+{{ map_parcels|json_script:"map-parcels" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+const parcels = JSON.parse(document.getElementById('map-parcels').textContent);
+const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}', { maxZoom: 19, attribution: '© OpenStreetMap © CARTO' });
+const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 21, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google' });
+const map = L.map('map', { layers: [osm] }).setView([37.2, -8.1], 9);
+L.control.layers({ 'Mapa': osm, 'Satélite': sat }, {}, { position: 'topright' }).addTo(map);
+const g = L.featureGroup().addTo(map);
+parcels.forEach(p => L.geoJSON(JSON.parse(p.geojson), { style: { color: '#e8541a', weight: 2, fillOpacity: 0.3 } })
+  .bindTooltip(escHtml(p.name), { permanent: parcels.length <= 6 }).addTo(g));
+if (g.getLayers().length) map.fitBounds(g.getBounds(), { padding: [30, 30], maxZoom: 15 });
+</script>
+{% endblock %}

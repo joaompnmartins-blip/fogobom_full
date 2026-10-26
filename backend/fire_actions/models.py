@@ -71,7 +71,10 @@ class FireAction(models.Model):
     legal_document = models.FileField('documento', upload_to='action_documents/', null=True, blank=True)
     accompaniment  = models.CharField('acompanhamento (se não houver técnico credenciado)', max_length=200,
                                       blank=True, default='')
-    pfc_reference  = models.CharField('n.º do PFC', max_length=50, blank=True, default='')
+    pfc            = models.ForeignKey('pfc.PFC', on_delete=models.SET_NULL, null=True, blank=True,
+                                       related_name='actions', verbose_name='PFC')
+    pfc_reference  = models.CharField('n.º do PFC (se não estiver na plataforma)', max_length=50, blank=True,
+                                      default='')
 
     # Communications to civil protection (start / end of the operation)
     comm_start_at  = models.DateTimeField('início comunicado em', null=True, blank=True)
@@ -109,6 +112,9 @@ class FireAction(models.Model):
     def legal_missing(self):
         """What is still missing from the legal framework (empty list = complete)."""
         if self.action_type == self.TYPE_FOGO_CONTROLADO:
+            if self.pfc_id:
+                return [] if self.pfc.in_force_on(self.scheduled_date) else \
+                    [f'PFC {self.pfc.number} em vigor na data da ação']
             return [] if self.pfc_reference else ['n.º do PFC aprovado']
         missing = []
         if not self.legal_mode:
