@@ -1,0 +1,36 @@
+{% extends "core/base.html" %}
+{% load history_tags %}
+{% block title %}{{ a.label }} — {{ ex.parcel.name }}{% endblock %}
+{% block page_title %}{{ a.label }} — {{ ex.parcel.name }}{% endblock %}
+{% block nav_mon %}active{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'monitorizacao:poq_impacto' ex.plan_id %}" class="btn btn-primary btn-sm">📥 POQ-Impacto (Word)</a>
+  {% if can_manage %}<a href="{% url 'monitorizacao:edit' a.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
+  {% if request.user.is_staff %}<a href="{% url 'monitorizacao:delete' a.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}
+{% endblock %}
+{% block extra_head %}<style>.kv td:first-child { color:var(--dim); width:45% }</style>{% endblock %}
+{% block content %}
+<div class="card">
+  <table class="kv"><tbody>
+    <tr><td>Queima</td><td><a href="{% url 'fire_actions:burning_plan_detail' ex.plan_id %}">{{ action.name }}</a> · {{ ex.date|date:"d/m/Y" }}</td></tr>
+    <tr><td>Parcela</td><td><a href="{% url 'parcelas:detail' ex.parcel.pk %}">{{ ex.parcel.name }}</a></td></tr>
+    <tr><td>Data da visita</td><td>{{ a.date|date:"d/m/Y" }}</td></tr>
+    <tr><td>Técnico</td><td>{{ a.observer.operative.name|default:a.observer.username|default:"—" }}</td></tr>
+  </tbody></table>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;align-items:start">
+{% for title, rows in sections %}
+<div class="card"><div class="card-title">{{ title }}</div>
+  <table class="kv"><tbody>{% for label, value, is_file in rows %}
+    <tr><td>{{ label|capfirst }}</td><td>{% if is_file %}<a href="{{ a.soil_report.url }}" target="_blank">abrir</a>{% else %}{{ value|linebreaksbr }}{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+{% endfor %}
+{% if criteria %}<div class="card"><div class="card-title">Critérios específicos da parcela</div>
+  <table class="kv"><tbody>{% for v in criteria %}<tr><td>{{ v.criterion }}</td><td>{{ v.value }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+</div>
+{% if not sections and not criteria %}<p style="color:var(--dim);font-size:13px">Sem dados registados.</p>{% endif %}
+{% if photos %}<div class="card"><div class="card-title">Fotografias</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px">{% for ph in photos %}
+    <figure style="margin:0;font-size:11.5px;color:var(--dim);max-width:160px"><a href="{{ ph.image.url }}" target="_blank"><img src="{{ ph.image.url }}" style="height:100px;border-radius:4px;object-fit:cover;display:block"></a>{{ ph.caption }}</figure>{% endfor %}</div></div>{% endif %}
+<div style="margin-top:16px">{% change_history a %}</div>
+{% endblock %}

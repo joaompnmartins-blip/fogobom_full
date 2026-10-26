@@ -459,12 +459,14 @@ def reading_issues(ex):
 @login_required
 def burning_plan_detail(request, pk):
     plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan', 'pre_plan__pfc'), pk=pk)
+    from monitorizacao.schedule import expected_visits
     executions = list(plan.executions.select_related('parcel').prefetch_related(
-        'members__operative', 'readings', 'cost_lines'))
+        'members__operative', 'readings', 'cost_lines', 'assessments'))
     rows = []
     for ex in executions:
         est = _caof_estimate(ex)
-        rows.append({'ex': ex, 'estimate': est, 'issues': reading_issues(ex), 'real': ex.cost_total})
+        rows.append({'ex': ex, 'estimate': est, 'issues': reading_issues(ex), 'real': ex.cost_total,
+                     'visits': expected_visits(ex)})
     photos = plan.photos.select_related('parcel').order_by('parcel__name', 'moment', 'pk')
     action = plan.pre_plan
     return render(request, 'fire_actions/bp_detail.html', {
@@ -571,6 +573,10 @@ def execution_delete(request, pk):
     plan = ex.plan
     if not _require_manage(request, plan.pre_plan):
         return redirect('fire_actions:burning_plan_detail', pk=plan.pk)
+    if ex.assessments.exists():
+        messages.error(request, 'Esta execução já tem avaliações de impacto / monitorização. '
+                                'Peça a um administrador para as eliminar primeiro.')
+        return redirect('fire_actions:execution_edit', pk=ex.pk)
     ex.delete()
     _sync_action(plan)
     messages.success(request, 'Execução da parcela eliminada.')
@@ -581,6 +587,9 @@ def execution_delete(request, pk):
 def burning_plan_delete(request, pk):
     bp = get_object_or_404(BurningPlan, pk=pk)
     if request.method == 'POST':
+        if bp.executions.filter(assessments__isnull=False).exists():
+            messages.error(request, 'Esta execução tem avaliações de impacto / monitorização. Elimine-as primeiro.')
+            return redirect('fire_actions:burning_plan_detail', pk=pk)
         pp = bp.pre_plan
         photos = list(bp.photos.all())
         files = [p.image for p in photos] + ([bp.tactical_schema] if bp.tactical_schema else []) \

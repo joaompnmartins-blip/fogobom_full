@@ -5,6 +5,7 @@
 {% block nav_bp %}active{% endblock %}
 {% block topbar_actions %}
   <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 POQ-Execução (Word)</a>
+  <a href="{% url 'monitorizacao:poq_impacto' bp.pk %}" class="btn btn-primary btn-sm">📥 POQ-Impacto (Word)</a>
   {% if can_manage %}<a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
 {% endblock %}
 {% block extra_head %}
@@ -61,6 +62,22 @@
     <button class="btn btn-secondary btn-sm">+ Acrescentar execução (outra parcela ou outro dia)</button>
   </form>
   {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-title">Impacto e monitorização (POQ-Impacto)</div>
+  {% if rows %}<div style="overflow-x:auto"><table>
+    <thead><tr><th>Parcela</th><th>Visitas</th></tr></thead>
+    <tbody>{% for r in rows %}{% if r.visits %}<tr>
+      <td>{{ r.ex.parcel.name }}<br><span style="font-size:11.5px;color:var(--dim)">queima {{ r.ex.date|date:"d/m/Y" }}</span></td>
+      <td><div style="display:flex;flex-wrap:wrap;gap:6px">{% for v in r.visits %}
+        {% if v.assessment %}<a href="{% url 'monitorizacao:detail' v.assessment.pk %}" class="btn btn-secondary btn-sm">{{ v.label }} · {{ v.assessment.date|date:"d/m/Y" }} ✔</a>
+        {% elif can_manage %}<a href="{% url 'monitorizacao:create' r.ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}" class="btn btn-sm {% if v.status == 'atrasada' or v.status == 'em_curso' %}btn-primary{% else %}btn-secondary{% endif %}" title="Prevista {{ v.due|date:'d/m/Y' }} · prazo {{ v.deadline|date:'d/m/Y' }}">+ {{ v.label }} ({% include "monitorizacao/_status.html" %})</a>
+        {% else %}<span style="font-size:12px">{{ v.label }}: {% include "monitorizacao/_status.html" %}</span>{% endif %}
+      {% endfor %}</div></td></tr>{% endif %}{% endfor %}</tbody>
+  </table></div>
+  <p style="font-size:11.5px;color:var(--dim);margin-top:6px">1.ª fase até 30 dias após a queima; 2.ª fase aos 6 meses; depois monitorização anual, até a parcela voltar a ser queimada.</p>
+  {% else %}<p style="color:var(--dim);font-size:13px">Sem execuções de parcela.</p>{% endif %}
 </div>
 
 <div class="card">
