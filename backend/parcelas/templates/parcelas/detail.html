@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load history_tags %}
 {% block title %}{{ parcela.name }}{% endblock %}
 {% block page_title %}{{ parcela.name }}{% endblock %}
 {% block nav_parc %}active{% endblock %}
@@ -60,6 +61,7 @@
     <div id="map" style="height:400px"></div>
   </div>
 </div>
+<div style="margin-top:16px">{% change_history parcela %}</div>
 {% endblock %}
 
 {% block extra_js %}

@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load history_tags %}
 {% block title %}{{ action }}{% endblock %}
 {% block page_title %}{{ action }}{% endblock %}
 {% block nav_op %}active{% endblock %}
@@ -26,4 +27,5 @@
     </div>
   </form>
 </div>
+{% if op.pk %}<div style="max-width:900px">{% change_history op %}</div>{% endif %}
 {% endblock %}

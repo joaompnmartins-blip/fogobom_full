@@ -118,6 +118,21 @@ class FireActionTests(TestCase):
         self.pp.refresh_from_db()
         self.assertEqual((self.pp.status, self.pp.execution_date), ('Pre-Plano', None))
 
+    def test_history_tracks_m2m_and_shows_on_pages(self):
+        other = FireParcel.objects.create(
+            name='P2', geometry='POLYGON((-8 37.2,-7.999 37.2,-7.999 37.201,-8 37.201,-8 37.2))')
+        self.client.post(f'/preplan/{self.pp.pk}/editar/', {'name': 'PP', 'scheduled_date': '2026-11-05',
+                                                            'parcels': [self.parcel.pk, other.pk]})
+        last = self.pp.history.order_by('-history_date').first()
+        self.assertEqual(last.history_user, self.user)
+        self.assertIn('parcels', [c.field for c in last.diff_against(last.prev_record).changes])
+        self.assertContains(self.client.get(f'/preplan/{self.pp.pk}/'), 'Histórico de alterações')
+
+        self.create_bp()
+        bp = BurningPlan.objects.get()
+        self.assertEqual(bp.history.first().history_user, self.user)
+        self.assertContains(self.client.get(f'/preplan/burning/{bp.pk}/'), 'Histórico de alterações')
+
     # Report
 
     def test_report_includes_photos_and_vfcm(self):

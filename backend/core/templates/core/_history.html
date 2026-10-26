@@ -1,0 +1,20 @@
+<div class="card">
+  <div class="card-title">🕒 Histórico de alterações</div>
+  {% if entries %}
+  <table>
+    <thead><tr><th>Data</th><th>Utilizador</th><th>Ação</th><th>Campos alterados</th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td style="white-space:nowrap">{{ e.date|date:"d/m/Y H:i" }}</td>
+        <td>{{ e.user }}</td>
+        <td>{{ e.action }}</td>
+        <td>{% if e.changed %}{{ e.changed|join:", " }}{% elif e.action == 'Alterado' %}<span style="color:var(--dim)">sem alterações de dados</span>{% else %}—{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--dim);font-size:13px">Sem registos de alterações.</p>
+  {% endif %}
+</div>

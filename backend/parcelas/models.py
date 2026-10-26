@@ -1,4 +1,5 @@
 from django.contrib.gis.db import models
+from simple_history.models import HistoricalRecords
 
 class FireParcel(models.Model):
     name = models.CharField(max_length=100)
@@ -23,6 +24,7 @@ class FireParcel(models.Model):
     geometry   = models.PolygonField(srid=4326)
     area_ha    = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    history    = HistoricalRecords()
 
     class Meta:
         ordering = ['name']

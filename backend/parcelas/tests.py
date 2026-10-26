@@ -88,6 +88,18 @@ class ParcelaTests(TestCase):
         self.assertEqual(parcel_centroids(), [{'id': str(p.pk), 'name': 'P', 'lat': 37.101, 'lng': -7.999}])
         self.assertEqual(self.client.get('/parcelas/api/centroids/').json()[0]['name'], 'P')
 
+    def test_history_records_user_and_changed_fields(self):
+        self.post_parcela()
+        p = FireParcel.objects.get()
+        self.post_parcela(url=f'/parcelas/{p.pk}/editar/', name='Parcela B', geometry='')
+        records = list(p.history.order_by('history_date'))
+        self.assertEqual([r.history_type for r in records], ['+', '~'])
+        self.assertTrue(all(r.history_user == self.user for r in records))
+        r = self.client.get(f'/parcelas/{p.pk}/')
+        self.assertContains(r, 'Histórico de alterações')
+        self.assertContains(r, 'Criado')
+        self.assertContains(r, 'Name')  # verbose name of the changed field
+
     def test_only_staff_can_delete(self):
         p = FireParcel.objects.create(name='P', geometry=wkt(-8, 37.1, .001, .001))
         self.client.post(f'/parcelas/{p.pk}/eliminar/')

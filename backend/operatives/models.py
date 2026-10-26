@@ -1,4 +1,5 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 class Operative(models.Model):
     name                = models.CharField(max_length=100)
@@ -8,6 +9,7 @@ class Operative(models.Model):
     certification_level = models.CharField(max_length=50)
     notes               = models.TextField(blank=True, default='')
     created_at          = models.DateTimeField(auto_now_add=True)
+    history             = HistoricalRecords()
 
     class Meta:
         ordering = ['name']
