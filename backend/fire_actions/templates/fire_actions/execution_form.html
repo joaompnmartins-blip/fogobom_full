@@ -1,0 +1,139 @@
+{% extends "core/base.html" %}
+{% load humanize_pt %}
+{% block title %}Execução — {{ ex.parcel.name }}{% endblock %}
+{% block page_title %}Execução — {{ ex.parcel.name }} · {{ ex.date|date:"d/m/Y" }}{% endblock %}
+{% block nav_bp %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .fgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px 14px }
+  .fgrid .wide { grid-column:1/-1 }
+  .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
+  .field ul { list-style:none; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:4px 14px; padding:0 }
+  .field ul label { display:flex; gap:6px; align-items:center; text-transform:none; letter-spacing:0; font-size:13px; color:var(--text); font-weight:400 }
+  .field ul input { width:auto }
+  table.fs { width:100%; font-size:12.5px }
+  table.fs td, table.fs th { padding:4px 5px; vertical-align:top }
+  table.fs input, table.fs select { width:100%; min-width:60px; background:var(--bg3); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:5px 6px }
+  table.fs input[type=checkbox] { width:auto; min-width:0 }
+  .bad { background:#3a1010 }
+  nav.sections { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px }
+  nav.sections a { font-size:12px; padding:4px 10px; border:1px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text) }
+</style>
+{% endblock %}
+{% block content %}
+<nav class="sections">
+  <a href="#equipa">Equipa e meios</a><a href="#meteo">Meteorologia</a><a href="#combustivel">Combustível</a>
+  <a href="#faixas">Faixas</a><a href="#operacao">Operação e problemas</a><a href="#resultados">Efeitos e eficácia</a>
+  <a href="#custos">Custos</a><a href="#fotos">Fotografias</a>
+</nav>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+{{ members.management_form }}{{ readings.management_form }}{{ strips.management_form }}{{ costs.management_form }}
+
+<div class="card" id="equipa">
+  <div class="card-title">Equipa e meios</div>
+  <div class="fgrid">
+    <div class="field"><label>Início</label>{{ form.start_time }}</div>
+    <div class="field"><label>Fim</label>{{ form.end_time }}</div>
+    <div class="field"><label>Área tratada (ha)</label>{{ form.area_treated_ha }}</div>
+    <div class="field"><label>Formação (registo ICNF)</label>{{ form.formation }}</div>
+    <div class="field"><label>Técnicos (n.º)</label>{{ form.n_tecnicos }}</div>
+    <div class="field"><label>Homens</label>{{ form.n_men }}</div>
+    <div class="field"><label>VLCI (&lt; 500 l)</label>{{ form.n_vlci }}</div>
+    <div class="field"><label>VFCI</label>{{ form.n_vfci }}</div>
+    <div class="field"><label>Capacidade VFCI (l)</label>{{ form.vfci_capacity_l }}</div>
+  </div>
+  <p class="card-title" style="margin-top:14px">Técnicos e operacionais envolvidos</p>
+  <table class="fs"><thead><tr><th>Nome</th><th>Função</th><th>Remover</th></tr></thead><tbody>
+  {% for f in members %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.operative }}</td><td>{{ f.function }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+  </tbody></table>
+  <p class="hint">Os participantes confirmados na ação já estão incluídos. O n.º de credenciação vem do perfil de cada pessoa. Guarde para obter mais linhas.</p>
+</div>
+
+<div class="card" id="meteo">
+  <div class="card-title">Meteorologia e comportamento do fogo</div>
+  <p class="hint" style="margin-bottom:8px">Registe no início e no fim da queima e sempre que uma alteração meteorológica mude o comportamento do fogo.{% if issues %} <strong style="color:#e57373">Linhas a vermelho estão fora da prescrição do PFC.</strong>{% endif %}</p>
+  <div style="overflow-x:auto"><table class="fs"><thead><tr><th>Hora</th><th>Temp. °C</th><th>HR %</th><th>Estado do tempo</th><th>Vento Bft</th><th>Vento km/h</th><th>Direção</th><th>Condução</th><th>Outra condução</th><th>Chama (m)</th><th>Ângulo °</th><th>Propagação m/min</th><th>✖</th></tr></thead><tbody>
+  {% for f in readings %}<tr {% if f.issue_text %}class="bad" title="Fora da prescrição: {{ f.issue_text }}"{% endif %}>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+    <td>{{ f.time }}</td><td>{{ f.temp }}</td><td>{{ f.rh }}</td><td>{{ f.weather }}</td><td>{{ f.wind_bft }}</td><td>{{ f.wind_kmh }}</td><td>{{ f.wind_dir }}</td><td>{{ f.conduct }}</td><td>{{ f.conduct_other }}</td><td>{{ f.flame_length_m }}</td><td>{{ f.flame_angle }}</td><td>{{ f.spread_m_min }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+
+<div class="card" id="combustivel">
+  <div class="card-title">Humidade do combustível fino e morto e índices</div>
+  <div class="fgrid">
+    <div class="field"><label>Metodologia</label>{{ form.fuel_method }}</div>
+    <div class="field"><label>Superficial</label>{{ form.fuel_superficial }}<div class="hint">% ou classe A–E ou FFMC</div></div>
+    <div class="field"><label>Manta morta F</label>{{ form.fuel_manta_f }}<div class="hint">% ou classe ou DMC</div></div>
+    <div class="field"><label>Manta morta H</label>{{ form.fuel_manta_h }}</div>
+    <div class="field"><label>Espessura manta morta (cm)</label>{{ form.litter_thickness_cm }}</div>
+    <div class="field"><label>Dias sem chuva</label>{{ form.dry_days }}</div>
+    <div class="field"><label>FWI</label>{{ form.fwi }}</div><div class="field"><label>ISI</label>{{ form.isi }}</div>
+    <div class="field"><label>FFMC</label>{{ form.ffmc }}</div><div class="field"><label>BUI</label>{{ form.bui }}</div>
+    <div class="field"><label>DMC</label>{{ form.dmc }}</div><div class="field"><label>DC</label>{{ form.dc }}</div>
+  </div>
+</div>
+
+<div class="card" id="faixas">
+  <div class="card-title">Preparação de faixas de segurança</div>
+  <table class="fs"><thead><tr><th>Lado</th><th>Meio</th><th>Largura (m)</th><th>Tempo (h:min)</th></tr></thead><tbody>
+  {% for f in strips %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.side }}</td><td>{{ f.means }}</td><td>{{ f.width_m }}</td><td>{{ f.time_spent }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+
+<div class="card" id="operacao">
+  <div class="card-title">Operação e problemas</div>
+  <div class="form-row"><div class="field"><label>Técnica(s) de ignição utilizada(s)</label>{{ form.ignition_techniques }}</div></div>
+  <div class="form-row"><div class="field"><label>Descrição operacional</label>{{ form.operation_notes }}<div class="hint">Bandas de segurança (largura, posicionamento), progressão do fogo, vento, exposição, linha de ignição, saltos…</div></div></div>
+  <div class="form-row"><div class="field"><label>Problemas operacionais</label>{{ form.problems }}</div></div>
+  <div class="form-row"><div class="field"><label>Descrição dos problemas</label>{{ form.problems_description }}</div></div>
+  <div class="form-row"><div class="field"><label>Esquema de condução (imagem)</label>
+    {% if ex.schema %}<div class="hint">Atual: <a href="{{ ex.schema.url }}" target="_blank">ver esquema</a></div>{% endif %}
+    <input type="file" name="schema" accept="image/*" style="color:var(--text)">
+    <div class="hint">Sentidos do declive, Norte, direção do fogo, ignição (A), faixas de segurança (B), local da foto (C). Sem esquema, o POQ inclui o desenho do limite da parcela.</div></div></div>
+</div>
+
+<div class="card" id="resultados">
+  <div class="card-title">Efeitos imediatos e eficácia</div>
+  <div class="fgrid">
+    <div class="field"><label>Vegetação: área percorrida %</label>{{ form.eff_veg_area_pct }}</div>
+    <div class="field"><label>Copas consumidas %</label>{{ form.eff_crowns_pct }}</div>
+    <div class="field"><label>Diâmetro calcinado (mm)</label>{{ form.eff_diameter_mm }}</div>
+    <div class="field"><label>Manta morta: área percorrida %</label>{{ form.eff_litter_area_pct }}</div>
+    <div class="field"><label>Redução da espessura %</label>{{ form.eff_litter_reduction_pct }}</div>
+  </div>
+  <div class="fgrid" style="margin-top:12px">
+    <div class="field"><label>Resposta aos objetivos</label>{{ form.rating_objectives }}</div>
+    <div class="field"><label>Redução de combustível</label>{{ form.rating_fuel }}</div>
+    <div class="field"><label>Condições meteorológicas</label>{{ form.rating_weather }}</div>
+    <div class="field wide"><label>Porquê?</label>{{ form.rating_why }}</div>
+  </div>
+</div>
+
+<div class="card" id="custos">
+  <div class="card-title">Avaliação económica (custos reais)</div>
+  <table class="fs"><thead><tr><th>Categoria</th><th>Tipo (pessoal / máquina…)</th><th>Queima (h · l · km)</th><th>Extinção / vigilância (h)</th><th>Custo unitário €</th><th>Total</th><th>✖</th></tr></thead><tbody>
+  {% for f in costs %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.category }}</td><td>{{ f.description }}</td><td>{{ f.qty_burn }}</td><td>{{ f.qty_extinction }}</td><td>{{ f.unit_price }}</td><td class="num">{% if f.instance.pk %}{{ f.instance.amount|eur }}{% endif %}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+  </tbody></table>
+  <p class="hint">Total real: <strong>{{ ex.cost_total|eur }}</strong>{% if estimate %} · estimativa CAOF para esta parcela: <strong>{{ estimate.total|eur }}</strong> ({{ estimate.jornas_ha|floatformat:1 }} jornas/ha; apoio ICNF {{ estimate.support|eur }}){% endif %}. Pessoal: n.º homens × horas (incluindo transporte, tempos mortos e refeições).</p>
+</div>
+
+<div class="card" id="fotos">
+  <div class="card-title">Fotografias</div>
+  {% if ex_photos %}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">{% for ph in ex_photos %}
+    <a href="{{ ph.image.url }}" target="_blank" title="{{ ph.get_moment_display }} {{ ph.caption }}"><img src="{{ ph.image.url }}" style="height:70px;border-radius:4px;object-fit:cover"></a>{% endfor %}</div>{% endif %}
+  <div class="fgrid">
+    <div class="field"><label>Momento</label><select name="photo_moment"><option value="">—</option>{% for v, l in photo_moments %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    <div class="field"><label>Legenda</label><input type="text" name="photo_caption"></div>
+    <div class="field wide"><label>Ficheiros</label><input type="file" name="photos" multiple accept="image/*" style="color:var(--text)"></div>
+  </div>
+</div>
+
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 Guardar e voltar</button>
+  <button type="submit" name="stay" value="1" class="btn btn-secondary">💾 Guardar e continuar</button>
+  <a href="{% url 'fire_actions:burning_plan_detail' plan.pk %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+<form method="post" action="{% url 'fire_actions:execution_delete' ex.pk %}" style="margin-top:10px" onsubmit="return confirm('Eliminar esta execução de parcela?')">{% csrf_token %}
+  <button class="btn btn-danger btn-sm">🗑️ Eliminar esta execução de parcela</button></form>
+{% endblock %}

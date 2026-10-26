@@ -16,7 +16,8 @@ from core.decorators import staff_required
 from core.forms import clean_photos, form_errors_to_messages
 from operatives.models import Operative
 from parcelas.models import FireParcel
-from .forms import BurningPlanForm, PrePlanForm, selectable_parcels
+from .forms import (BurningPlanForm, CostFormSet, MemberFormSet, NewParcelExecutionForm, ParcelExecutionForm,
+                    PrePlanForm, ReadingFormSet, StripFormSet, selectable_parcels)
 from .models import BurningPlan, BurningPlanPhoto, FireAction, Participation
 from .notify import notify_action_update, notify_new_action
 from .outlook import action_outlook
@@ -125,7 +126,7 @@ def preplan_edit(request, pk):
 def preplan_delete(request, pk):
     action = get_object_or_404(FireAction, pk=pk)
     if hasattr(action, 'burningplan'):
-        messages.error(request, 'Esta ação tem um Plano de Queima associado. Elimine primeiro o Plano de Queima.')
+        messages.error(request, 'Esta ação tem uma execução (POQ) registada. Elimine primeiro a execução.')
         return redirect('fire_actions:detail', pk=pk)
     if request.method == 'POST':
         name = action.name
@@ -312,114 +313,268 @@ def action_ics(request, pk):
     return response
 
 
-# ── Planos de Queima ──────────────────────────────────────────────────────────
+# ── Execução (POQ-Execução) ──────────────────────────────────────────────────
 
-def _load_vehicles(bp):
-    try:
-        return json.loads(bp.vehicles or '{}')
-    except (TypeError, ValueError):
-        return {}
+ROLE_TO_FUNCTION = {'responsavel': 'coordenacao', 'ignicao': 'ignicao', 'seguranca': 'seguranca',
+                    'vigia': 'vigilancia', 'apoio': 'apoio', 'observador': 'formacao'}
 
 
-def _parcels_geom(preplan):
-    if not preplan:
-        return []
-    return [{'name': p.name, 'geojson': p.geometry.json}
-            for p in preplan.parcels.all() if p.geometry]
-
-
-def _participant_operatives(action):
+def _create_execution(plan, parcel, d):
+    """New parcel execution pre-filled with the action's participants and the 4 safety strip sides."""
+    from .models import ExecutionMember, ParcelExecution, SafetyStrip
+    action = plan.pre_plan
+    ex = ParcelExecution.objects.create(
+        plan=plan, parcel=parcel, date=d, area_treated_ha=parcel.area_ha,
+        formation='mato' if parcel.vegetation_type == 'matos' else 'pov')
     parts = action.participations.filter(confirmed=True)
     if not parts.exists():
         parts = action.participations.filter(intent=Participation.INTENT_VOU).exclude(confirmed=False)
-    return list(Operative.objects.filter(user__in=parts.values('user')).values_list('pk', flat=True))
+    roles = dict(parts.values_list('user_id', 'role'))
+    for op in Operative.objects.filter(user__in=parts.values('user')):
+        ExecutionMember.objects.create(execution=ex, operative=op, function=ROLE_TO_FUNCTION.get(roles.get(op.user_id), ''))
+    responsible = getattr(action.responsible_user, 'operative', None) if action.responsible_user_id else None
+    if responsible and not ex.members.filter(operative=responsible).exists():
+        ExecutionMember.objects.create(execution=ex, operative=responsible, function='coordenacao')
+    for side, _ in SafetyStrip.SIDES:
+        SafetyStrip.objects.create(execution=ex, side=side)
+    ex.n_men = ex.members.count() or None
+    ex.save(update_fields=['n_men'])
+    return ex
 
 
-def _bp_form_response(request, bp, preplan, bound=False):
-    """Render bp_form.html; when `bound`, re-fill choices from the submitted POST."""
-    if bound:
-        vehicles = {'VFCI': request.POST.get('vfci', 0), 'VFCM': request.POST.get('vfcm', 0),
-                    'Outro': request.POST.get('other_veh', '')}
-        selected = _int_list(request.POST.getlist('operatives'))
-    else:
-        vehicles = _load_vehicles(bp) if bp else {}
-        if bp:
-            selected = list(bp.operatives.values_list('pk', flat=True))
-        else:  # new plan: pre-select the action's confirmed participants (or those who said they'd go)
-            selected = _participant_operatives(preplan) if preplan else []
-    return render(request, 'fire_actions/bp_form.html', {
-        'bp':                  bp,
-        'operatives':          Operative.objects.all(),
-        'preplan':             preplan,
-        'preplans_without_bp': FireAction.objects.filter(burningplan__isnull=True)
-                                                 .exclude(status=FireAction.STATUS_CANCELADA),
-        'vehicles':            vehicles,
-        'selected_operatives': selected,
-        'parcels_geom':        _parcels_geom(preplan),
-    })
+def _sync_action(plan):
+    """Keep the action realizada with the first execution date."""
+    first = plan.executions.order_by('date').values_list('date', flat=True).first() or plan.execution_date
+    if plan.execution_date != first:
+        plan.execution_date = first
+        plan.save(update_fields=['execution_date'])
+    action = plan.pre_plan
+    action.status, action.execution_date = FireAction.STATUS_REALIZADA, first
+    action.save()
 
 
-def _save_burning_plan(request, instance, preplan):
-    is_new = instance.pk is None
-    form = BurningPlanForm(request.POST, instance=instance)
-    photos, photo_errors = clean_photos(request.FILES.getlist('photos'))
-
-    if form.is_valid() and not photo_errors:
-        with transaction.atomic():
-            bp = form.save()
-            for photo in photos:
-                bp.photos.add(BurningPlanPhoto.objects.create(image=photo))
-            # Keep the pre-plan in sync with its burning plan
-            pp = bp.pre_plan
-            pp.status = FireAction.STATUS_REALIZADA
-            pp.execution_date = bp.execution_date
-            pp.save()
-        messages.success(request, 'Plano de Queima criado com sucesso.' if is_new else 'Plano de Queima atualizado.')
-        return redirect('fire_actions:burning_plan_detail', pk=bp.pk)
-
-    form_errors_to_messages(request, form)
-    for err in photo_errors:
-        messages.error(request, f'Fotografias: {err}')
-    if is_new:
-        preplan = preplan or form.cleaned_data.get('pre_plan')
-    return _bp_form_response(request, form.instance, preplan, bound=True)
+def _require_manage(request, action):
+    if not can_manage(request.user, action):
+        messages.error(request, 'Só quem gere a ação (técnico responsável, técnicos ou quem a anunciou) pode registar a execução.')
+        return False
+    return True
 
 
 @login_required
 def burning_plan_list(request):
-    plans = BurningPlan.objects.select_related('pre_plan').all()
+    plans = BurningPlan.objects.select_related('pre_plan').prefetch_related('executions')
     return render(request, 'fire_actions/bp_list.html', {'plans': plans})
 
 
 @login_required
 def burning_plan_create(request, preplan_pk=None):
     preplan = get_object_or_404(FireAction, pk=preplan_pk) if preplan_pk else None
-
-    # Guard: already has a burning plan
     if preplan and hasattr(preplan, 'burningplan'):
-        messages.warning(request, 'Esta ação já tem um Plano de Queima.')
+        messages.warning(request, 'Esta ação já tem a execução registada.')
         return redirect('fire_actions:burning_plan_detail', pk=preplan.burningplan.pk)
+    if preplan and not _require_manage(request, preplan):
+        return redirect('fire_actions:detail', pk=preplan.pk)
 
     if request.method == 'POST':
-        return _save_burning_plan(request, BurningPlan(), preplan)
-    return _bp_form_response(request, None, preplan)
-
-
-@login_required
-def burning_plan_detail(request, pk):
-    bp = get_object_or_404(BurningPlan.objects.select_related('pre_plan')
-                           .prefetch_related('operatives', 'photos', 'pre_plan__parcels'), pk=pk)
-    schema_url = bp.tactical_schema.url if bp.tactical_schema else None
-    return render(request, 'fire_actions/bp_detail.html',
-                  {'bp': bp, 'vehicles': _load_vehicles(bp), 'schema_url': schema_url})
+        data = request.POST.copy()
+        if preplan:
+            data['pre_plan'] = preplan.pk
+        form = BurningPlanForm(data)
+        if form.is_valid():
+            action = form.cleaned_data['pre_plan']
+            if not _require_manage(request, action):
+                return redirect('fire_actions:detail', pk=action.pk)
+            with transaction.atomic():
+                plan = form.save()
+                for parcel in action.parcels.all():
+                    _create_execution(plan, parcel, plan.execution_date)
+                _sync_action(plan)
+            messages.success(request, 'Execução registada. Preencha agora os dados de cada parcela.')
+            return redirect('fire_actions:burning_plan_detail', pk=plan.pk)
+        form_errors_to_messages(request, form)
+    else:
+        form = BurningPlanForm(initial={'pre_plan': preplan.pk if preplan else None,
+                                        'execution_date': (preplan.scheduled_date if preplan else timezone.localdate())})
+    return render(request, 'fire_actions/bp_form.html', {'form': form, 'bp': None, 'preplan': preplan})
 
 
 @login_required
 def burning_plan_edit(request, pk):
-    bp = get_object_or_404(BurningPlan.objects.select_related('pre_plan'), pk=pk)
+    plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan'), pk=pk)
+    if not _require_manage(request, plan.pre_plan):
+        return redirect('fire_actions:burning_plan_detail', pk=pk)
     if request.method == 'POST':
-        return _save_burning_plan(request, bp, bp.pre_plan)
-    return _bp_form_response(request, bp, bp.pre_plan)
+        form = BurningPlanForm(request.POST, instance=plan)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Execução atualizada.')
+            return redirect('fire_actions:burning_plan_detail', pk=pk)
+        form_errors_to_messages(request, form)
+    else:
+        form = BurningPlanForm(instance=plan)
+    return render(request, 'fire_actions/bp_form.html', {'form': form, 'bp': plan, 'preplan': plan.pre_plan})
+
+
+def _caof_estimate(ex):
+    """CAOF estimate for the parcel (from its PFC entry, or from its evaluation)."""
+    from pfc.costs import default_inputs, parcel_estimate
+    from pfc.models import PFCParcel
+    action = ex.plan.pre_plan
+    pp = PFCParcel.objects.filter(pfc_id=action.pfc_id, parcel=ex.parcel).first() if action.pfc_id else None
+    if pp is None:
+        pp = PFCParcel(parcel=ex.parcel, number=0, **default_inputs(ex.parcel))
+    try:
+        return parcel_estimate(pp)
+    except Exception:
+        logger.warning('Estimativa CAOF indisponível', exc_info=True)
+        return None
+
+
+def reading_issues(ex):
+    """{reading_id: [issues]} for readings outside the PFC prescription of the parcel."""
+    from pfc.models import PFCParcel
+    action = ex.plan.pre_plan
+    pp = PFCParcel.objects.filter(pfc_id=action.pfc_id, parcel=ex.parcel).first() if action.pfc_id else None
+    if not pp:
+        return {}
+    out = {}
+    for r in ex.readings.all():
+        issues = []
+        for label, value, lo, hi, unit in [('temperatura', r.temp, pp.temp_min, pp.temp_max, '°C'),
+                                           ('HR', r.rh, pp.rh_min, pp.rh_max, '%'),
+                                           ('vento', r.wind_kmh, pp.wind_min, pp.wind_max, 'km/h'),
+                                           ('propagação', r.spread_m_min, pp.spread_min, pp.spread_max, 'm/min'),
+                                           ('chama', r.flame_length_m, pp.flame_min, pp.flame_max, 'm')]:
+            if value is None:
+                continue
+            if lo is not None and value < lo:
+                issues.append(f'{label} {value:g}{unit} < {lo:g}')
+            elif hi is not None and value > hi:
+                issues.append(f'{label} {value:g}{unit} > {hi:g}')
+        if issues:
+            out[r.pk] = issues
+    return out
+
+
+@login_required
+def burning_plan_detail(request, pk):
+    plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan', 'pre_plan__pfc'), pk=pk)
+    executions = list(plan.executions.select_related('parcel').prefetch_related(
+        'members__operative', 'readings', 'cost_lines'))
+    rows = []
+    for ex in executions:
+        est = _caof_estimate(ex)
+        rows.append({'ex': ex, 'estimate': est, 'issues': reading_issues(ex), 'real': ex.cost_total})
+    photos = plan.photos.select_related('parcel').order_by('parcel__name', 'moment', 'pk')
+    action = plan.pre_plan
+    return render(request, 'fire_actions/bp_detail.html', {
+        'bp': plan, 'action': action, 'rows': rows, 'photos': photos,
+        'can_manage': can_manage(request.user, action),
+        'add_form': NewParcelExecutionForm(plan=plan, initial={'date': plan.execution_date}),
+        'burn_period': _burn_period(executions or [plan]),
+    })
+
+
+def _burn_period(items):
+    """POQ header: 1 Jan – 31 May or 1 Oct – 31 Dec of the year of execution."""
+    dates = [getattr(i, 'date', None) or getattr(i, 'execution_date', None) for i in items]
+    dates = [d for d in dates if d]
+    if not dates:
+        return ''
+    d = min(dates)
+    if d.month <= 5:
+        return f'1 de janeiro a 31 de maio de {d.year}'
+    if d.month >= 10:
+        return f'1 de outubro a 31 de dezembro de {d.year}'
+    return f'fora dos períodos de queima habituais ({d:%d/%m/%Y})'
+
+
+@require_POST
+@login_required
+def execution_add(request, pk):
+    plan = get_object_or_404(BurningPlan, pk=pk)
+    if not _require_manage(request, plan.pre_plan):
+        return redirect('fire_actions:burning_plan_detail', pk=pk)
+    form = NewParcelExecutionForm(request.POST, plan=plan)
+    if form.is_valid():
+        ex = _create_execution(plan, form.cleaned_data['parcel'], form.cleaned_data['date'])
+        _sync_action(plan)
+        return redirect('fire_actions:execution_edit', pk=ex.pk)
+    form_errors_to_messages(request, form)
+    return redirect('fire_actions:burning_plan_detail', pk=pk)
+
+
+@login_required
+def execution_edit(request, pk):
+    from .models import ParcelExecution
+    ex = get_object_or_404(ParcelExecution.objects.select_related('plan', 'plan__pre_plan', 'parcel'), pk=pk)
+    plan = ex.plan
+    if not _require_manage(request, plan.pre_plan):
+        return redirect('fire_actions:burning_plan_detail', pk=plan.pk)
+    if request.method == 'POST':
+        form = ParcelExecutionForm(request.POST, request.FILES, instance=ex)
+        formsets = {
+            'members': MemberFormSet(request.POST, instance=ex, prefix='members'),
+            'readings': ReadingFormSet(request.POST, instance=ex, prefix='readings'),
+            'strips': StripFormSet(request.POST, instance=ex, prefix='strips'),
+            'costs': CostFormSet(request.POST, instance=ex, prefix='costs'),
+        }
+        photos, photo_errors = clean_photos(request.FILES.getlist('photos'))
+        if form.is_valid() and all(fs.is_valid() for fs in formsets.values()) and not photo_errors:
+            with transaction.atomic():
+                form.save()
+                for fs in formsets.values():
+                    fs.save()
+                moment = request.POST.get('photo_moment', '')
+                for photo in photos:
+                    plan.photos.add(BurningPlanPhoto.objects.create(
+                        image=photo, parcel=ex.parcel, taken_on=ex.date,
+                        moment=moment if moment in dict(BurningPlanPhoto.MOMENTS) else '',
+                        caption=request.POST.get('photo_caption', '')[:200]))
+            messages.success(request, f'Execução de {ex.parcel.name} ({ex.date:%d/%m/%Y}) guardada.')
+            if request.POST.get('stay'):
+                return redirect('fire_actions:execution_edit', pk=ex.pk)
+            return redirect('fire_actions:burning_plan_detail', pk=plan.pk)
+        form_errors_to_messages(request, form)
+        for name, fs in formsets.items():
+            for i, errs in enumerate(fs.errors):
+                for field, msgs in errs.items():
+                    messages.error(request, f'{name} — linha {i + 1}: {"; ".join(msgs)}')
+            for err in fs.non_form_errors():
+                messages.error(request, f'{name}: {err}')
+        for err in photo_errors:
+            messages.error(request, f'Fotografias: {err}')
+    else:
+        form = ParcelExecutionForm(instance=ex)
+        formsets = {
+            'members': MemberFormSet(instance=ex, prefix='members'),
+            'readings': ReadingFormSet(instance=ex, prefix='readings'),
+            'strips': StripFormSet(instance=ex, prefix='strips'),
+            'costs': CostFormSet(instance=ex, prefix='costs'),
+        }
+    issues = reading_issues(ex)
+    for f in formsets['readings']:
+        f.issue_text = '; '.join(issues.get(f.instance.pk, [])) if f.instance.pk else ''
+    return render(request, 'fire_actions/execution_form.html', {
+        'ex': ex, 'plan': plan, 'form': form, **formsets,
+        'issues': issues, 'estimate': _caof_estimate(ex),
+        'photo_moments': BurningPlanPhoto.MOMENTS,
+        'ex_photos': plan.photos.filter(parcel=ex.parcel, taken_on=ex.date),
+    })
+
+
+@require_POST
+@login_required
+def execution_delete(request, pk):
+    from .models import ParcelExecution
+    ex = get_object_or_404(ParcelExecution.objects.select_related('plan', 'plan__pre_plan'), pk=pk)
+    plan = ex.plan
+    if not _require_manage(request, plan.pre_plan):
+        return redirect('fire_actions:burning_plan_detail', pk=plan.pk)
+    ex.delete()
+    _sync_action(plan)
+    messages.success(request, 'Execução da parcela eliminada.')
+    return redirect('fire_actions:burning_plan_detail', pk=plan.pk)
 
 
 @staff_required
@@ -428,7 +583,8 @@ def burning_plan_delete(request, pk):
     if request.method == 'POST':
         pp = bp.pre_plan
         photos = list(bp.photos.all())
-        files = [p.image for p in photos] + ([bp.tactical_schema] if bp.tactical_schema else [])
+        files = [p.image for p in photos] + ([bp.tactical_schema] if bp.tactical_schema else []) \
+            + [ex.schema for ex in bp.executions.all() if ex.schema]
         with transaction.atomic():
             bp.delete()
             for p in photos:
@@ -442,30 +598,24 @@ def burning_plan_delete(request, pk):
                 f.delete(save=False)
             except Exception:
                 logger.warning('Não foi possível apagar o ficheiro %s', f.name, exc_info=True)
-        messages.success(request, 'Plano de Queima eliminado.')
+        messages.success(request, 'Execução eliminada.')
         return redirect('fire_actions:burning_plan_list')
-    return render(request, 'fire_actions/confirm_delete.html', {'obj': bp, 'tipo': 'Plano de Queima'})
+    return render(request, 'fire_actions/confirm_delete.html', {'obj': bp, 'tipo': 'Execução'})
 
 
 @login_required
 def burning_plan_report(request, pk):
-    """Generate and return the Word (.docx) report."""
-    bp = get_object_or_404(
-        BurningPlan.objects.select_related('pre_plan')
-                           .prefetch_related('operatives', 'photos', 'pre_plan__parcels'),
-        pk=pk
-    )
+    """POQ-Execução (.docx) following the ICNF model."""
+    plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan', 'pre_plan__pfc'), pk=pk)
     try:
-        from .report import generate_bp_docx
-        docx_bytes = generate_bp_docx(bp)
+        from .poq import generate_poq_execucao
+        docx_bytes = generate_poq_execucao(plan)
     except Exception:
-        logger.exception('Erro ao gerar relatório do plano %s', pk)
-        messages.error(request, 'Erro ao gerar o relatório. O problema foi registado.')
+        logger.exception('Erro ao gerar o POQ-Execução %s', pk)
+        messages.error(request, 'Erro ao gerar o documento. O problema foi registado.')
         return redirect('fire_actions:burning_plan_detail', pk=pk)
-    filename = f"PlanoQueima_{bp.pk}_{bp.execution_date}.docx"
-    response = HttpResponse(
-        docx_bytes,
-        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    )
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    ref = plan.pre_plan.pfc.number.replace('/', '-') if plan.pre_plan.pfc_id else plan.pre_plan.name[:40]
+    response = HttpResponse(docx_bytes,
+                            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = f'attachment; filename="POQ-Execucao_{ref}_{plan.execution_date}.docx"'
     return response

@@ -26,7 +26,7 @@
 <div class="stats-grid">
   <div class="stat-card"><div class="stat-val c-green">{{ total_parcelas }}</div><div class="stat-label">Parcelas</div></div>
   <div class="stat-card"><div class="stat-val c-orange">{{ total_preplans }}</div><div class="stat-label">Ações por realizar</div></div>
-  <div class="stat-card"><div class="stat-val c-accent">{{ total_burning_plans }}</div><div class="stat-label">Planos de Queima</div></div>
+  <div class="stat-card"><div class="stat-val c-accent">{{ total_burning_plans }}</div><div class="stat-label">Execuções (POQ)</div></div>
   <div class="stat-card"><div class="stat-val">{{ total_operatives }}</div><div class="stat-label">Operacionais</div></div>
 </div>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -41,10 +41,10 @@
     {% else %}<p style="color:var(--dim);font-size:13px">Sem ações anunciadas.</p>{% endif %}
   </div>
   <div class="card">
-    <div class="card-title">🕒 Planos Recentes</div>
+    <div class="card-title">🕒 Execuções recentes</div>
     {% if recent_plans %}<table><thead><tr><th>Plano</th><th>Execução</th></tr></thead><tbody>
     {% for bp in recent_plans %}<tr><td><a href="{% url 'fire_actions:burning_plan_detail' bp.pk %}">{{ bp.pre_plan.name }}</a></td><td>{{ bp.execution_date|date:"d/m/Y" }}</td></tr>{% endfor %}
-    </tbody></table>{% else %}<p style="color:var(--dim);font-size:13px">Sem planos recentes.</p>{% endif %}
+    </tbody></table>{% else %}<p style="color:var(--dim);font-size:13px">Sem execuções recentes.</p>{% endif %}
   </div>
 </div>
 <div class="card" style="margin-top:16px">

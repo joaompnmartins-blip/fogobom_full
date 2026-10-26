@@ -217,13 +217,17 @@ class StatusAndParticipationTests(TestCase):
         self.assertIn(f'DTSTART;VALUE=DATE:{self.action.scheduled_date:%Y%m%d}', body)
         self.assertIn('SUMMARY:Queimada: Q', body)
 
-    def test_burning_plan_preselects_confirmed_participants(self):
+    def test_execution_prefills_confirmed_participants(self):
         op_user = User.objects.create_user('op', password='x')
         op = Operative.objects.create(user=op_user, name='Op', email='', phone='', certification_level='')
-        Participation.objects.create(action=self.action, user=op_user, confirmed=True)
+        Participation.objects.create(action=self.action, user=op_user, confirmed=True, role='ignicao')
+        self.action.parcels.set([FireParcel.objects.create(name='P', geometry=SQUARE, status='apta')])
         self.client.force_login(self.tec)
-        r = self.client.get(f'/acoes/burning/novo/{self.action.pk}/')
-        self.assertEqual(r.context['selected_operatives'], [op.pk])
+        self.client.post(f'/acoes/burning/novo/{self.action.pk}/', {'execution_date': self.action.scheduled_date})
+        ex = BurningPlan.objects.get().executions.get()
+        self.assertEqual(sorted((m.operative.name, m.function) for m in ex.members.all()),
+                         [('Op', 'ignicao'), ('Técnico T', 'coordenacao')])
+        self.assertEqual(ex.n_men, 2)
 
     def test_reminders(self):
         FireAction.objects.filter(pk=self.action.pk).update(scheduled_date=in_days(1))

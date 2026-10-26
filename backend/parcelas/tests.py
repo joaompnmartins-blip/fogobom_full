@@ -10,7 +10,7 @@ from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from PIL import Image
 
-from fire_actions.models import FireAction, BurningPlan
+from fire_actions.models import BurningPlan, FireAction, ParcelExecution
 from operatives.models import Operative
 from . import geo
 from .models import FireParcel, Freguesia, ParcelEvaluation
@@ -179,7 +179,9 @@ class ListTests(TestCase):
         for i, (d, parcels) in enumerate([('2026-01-11', [p1, p2]), ('2026-03-12', [p1])]):
             a = FireAction.objects.create(name=f'A{i}', scheduled_date=d)
             a.parcels.set(parcels)
-            BurningPlan.objects.create(pre_plan=a, execution_date=d)
+            plan = BurningPlan.objects.create(pre_plan=a, execution_date=d)
+            for parcel in parcels:
+                ParcelExecution.objects.create(plan=plan, parcel=parcel, date=d)
         with CaptureQueriesContext(connection) as q2:
             r = self.client.get('/parcelas/')
         self.assertEqual({p.name: str(p.last_burn) for p in r.context['parcelas']},

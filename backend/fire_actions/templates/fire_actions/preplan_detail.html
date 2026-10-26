@@ -6,7 +6,7 @@
 {% block topbar_actions %}
   <a href="{% url 'fire_actions:ics' action.pk %}" class="btn btn-secondary btn-sm" title="Adicionar à agenda">📅 .ics</a>
   {% if can_manage %}<a href="{% url 'fire_actions:edit' action.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
-  {% if has_bp %}<a href="{% url 'fire_actions:burning_plan_detail' action.burningplan.pk %}" class="btn btn-secondary btn-sm">📄 Plano de Queima</a>
+  {% if has_bp %}<a href="{% url 'fire_actions:burning_plan_detail' action.burningplan.pk %}" class="btn btn-secondary btn-sm">📄 Execução (POQ)</a>
   {% elif can_manage and action.status != 'cancelada' %}<a href="{% url 'fire_actions:burning_plan_create_from' action.pk %}" class="btn btn-primary btn-sm">📄 Registar execução</a>{% endif %}
 {% endblock %}
 {% block extra_head %}

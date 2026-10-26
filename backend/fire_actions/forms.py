@@ -1,6 +1,8 @@
 import json
 from django import forms
-from .models import FireAction, BurningPlan
+from parcelas.models import FireParcel
+from .models import (BurningPlan, CostLine, ExecutionMember, FireAction, ParcelExecution,
+                     SafetyStrip, WeatherReading)
 
 
 class UserChoiceField(forms.ModelChoiceField):
@@ -104,42 +106,96 @@ def selectable_parcels(action=None):
 
 
 class BurningPlanForm(forms.ModelForm):
-    """Burning plan form. `pre_plan` is only editable on creation."""
-    num_men   = forms.IntegerField(label='Nº de Homens', required=False, min_value=0)
-    vfci      = forms.IntegerField(label='VFCI', required=False, min_value=0)
-    vfcm      = forms.IntegerField(label='VFCM', required=False, min_value=0)
-    other_veh = forms.CharField(label='Outros veículos', required=False)
-
+    """Header of the POQ-Execução of an action. `pre_plan` is only chosen on creation."""
     class Meta:
         model  = BurningPlan
-        fields = ['pre_plan', 'execution_date', 'num_men', 'operatives', 'problems',
-                  'fuel_superficial', 'fuel_manta_f', 'fuel_manta_h',
-                  'weather_state', 'wind_speed_beaufort', 'wind_speed_kmh', 'wind_direction',
-                  'fire_conduct', 'fire_conduct_other', 'burn_effects', 'burn_efficiency', 'notes']
-        labels = {
-            'pre_plan': 'Ação', 'execution_date': 'Data de Execução', 'operatives': 'Operacionais',
-            'problems': 'Problemas identificados', 'fuel_superficial': 'Humidade superficial',
-            'fuel_manta_f': 'Humidade manta morta F', 'fuel_manta_h': 'Humidade manta morta H',
-            'weather_state': 'Estado do tempo', 'wind_speed_beaufort': 'Vel. vento (Beaufort)',
-            'wind_speed_kmh': 'Vel. vento (km/h)', 'wind_direction': 'Direção do vento',
-            'fire_conduct': 'Condução do fogo', 'fire_conduct_other': 'Descrição (se "Outro")',
-            'burn_effects': 'Efeitos da queima', 'burn_efficiency': 'Eficácia da ação',
-            'notes': 'Notas adicionais',
-        }
+        fields = ['pre_plan', 'execution_date', 'notes', 'incident', 'incident_date', 'incident_circumstances',
+                  'incident_entities', 'incident_teams', 'incident_commander', 'incident_strategy',
+                  'incident_area_ha', 'incident_damages']
+        labels = {'pre_plan': 'Ação', 'execution_date': 'Data (1.º dia de execução)', 'notes': 'Observações gerais'}
+        widgets = {'execution_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+                   'incident_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
+                   **{f: forms.Textarea(attrs={'rows': 2}) for f in (
+                       'notes', 'incident_circumstances', 'incident_entities', 'incident_teams',
+                       'incident_strategy', 'incident_damages')}}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             del self.fields['pre_plan']
         else:
-            self.fields['pre_plan'].queryset = FireAction.objects.filter(burningplan__isnull=True)
+            self.fields['pre_plan'].queryset = FireAction.objects.filter(burningplan__isnull=True) \
+                .exclude(status=FireAction.STATUS_CANCELADA)
             self.fields['pre_plan'].error_messages['invalid_choice'] = \
-                'Ação inválida ou já com Plano de Queima.'
+                'Ação inválida ou já com execução registada.'
 
-    def save(self, commit=True):
-        self.instance.vehicles = json.dumps({
-            'VFCI':  self.cleaned_data.get('vfci') or 0,
-            'VFCM':  self.cleaned_data.get('vfcm') or 0,
-            'Outro': self.cleaned_data.get('other_veh', ''),
-        })
-        return super().save(commit)
+    def clean(self):
+        data = super().clean()
+        if data.get('incident') and not (data.get('incident_circumstances') or '').strip():
+            self.add_error('incident_circumstances', 'Descreva as circunstâncias do incidente.')
+        return data
+
+
+TIME = forms.TimeInput(attrs={'type': 'time'}, format='%H:%M')
+
+
+class ParcelExecutionForm(forms.ModelForm):
+    problems = forms.MultipleChoiceField(label='Problemas operacionais', choices=ParcelExecution.PROBLEMS,
+                                         required=False, widget=forms.CheckboxSelectMultiple)
+
+    class Meta:
+        model = ParcelExecution
+        exclude = ['plan', 'parcel', 'date', 'created_at']
+        widgets = {'start_time': TIME, 'end_time': TIME,
+                   **{f: forms.Textarea(attrs={'rows': 2}) for f in (
+                       'ignition_techniques', 'operation_notes', 'problems_description', 'rating_why')}}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial['problems'] = self.instance.problems_list
+
+    def clean_problems(self):
+        return ','.join(self.cleaned_data.get('problems') or [])
+
+    def clean(self):
+        data = super().clean()
+        s, e = data.get('start_time'), data.get('end_time')
+        if s and e and e <= s:
+            self.add_error('end_time', 'O fim tem de ser depois do início.')
+        for f in ('eff_veg_area_pct', 'eff_crowns_pct', 'eff_litter_area_pct', 'eff_litter_reduction_pct'):
+            v = data.get(f)
+            if v is not None and not 0 <= v <= 100:
+                self.add_error(f, 'Valor entre 0 e 100.')
+        return data
+
+
+class NewParcelExecutionForm(forms.Form):
+    parcel = forms.ModelChoiceField(label='Parcela', queryset=FireParcel.objects.none())
+    date = forms.DateField(label='Data', widget=forms.DateInput(attrs={'type': 'date'}))
+
+    def __init__(self, *args, plan=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.plan = plan
+        self.fields['parcel'].queryset = plan.pre_plan.parcels.all() if plan else FireParcel.objects.none()
+
+    def clean(self):
+        data = super().clean()
+        if self.plan and data.get('parcel') and data.get('date') and \
+                self.plan.executions.filter(parcel=data['parcel'], date=data['date']).exists():
+            raise forms.ValidationError('Já existe a execução desta parcela nesta data.')
+        return data
+
+
+MemberFormSet = forms.inlineformset_factory(ParcelExecution, ExecutionMember, fields=['operative', 'function'],
+                                           extra=2, can_delete=True)
+ReadingFormSet = forms.inlineformset_factory(
+    ParcelExecution, WeatherReading,
+    fields=['time', 'temp', 'rh', 'weather', 'wind_bft', 'wind_kmh', 'wind_dir', 'conduct', 'conduct_other',
+            'flame_length_m', 'flame_angle', 'spread_m_min'],
+    widgets={'time': TIME}, extra=2, can_delete=True)
+StripFormSet = forms.inlineformset_factory(ParcelExecution, SafetyStrip,
+                                          fields=['side', 'means', 'width_m', 'time_spent'], extra=0, can_delete=False)
+CostFormSet = forms.inlineformset_factory(ParcelExecution, CostLine,
+                                         fields=['category', 'description', 'qty_burn', 'qty_extinction', 'unit_price'],
+                                         extra=2, can_delete=True)

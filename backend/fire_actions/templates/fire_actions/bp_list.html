@@ -1,24 +1,26 @@
 {% extends "core/base.html" %}
-{% block title %}Planos de Queima{% endblock %}
-{% block page_title %}Planos de Queima{% endblock %}
+{% block title %}Execuções (POQ){% endblock %}
+{% block page_title %}Execuções (POQ-Execução){% endblock %}
 {% block nav_bp %}active{% endblock %}
-{% block topbar_actions %}<a href="{% url 'fire_actions:burning_plan_create' %}" class="btn btn-primary btn-sm">+ Novo Plano</a>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'fire_actions:burning_plan_create' %}" class="btn btn-primary btn-sm">+ Registar execução</a>{% endblock %}
 {% block content %}
 <div class="card">
-  <div class="card-title">{{ plans.count }} Plano{{ plans.count|pluralize:"s" }} de Queima</div>
+  <div class="card-title">{{ plans.count }} execuç{{ plans.count|pluralize:"ão,ões" }} registada{{ plans.count|pluralize }} (POQ-Execução)</div>
   {% if plans %}
   <table>
-    <thead><tr><th>Ação</th><th>Data Execução</th><th>Operacionais</th><th>Ações</th></tr></thead>
+    <thead><tr><th>Ação</th><th>Tipo</th><th>Data</th><th>Parcelas executadas</th><th>Incidente</th><th>Ações</th></tr></thead>
     <tbody>
     {% for bp in plans %}
     <tr>
       <td><a href="{% url 'fire_actions:burning_plan_detail' bp.pk %}">{{ bp.pre_plan.name }}</a></td>
+      <td>{{ bp.pre_plan.get_action_type_display }}</td>
       <td>{{ bp.execution_date|date:"d/m/Y" }}</td>
-      <td>{{ bp.operatives.count }}</td>
+      <td>{{ bp.executions.count }}</td>
+      <td>{% if bp.incident %}<span class="badge badge-red">fuga do fogo</span>{% else %}—{% endif %}</td>
       <td style="white-space:nowrap">
         <a href="{% url 'fire_actions:burning_plan_detail' bp.pk %}" class="btn btn-secondary btn-sm">👁️</a>
         <a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️</a>
-        <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 Relatório</a>
+        <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 POQ</a>
         {% if request.user.is_staff %}<a href="{% url 'fire_actions:burning_plan_delete' bp.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}
       </td>
     </tr>
@@ -26,7 +28,7 @@
     </tbody>
   </table>
   {% else %}
-  <p style="color:var(--dim)">Nenhum plano de queima. Anuncie primeiro uma <a href="{% url 'fire_actions:list' %}">ação →</a></p>
+  <p style="color:var(--dim)">Nenhuma execução registada. Anuncie primeiro uma <a href="{% url 'fire_actions:list' %}">ação →</a></p>
   {% endif %}
 </div>
 {% endblock %}
