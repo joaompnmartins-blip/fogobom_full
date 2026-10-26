@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}{{ action }}{% endblock %}
 {% block page_title %}{{ action }}{% endblock %}
 {% block nav_parc %}active{% endblock %}
@@ -9,88 +10,61 @@
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <!-- toGeoJSON: KML → GeoJSON conversion -->
 <script src="https://unpkg.com/@mapbox/togeojson@0.16.0/togeojson.js"></script>
+<script src="{% static 'core/parcel_status.js' %}"></script>
 <style>
   #import-btn {
-    position: absolute;
-    top: 10px; left: 50px;
-    z-index: 1000;
-    background: rgba(20,20,20,.85);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 5px;
-    color: #eee;
-    font-size: 12px;
-    padding: 5px 10px;
-    cursor: pointer;
-    display: flex; align-items: center; gap: 6px;
-    transition: background .15s;
+    position: absolute; top: 10px; left: 50px; z-index: 1000;
+    background: rgba(20,20,20,.85); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15); border-radius: 5px;
+    color: #eee; font-size: 12px; padding: 5px 10px; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: background .15s;
   }
   #import-btn:hover { background: rgba(40,40,40,.95); }
   #import-file { display: none; }
-
   .map-legend {
-    background: rgba(20,20,20,.85);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 12px;
-    color: #eee;
-    min-width: 160px;
-    line-height: 1.8;
+    background: rgba(20,20,20,.85); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.12); border-radius: 6px;
+    padding: 10px 14px; font-size: 12px; color: #eee; min-width: 160px; line-height: 1.8;
   }
-  .map-legend .legend-title {
-    font-weight: 700;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: #aaa;
-    margin-bottom: 6px;
-  }
-  .legend-dot {
-    display: inline-block;
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    margin-right: 6px;
-    border: 1.5px solid rgba(255,255,255,.3);
-  }
-
-  #concelho-status {
-    font-size: 11px;
-    color: var(--dim);
-    margin-top: 4px;
-    min-height: 16px;
-  }
+  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #aaa; margin-bottom: 6px; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid rgba(255,255,255,.3); }
+  #location-box td:first-child { color: var(--dim); width: 40%; }
 </style>
 {% endblock %}
 
 {% block content %}
+{% if not parcela.pk %}
+<div class="msg msg-info">A parcela fica <strong>proposta</strong> até ser avaliada no terreno por um técnico credenciado.
+  Só depois de considerada apta pode ser usada numa ação de fogo controlado ou queimada.</div>
+{% endif %}
 <form method="post" enctype="multipart/form-data">
 {% csrf_token %}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+{% if overlaps %}
+<div class="msg msg-error">
+  <strong>A delimitação sobrepõe-se a parcelas existentes:</strong>
+  {% for p, ha in overlaps %}<a href="{% url 'parcelas:detail' p.pk %}" target="_blank">{{ p.name }}</a> ({{ ha }} ha){% if not forloop.last %}, {% endif %}{% endfor %}.
+  <label style="display:flex;gap:8px;align-items:center;margin-top:8px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text)">
+    <input type="checkbox" name="confirm_overlap" value="1" style="width:auto"> Confirmo que é uma parcela diferente e quero gravar
+  </label>
+</div>
+{% endif %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
   <div>
     <div class="card">
-      <div class="card-title">Informação da Parcela</div>
+      <div class="card-title">Dados da parcela</div>
       <div class="form-row">
-        <div class="field"><label>Nome *</label><input type="text" name="name" value="{{ parcela.name|default:'' }}" required></div>
+        <div class="field"><label>Nome / referência *</label><input type="text" name="name" value="{{ parcela.name|default:'' }}" required></div>
       </div>
       <div class="form-row cols-2">
-        <div class="field">
-          <label>Concelho</label>
-          <input type="text" name="concelho" id="concelho-input" value="{{ parcela.concelho|default:'' }}">
-          <div id="concelho-status"></div>
-        </div>
-        <div class="field"><label>Tipo de Vegetação</label>
+        <div class="field"><label>Tipologia</label>
           <select name="vegetation_type">
             <option value="matos" {% if parcela.vegetation_type == 'matos' %}selected{% endif %}>Matos</option>
-            <option value="pinhal" {% if parcela.vegetation_type == 'pinhal' %}selected{% endif %}>Pinhal</option>
-            <option value="eucaliptal" {% if parcela.vegetation_type == 'eucaliptal' %}selected{% endif %}>Eucaliptal</option>
+            <option value="pinhal" {% if parcela.vegetation_type == 'pinhal' %}selected{% endif %}>Povoamento de pinheiro</option>
+            <option value="eucaliptal" {% if parcela.vegetation_type == 'eucaliptal' %}selected{% endif %}>Povoamento de eucalipto</option>
             <option value="misto" {% if parcela.vegetation_type == 'misto' %}selected{% endif %}>Misto</option>
           </select>
         </div>
-      </div>
-      <div class="form-row cols-2">
-        <div class="field"><label>Infraestrutura</label>
+        <div class="field"><label>Infraestruturas</label>
           <select name="infrastructure">
             <option value="no_info" {% if parcela.infrastructure == 'no_info' %}selected{% endif %}>Sem informação</option>
             <option value="existing" {% if parcela.infrastructure == 'existing' %}selected{% endif %}>Operacional</option>
@@ -98,7 +72,9 @@
             <option value="non_existing" {% if parcela.infrastructure == 'non_existing' %}selected{% endif %}>Inexistente</option>
           </select>
         </div>
-        <div class="field"><label>Proprietário identificado</label>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Existem dados do proprietário</label>
           <select name="owner_info">
             <option value="no" {% if parcela.owner_info == 'no' %}selected{% endif %}>Não</option>
             <option value="yes" {% if parcela.owner_info == 'yes' %}selected{% endif %}>Sim</option>
@@ -106,20 +82,35 @@
         </div>
       </div>
       <div class="form-row cols-2">
-        <div class="field"><label>Nome do Responsável</label><input type="text" name="resp_name" value="{{ parcela.resp_name|default:'' }}"></div>
-        <div class="field"><label>Email do Responsável</label><input type="email" name="resp_email" value="{{ parcela.resp_email|default:'' }}"></div>
+        <div class="field"><label>Responsável de contacto</label><input type="text" name="resp_name" value="{{ parcela.resp_name|default:'' }}"></div>
+        <div class="field"><label>Email de contacto</label><input type="email" name="resp_email" value="{{ parcela.resp_email|default:'' }}"></div>
       </div>
+      <div class="form-row">
+        <div class="field"><label>Observações</label><textarea name="notes" rows="3">{{ parcela.notes|default:'' }}</textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Fotografias (opcional)</label><input type="file" name="photos" multiple accept="image/*" style="color:var(--text)"></div>
+      </div>
+    </div>
+
+    <div class="card" id="location-box">
+      <div class="card-title">Localização (automática)</div>
+      <table><tbody>
+        <tr><td>Área</td><td id="loc-area">{% if parcela.area_ha %}{{ parcela.area_ha }} ha{% else %}—{% endif %}</td></tr>
+        <tr><td>Concelho</td><td id="loc-concelho">{{ parcela.concelho|default:"—" }}</td></tr>
+        <tr><td>Freguesia(s)</td><td id="loc-freguesia">{{ parcela.freguesia|default:"—" }}</td></tr>
+        <tr><td>Distrito</td><td id="loc-distrito">{{ parcela.distrito|default:"—" }}</td></tr>
+      </tbody></table>
+      <div id="loc-overlap" style="margin-top:8px;font-size:13px"></div>
+      <p style="font-size:12px;color:var(--dim);margin-top:6px">Calculada com os limites oficiais (CAOP) a partir da delimitação desenhada.</p>
     </div>
   </div>
 
   <div>
     <div class="card" style="padding:0;overflow:hidden;position:relative">
-      <!-- Import button overlaid on the map -->
-      <button type="button" id="import-btn" title="Importar GeoJSON ou KML">
-        📂 Importar GeoJSON / KML
-      </button>
+      <button type="button" id="import-btn" title="Importar GeoJSON ou KML">📂 Importar GeoJSON / KML</button>
       <input type="file" id="import-file" accept=".geojson,.json,.kml">
-      <div id="draw-map" style="height:460px"></div>
+      <div id="draw-map" style="height:520px"></div>
     </div>
     <p style="font-size:12px;color:var(--dim);margin-top:8px">
       {% if parcela.pk %}Geometria atual carregada. Redesenhe ou importe para alterar.{% else %}Desenhe ✏️ o polígono da parcela ou importe um ficheiro GeoJSON/KML.{% endif %}
@@ -129,116 +120,95 @@
 </div>
 
 <div class="btn-group">
-  <button type="submit" class="btn btn-primary">💾 Guardar Parcela</button>
-  <a href="{% url 'parcelas:list' %}" class="btn btn-secondary">Cancelar</a>
+  <button type="submit" class="btn btn-primary">💾 {% if parcela.pk %}Guardar{% else %}Propor parcela{% endif %}</button>
+  <a href="{% if parcela.pk %}{% url 'parcelas:detail' parcela.pk %}{% else %}{% url 'parcelas:list' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
 </div>
 </form>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// ── Basemaps ─────────────────────────────────────────────────────────────────
 const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-  maxZoom: 21,
-  subdomains: ['mt0','mt1','mt2','mt3'],
-  attribution: '© Google'
+  maxZoom: 21, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google'
 });
 const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}', {
   maxZoom: 19,
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>'
 });
-
 const map = L.map('draw-map', { layers: [osm] }).setView([37.2, -8.1], 9);
+L.control.layers({ 'Satélite (Google)': googleSat, 'Mapa (CartoDB)': osm }, {}, { position: 'topright' }).addTo(map);
 
-L.control.layers(
-  { 'Satélite (Google)': googleSat, 'Mapa (CartoDB)': osm },
-  {},
-  { position: 'topright' }
-).addTo(map);
+const currentPk = {{ parcela.pk|default:"null" }};
 
-// ── Colour helpers ────────────────────────────────────────────────────────────
-function ownerColor(val) {
-  if (val === 'yes') return '#22c55e';
-  if (val === 'no')  return '#f97316';
-  return '#94a3b8';
-}
+// ── Existing parcels (background, coloured by status) ───────────────────────
+fetch("{% url 'parcelas:geojson' %}")
+  .then(r => r.json())
+  .then(data => {
+    L.geoJSON(data, {
+      filter: f => (String(f.id || '').match(/(\d+)$/) || [])[1] !== String(currentPk),
+      style: f => ({ color: parcelStatusColor(f.properties.status), weight: 1.5, fillOpacity: 0.2, dashArray: '4 3' }),
+      onEachFeature(feature, layer) {
+        layer.bindTooltip(`${escHtml(feature.properties.name)} · ${escHtml(parcelStatusLabel(feature.properties.status))}`,
+                          { sticky: true, opacity: .85 });
+      }
+    }).addTo(map);
+  })
+  .catch(err => console.error('Erro ao carregar parcelas:', err));
 
-// ── Existing parcelas overlay (live, background) ──────────────────────────────
-let existingLayer = null;
-function loadExistingParcelas() {
-  fetch("{% url 'parcelas:geojson' %}")
-    .then(r => r.json())
-    .then(data => {
-      if (existingLayer) map.removeLayer(existingLayer);
-      existingLayer = L.geoJSON(data, {
-        style: f => ({
-          color: ownerColor(f.properties.owner_info),
-          weight: 1.5,
-          fillOpacity: 0.2,
-          dashArray: '4 3'
-        }),
-        onEachFeature(feature, layer) {
-          const p = feature.properties;
-          layer.bindTooltip(escHtml(p.name), { sticky: true, opacity: .85 });
-        }
-      }).addTo(map);
-    })
-    .catch(err => console.error('Erro ao carregar parcelas:', err));
-}
-loadExistingParcelas();
-
-// ── Drawn items ───────────────────────────────────────────────────────────────
+// ── Drawn geometry ──────────────────────────────────────────────────────────
 const drawnItems = new L.FeatureGroup().addTo(map);
-
-// Load existing geometry (edit mode)
 const existingGeom = document.getElementById('geometry-input').value;
 if (existingGeom) {
   try {
-    const layer = L.geoJSON(JSON.parse(existingGeom), {
-      style: { color: '#e8541a', weight: 2, fillOpacity: 0.35 }
-    });
-    layer.eachLayer(l => drawnItems.addLayer(l));
+    L.geoJSON(JSON.parse(existingGeom), { style: { color: '#e8541a', weight: 2, fillOpacity: 0.35 } })
+      .eachLayer(l => drawnItems.addLayer(l));
     map.fitBounds(drawnItems.getBounds(), { padding: [20, 20] });
   } catch(e) {}
 }
-
-const drawControl = new L.Control.Draw({
+new L.Control.Draw({
   edit: { featureGroup: drawnItems },
-  draw: {
-    polygon:      { shapeOptions: { color: '#e8541a', fillOpacity: .35 } },
-    rectangle:    false,
-    circle:       false,
-    circlemarker: false,
-    marker:       false,
-    polyline:     false
-  }
+  draw: { polygon: { shapeOptions: { color: '#e8541a', fillOpacity: .35 } },
+          rectangle: false, circle: false, circlemarker: false, marker: false, polyline: false }
 }).addTo(map);
 
-// ── Geometry helpers ──────────────────────────────────────────────────────────
-function setGeometry(geojsonGeometry) {
-  document.getElementById('geometry-input').value = JSON.stringify(geojsonGeometry);
-  reverseGeocodeConcelhoFromGeometry(geojsonGeometry);
+function setGeometry(geometry) {
+  document.getElementById('geometry-input').value = JSON.stringify(geometry);
+  previewLocation(geometry);
 }
-
-map.on(L.Draw.Event.CREATED, e => {
-  drawnItems.clearLayers();
-  drawnItems.addLayer(e.layer);
-  setGeometry(e.layer.toGeoJSON().geometry);
-});
-map.on(L.Draw.Event.EDITED, () => {
-  drawnItems.eachLayer(l => setGeometry(l.toGeoJSON().geometry));
-});
+map.on(L.Draw.Event.CREATED, e => { drawnItems.clearLayers(); drawnItems.addLayer(e.layer); setGeometry(e.layer.toGeoJSON().geometry); });
+map.on(L.Draw.Event.EDITED, () => drawnItems.eachLayer(l => setGeometry(l.toGeoJSON().geometry)));
 map.on(L.Draw.Event.DELETED, () => {
   document.getElementById('geometry-input').value = '';
-  document.getElementById('concelho-input').value = '';
-  document.getElementById('concelho-status').textContent = '';
+  ['loc-area', 'loc-concelho', 'loc-freguesia', 'loc-distrito'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('loc-overlap').textContent = '';
 });
 
-// ── Import GeoJSON / KML ──────────────────────────────────────────────────────
-document.getElementById('import-btn').addEventListener('click', () => {
-  document.getElementById('import-file').click();
-});
+// ── Live preview: area, CAOP location, overlaps ─────────────────────────────
+function previewLocation(geometry) {
+  const box = document.getElementById('loc-overlap');
+  box.textContent = 'A calcular…';
+  fetch("{% url 'parcelas:preview' %}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+    body: JSON.stringify({ geometry, exclude: currentPk }),
+  })
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { box.innerHTML = `<span style="color:#e57373">${escHtml(d.error)}</span>`; return; }
+      document.getElementById('loc-area').textContent = `${d.area_ha} ha`;
+      const loc = d.location || {};
+      document.getElementById('loc-concelho').textContent = loc.concelho || '— (fora de Portugal continental?)';
+      document.getElementById('loc-freguesia').textContent = loc.freguesia || '—';
+      document.getElementById('loc-distrito').textContent = loc.distrito || '—';
+      box.innerHTML = d.overlaps.length
+        ? '<span style="color:#e57373">⚠ Sobrepõe-se a: ' + d.overlaps.map(o => `${escHtml(o.name)} (${o.ha} ha)`).join(', ') + '</span>'
+        : '<span style="color:#6fcf97">✓ Sem sobreposição com parcelas existentes</span>';
+    })
+    .catch(() => { box.textContent = 'Não foi possível calcular a localização agora; será calculada ao gravar.'; });
+}
 
+// ── Import GeoJSON / KML ────────────────────────────────────────────────────
+document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
 document.getElementById('import-file').addEventListener('change', function() {
   const file = this.files[0];
   if (!file) return;
@@ -247,103 +217,32 @@ document.getElementById('import-file').addEventListener('change', function() {
     try {
       let geojson;
       if (file.name.toLowerCase().endsWith('.kml')) {
-        const parser = new DOMParser();
-        const kmlDoc = parser.parseFromString(e.target.result, 'text/xml');
-        geojson = toGeoJSON.kml(kmlDoc);
+        geojson = toGeoJSON.kml(new DOMParser().parseFromString(e.target.result, 'text/xml'));
       } else {
         geojson = JSON.parse(e.target.result);
       }
-
-      // Extract first polygon geometry
       let geometry = null;
       if (geojson.type === 'FeatureCollection' && geojson.features.length > 0) {
-        const poly = geojson.features.find(f =>
-          f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon')
-        );
+        const poly = geojson.features.find(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
         if (poly) geometry = poly.geometry;
       } else if (geojson.type === 'Feature') {
         geometry = geojson.geometry;
       } else if (geojson.type === 'Polygon' || geojson.type === 'MultiPolygon') {
         geometry = geojson;
       }
-
-      if (!geometry) {
-        alert('Não foi encontrado nenhum polígono no ficheiro importado.');
-        return;
-      }
-
+      if (!geometry) { alert('Não foi encontrado nenhum polígono no ficheiro importado.'); return; }
       drawnItems.clearLayers();
-      const layer = L.geoJSON(geometry, {
-        style: { color: '#e8541a', weight: 2, fillOpacity: 0.35 }
-      });
-      layer.eachLayer(l => drawnItems.addLayer(l));
+      L.geoJSON(geometry, { style: { color: '#e8541a', weight: 2, fillOpacity: 0.35 } }).eachLayer(l => drawnItems.addLayer(l));
       map.fitBounds(drawnItems.getBounds(), { padding: [30, 30] });
       setGeometry(geometry);
-
     } catch(err) {
       alert('Erro ao importar ficheiro: ' + err.message);
     }
   };
   reader.readAsText(file);
-  // Reset so the same file can be re-imported
   this.value = '';
 });
 
-// ── Auto-Concelho via Nominatim reverse geocoding ─────────────────────────────
-function centroidOfGeometry(geometry) {
-  // Simple centroid of first polygon ring
-  let coords = [];
-  if (geometry.type === 'Polygon') {
-    coords = geometry.coordinates[0];
-  } else if (geometry.type === 'MultiPolygon') {
-    coords = geometry.coordinates[0][0];
-  }
-  if (!coords.length) return null;
-  const sumLng = coords.reduce((s, c) => s + c[0], 0);
-  const sumLat = coords.reduce((s, c) => s + c[1], 0);
-  return { lat: sumLat / coords.length, lng: sumLng / coords.length };
-}
-
-function reverseGeocodeConcelhoFromGeometry(geometry) {
-  const center = centroidOfGeometry(geometry);
-  if (!center) return;
-
-  const status = document.getElementById('concelho-status');
-  status.textContent = '🔍 A detectar concelho…';
-
-  // zoom=10 targets municipality level in Nominatim's hierarchy
-  const url = `https://nominatim.openstreetmap.org/reverse?lat=${center.lat}&lon=${center.lng}&format=json&addressdetails=1&zoom=10&accept-language=pt`;
-  fetch(url, { headers: { 'User-Agent': 'FogoBomAlgarve/1.0' } })
-    .then(r => r.json())
-    .then(data => {
-      const addr = data.address || {};
-      // In Portugal: municipality = concelho, county = distrito — always prefer municipality
-      const concelho = addr.municipality || addr.city || addr.town || addr.village || '';
-      if (concelho) {
-        const clean = concelho.replace(/\s*(Municipality|Concelho de|Município de)\s*/gi, '').trim();
-        document.getElementById('concelho-input').value = clean;
-        status.textContent = `✅ Detectado automaticamente`;
-      } else {
-        status.textContent = 'Não foi possível detectar o concelho.';
-      }
-    })
-    .catch(() => {
-      status.textContent = 'Erro na geolocalização inversa.';
-    });
-}
-
-// ── Legend ────────────────────────────────────────────────────────────────────
-const legend = L.control({ position: 'bottomleft' });
-legend.onAdd = function() {
-  const div = L.DomUtil.create('div', 'map-legend');
-  div.innerHTML = `
-    <div class="legend-title">Proprietário</div>
-    <div><span class="legend-dot" style="background:#22c55e"></span>Identificado</div>
-    <div><span class="legend-dot" style="background:#f97316"></span>Não identificado</div>
-    <div><span class="legend-dot" style="background:#94a3b8"></span>Sem informação</div>
-  `;
-  return div;
-};
-legend.addTo(map);
+parcelStatusLegend('bottomleft').addTo(map);
 </script>
 {% endblock %}

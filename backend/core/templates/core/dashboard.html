@@ -14,6 +14,15 @@
   {% for op in expiring_credentials %}{{ op.name }} ({{ op.credential_valid_until|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}{% endfor %}.
 </div>
 {% endif %}
+{% if to_evaluate %}
+<div class="card">
+  <div class="card-title">📝 Parcelas a aguardar avaliação técnica ({{ to_evaluate|length }})</div>
+  <table><thead><tr><th>Parcela</th><th>Concelho</th><th>Área</th><th>Estado</th><th>Proposta em</th></tr></thead><tbody>
+  {% for p in to_evaluate %}<tr><td><a href="{% url 'parcelas:detail' p.pk %}">{{ p.name }}</a></td><td>{{ p.concelho|default:"—" }}</td>
+    <td>{{ p.area_ha|default:"—" }} ha</td><td>{{ p.get_status_display }}</td><td>{{ p.created_at|date:"d/m/Y" }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endif %}
 <div class="stats-grid">
   <div class="stat-card"><div class="stat-val c-green">{{ total_parcelas }}</div><div class="stat-label">Parcelas</div></div>
   <div class="stat-card"><div class="stat-val c-orange">{{ total_preplans }}</div><div class="stat-label">Pré-Planos Ativos</div></div>

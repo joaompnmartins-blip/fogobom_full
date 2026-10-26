@@ -60,6 +60,7 @@ TEMPLATES = [{
         'django.contrib.messages.context_processors.messages',
         'core.context_processors.map_keys',
         'core.context_processors.pending_validations',
+        'core.context_processors.user_roles',
     ]},
 }]
 

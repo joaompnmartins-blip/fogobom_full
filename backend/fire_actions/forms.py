@@ -15,6 +15,19 @@ class PrePlanForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['parcels'].required = False
+        self.fields['parcels'].queryset = selectable_parcels(self.instance)
+        self.fields['parcels'].error_messages['invalid_choice'] = \
+            'Só podem ser usadas parcelas avaliadas como aptas.'
+
+
+def selectable_parcels(action=None):
+    """Parcels usable in an action: evaluated as apta (with or without conditions), plus any already linked."""
+    from django.db.models import Q
+    from parcelas.models import FireParcel
+    q = Q(status__in=FireParcel.AVAILABLE_STATUSES)
+    if action is not None and action.pk:
+        q |= Q(pk__in=action.parcels.values('pk'))
+    return FireParcel.objects.filter(q)
 
 
 class BurningPlanForm(forms.ModelForm):

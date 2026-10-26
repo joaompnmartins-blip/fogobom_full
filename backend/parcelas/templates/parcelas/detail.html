@@ -1,161 +1,148 @@
 {% extends "core/base.html" %}
-{% load history_tags %}
+{% load history_tags static %}
 {% block title %}{{ parcela.name }}{% endblock %}
 {% block page_title %}{{ parcela.name }}{% endblock %}
 {% block nav_parc %}active{% endblock %}
+{% block topbar_actions %}
+  {% if can_evaluate %}
+    {% if open_eval %}
+      <a href="{% url 'parcelas:evaluation' open_eval.pk %}" class="btn btn-primary btn-sm">📝 Continuar avaliação</a>
+    {% else %}
+      <form method="post" action="{% url 'parcelas:evaluation_start' parcela.pk %}" style="display:inline">{% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">📝 {% if parcela.status == 'proposta' %}Avaliar parcela{% else %}Reavaliar{% endif %}</button>
+      </form>
+    {% endif %}
+  {% endif %}
+  {% if can_edit %}<a href="{% url 'parcelas:edit' parcela.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
+{% endblock %}
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'core/parcel_status.js' %}"></script>
 <style>
-  .map-legend {
-    background: rgba(20,20,20,.85);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 12px;
-    color: #eee;
-    min-width: 160px;
-    line-height: 1.8;
-  }
-  .map-legend .legend-title {
-    font-weight: 700;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: #aaa;
-    margin-bottom: 6px;
-  }
-  .legend-dot {
-    display: inline-block;
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    margin-right: 6px;
-    border: 1.5px solid rgba(255,255,255,.3);
-  }
+  .map-legend { background: rgba(20,20,20,.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #eee; min-width: 160px; line-height: 1.8; }
+  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #aaa; margin-bottom: 6px; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid rgba(255,255,255,.3); }
+  .kv td:first-child { color: var(--dim); width: 42% }
+  .photos { display:flex; flex-wrap:wrap; gap:8px }
+  .photos img { height:80px; border-radius:4px; object-fit:cover }
 </style>
 {% endblock %}
 {% block content %}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-  <div class="card">
-    <div class="card-title">Informação</div>
-    <table><tbody>
-      <tr><td style="color:var(--dim);width:40%">Concelho</td><td>{{ parcela.concelho|default:"—" }}</td></tr>
-      <tr><td style="color:var(--dim)">Vegetação</td><td>{{ parcela.get_vegetation_type_display }}</td></tr>
-      <tr><td style="color:var(--dim)">Área</td><td>{{ parcela.area_ha|default:"—" }} ha</td></tr>
-      <tr><td style="color:var(--dim)">Infraestrutura</td><td>{{ parcela.get_infrastructure_display }}</td></tr>
-      <tr><td style="color:var(--dim)">Proprietário</td><td>{{ parcela.get_owner_info_display }}</td></tr>
-      <tr><td style="color:var(--dim)">Responsável</td><td>{{ parcela.resp_name|default:"—" }}</td></tr>
-      <tr><td style="color:var(--dim)">Email</td><td>{{ parcela.resp_email|default:"—" }}</td></tr>
-      <tr><td style="color:var(--dim)">Última queima</td><td>{% if last_burn %}{{ last_burn|date:"d/m/Y" }}{% else %}Não queimada{% endif %}</td></tr>
-      <tr><td style="color:var(--dim)">Criada em</td><td>{{ parcela.created_at|date:"d/m/Y" }}</td></tr>
-    </tbody></table>
-    <div class="btn-group">
-      <a href="{% url 'parcelas:edit' parcela.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>
-      {% if request.user.is_staff %}<a href="{% url 'parcelas:delete' parcela.pk %}" class="btn btn-danger btn-sm">🗑️ Eliminar</a>{% endif %}
-      <a href="{% url 'parcelas:list' %}" class="btn btn-secondary btn-sm">← Voltar</a>
+{% if parcela.status == 'proposta' %}
+<div class="msg msg-info">Parcela <strong>proposta</strong>: aguarda avaliação no terreno por um técnico credenciado. Ainda não pode ser usada em ações de queima.</div>
+{% elif parcela.status == 'em_avaliacao' %}
+<div class="msg msg-info">Parcela <strong>em avaliação</strong>{% if open_eval %} por {{ open_eval.evaluator.username }}{% endif %}.</div>
+{% elif parcela.status == 'apta_condicionantes' and last_eval %}
+<div class="msg msg-info"><strong>Apta com condicionantes:</strong> {{ last_eval.conditions }}</div>
+{% elif parcela.status == 'nao_apta' and last_eval %}
+<div class="msg msg-error"><strong>Não apta:</strong> {{ last_eval.justification }}</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
+  <div>
+    <div class="card">
+      <div class="card-title">Informação</div>
+      <table class="kv"><tbody>
+        <tr><td>Estado</td><td><span class="legend-dot" id="status-dot"></span>{{ parcela.get_status_display }}</td></tr>
+        <tr><td>Concelho</td><td>{{ parcela.concelho|default:"—" }}</td></tr>
+        <tr><td>Freguesia(s)</td><td>{{ parcela.freguesia|default:"—" }}</td></tr>
+        <tr><td>Distrito</td><td>{{ parcela.distrito|default:"—" }}</td></tr>
+        <tr><td>Área</td><td>{{ parcela.area_ha|default:"—" }} ha</td></tr>
+        <tr><td>Tipologia</td><td>{{ parcela.get_vegetation_type_display }}</td></tr>
+        <tr><td>Infraestruturas</td><td>{{ parcela.get_infrastructure_display }}</td></tr>
+        <tr><td>Existem dados do proprietário</td><td>{{ parcela.get_owner_info_display }}</td></tr>
+        <tr><td>Responsável de contacto</td><td>{{ parcela.resp_name|default:"—" }}</td></tr>
+        <tr><td>Email de contacto</td><td>{{ parcela.resp_email|default:"—" }}</td></tr>
+        <tr><td>Última queima</td><td>{% if last_burn %}{{ last_burn|date:"d/m/Y" }}{% else %}—{% endif %}</td></tr>
+        <tr><td>Proposta por</td><td>{{ parcela.proposed_by.username|default:"—" }} · {{ parcela.created_at|date:"d/m/Y" }}</td></tr>
+        {% if parcela.notes %}<tr><td>Observações</td><td>{{ parcela.notes|linebreaksbr }}</td></tr>{% endif %}
+      </tbody></table>
+      {% if proposal_photos %}
+      <div class="photos" style="margin-top:12px">
+        {% for ph in proposal_photos %}<a href="{{ ph.image.url }}" target="_blank"><img src="{{ ph.image.url }}" alt="{{ ph.caption }}"></a>{% endfor %}
+      </div>
+      {% endif %}
+      <div class="btn-group">
+        {% if request.user.is_staff %}<a href="{% url 'parcelas:delete' parcela.pk %}" class="btn btn-danger btn-sm">🗑️ Eliminar</a>{% endif %}
+        <a href="{% url 'parcelas:list' %}" class="btn btn-secondary btn-sm">← Voltar</a>
+      </div>
     </div>
   </div>
-
   <div class="card" style="padding:0;overflow:hidden;position:relative">
-    <div id="map" style="height:400px"></div>
+    <div id="map" style="height:460px"></div>
   </div>
 </div>
+
+{% if last_eval %}
+<div class="card" style="margin-top:16px">
+  <div class="card-title">Avaliação técnica — {{ last_eval.get_decision_display }}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+    <table class="kv"><tbody>
+      <tr><td>Técnico</td><td>{{ last_eval.evaluator.operative.name|default:last_eval.evaluator.username }}{% if last_eval.evaluator.operative.credential_number %} (n.º {{ last_eval.evaluator.operative.credential_number }}){% endif %}</td></tr>
+      <tr><td>Visita ao terreno</td><td>{{ last_eval.visit_date|date:"d/m/Y" }}</td></tr>
+      <tr><td>Justificação</td><td>{{ last_eval.justification|linebreaksbr }}</td></tr>
+      {% if last_eval.conditions %}<tr><td>Condicionantes</td><td>{{ last_eval.conditions|linebreaksbr }}</td></tr>{% endif %}
+      <tr><td>Tipo recomendado</td><td>{{ last_eval.get_recommended_type_display|default:"—" }}{% if last_eval.queimada_purpose %} — {{ last_eval.get_queimada_purpose_display }}{% endif %}</td></tr>
+      <tr><td>Objetivos</td><td>{{ last_eval.objectives_display|default:"—" }}</td></tr>
+      <tr><td>Dificuldade</td><td>{% if last_eval.difficulty_total is not None %}{{ last_eval.difficulty_class }} ({{ last_eval.difficulty_total }} pontos){% else %}—{% endif %}</td></tr>
+    </tbody></table>
+    <table class="kv"><tbody>
+      <tr><td>Altitude / declive / exposição</td><td>{{ last_eval.altitude_m|default:"—" }} m · {{ last_eval.slope_pct|default:"—" }} % · {{ last_eval.get_aspect_display|default:"—" }}</td></tr>
+      <tr><td>Topografia</td><td>{{ last_eval.get_topography_display|default:"—" }}</td></tr>
+      <tr><td>Carga de combustível</td><td>{{ last_eval.get_fuel_load_display|default:"—" }}</td></tr>
+      <tr><td>Vegetação</td><td>{% for v in last_eval.vegetation.all %}{{ v.species }}{% if v.cover_pct is not None %} {{ v.cover_pct }}%{% endif %}{% if v.height_m %} · {{ v.height_m }} m{% endif %}{% if not forloop.last %}; {% endif %}{% empty %}—{% endfor %}</td></tr>
+      <tr><td>Acessos / pontos de água</td><td>{{ last_eval.access|default:"—" }} / {{ last_eval.water_points|default:"—" }}</td></tr>
+      <tr><td>Prescrição sugerida</td><td>{{ last_eval.prescription_notes|default:"—"|linebreaksbr }}</td></tr>
+    </tbody></table>
+  </div>
+  {% if last_eval.photos.all %}
+  <div class="photos" style="margin-top:12px">{% for ph in last_eval.photos.all %}<a href="{{ ph.image.url }}" target="_blank"><img src="{{ ph.image.url }}" alt=""></a>{% endfor %}</div>
+  {% endif %}
+  {% if evaluations|length > 1 %}
+  <p style="font-size:12px;color:var(--dim);margin-top:10px">Avaliações anteriores:
+    {% for e in evaluations|slice:"1:" %}{{ e.visit_date|date:"d/m/Y" }} — {{ e.get_decision_display }}{% if not forloop.last %}; {% endif %}{% endfor %}</p>
+  {% endif %}
+</div>
+{% endif %}
+
 <div style="margin-top:16px">{% change_history parcela %}</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// ── Basemaps ────────────────────────────────────────────────────────────────
+document.getElementById('status-dot').style.background = parcelStatusColor('{{ parcela.status }}');
 const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-  maxZoom: 21,
-  subdomains: ['mt0','mt1','mt2','mt3'],
-  attribution: '© Google'
+  maxZoom: 21, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google'
 });
 const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}', {
   maxZoom: 19,
   attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>'
 });
-
 const map = L.map('map', { layers: [osm] }).setView([37.2, -8.1], 9);
+L.control.layers({ 'Satélite (Google)': googleSat, 'Mapa (CartoDB)': osm }, {}, { position: 'topright' }).addTo(map);
 
-L.control.layers(
-  { 'Satélite (Google)': googleSat, 'Mapa (CartoDB)': osm },
-  {},
-  { position: 'topright' }
-).addTo(map);
-
-// ── Colour helpers ───────────────────────────────────────────────────────────
-function ownerColor(val) {
-  if (val === 'yes') return '#22c55e';   // green  – identified
-  if (val === 'no')  return '#f97316';   // orange – unknown
-  return '#94a3b8';                       // grey   – no info
-}
-
-function parcelaStyle(feature) {
-  const color = ownerColor(feature.properties.owner_info);
-  return { color, weight: 2, fillOpacity: 0.35 };
-}
-
-// ── Current parcela (from Django context) ───────────────────────────────────
 const currentGeom = {{ geom_json|default:"null"|safe }};
-
-// ── Load ALL parcelas from live API ─────────────────────────────────────────
-const currentPk = {{ parcela.pk }};
-let allLayer = null;
-
-function loadParcelas() {
-  fetch("{% url 'parcelas:geojson' %}")
-    .then(r => r.json())
-    .then(data => {
-      if (allLayer) map.removeLayer(allLayer);
-
-      allLayer = L.geoJSON(data, {
-        style: parcelaStyle,
-        onEachFeature(feature, layer) {
-          const p = feature.properties;
-          const ownerLabel = p.owner_info === 'yes' ? '✅ Identificado' : '❌ Não identificado';
-          layer.bindPopup(
-            `<strong>${escHtml(p.name)}</strong><br>
-             Proprietário: ${ownerLabel}<br>
-             Concelho: ${escHtml(p.concelho || '—')}<br>
-             Área: ${p.area_ha ? escHtml(p.area_ha) + ' ha' : '—'}`
-          );
-          // Highlight the current parcela
-          if (String(feature.id) === String(currentPk) ||
-              (feature.properties && String(feature.properties.pk) === String(currentPk))) {
-            layer.setStyle({ color: '#e8541a', weight: 3, fillOpacity: 0.45 });
-          }
-        }
-      }).addTo(map);
-
-      // Fit to current parcela if geometry exists
-      if (currentGeom) {
-        try {
-          const cur = L.geoJSON(currentGeom);
-          map.fitBounds(cur.getBounds(), { padding: [30, 30] });
-        } catch(e) {}
-      } else {
-        map.fitBounds(allLayer.getBounds(), { padding: [20, 20] });
+const currentPk = '{{ parcela.pk }}';
+fetch("{% url 'parcelas:geojson' %}")
+  .then(r => r.json())
+  .then(data => {
+    L.geoJSON(data, {
+      style: f => ((String(f.id || '').match(/(\d+)$/) || [])[1] === currentPk)
+        ? { color: '#e8541a', weight: 3, fillOpacity: 0.45 }
+        : { color: parcelStatusColor(f.properties.status), weight: 1.5, fillOpacity: 0.25 },
+      onEachFeature(feature, layer) {
+        const p = feature.properties;
+        layer.bindPopup(`<strong>${escHtml(p.name)}</strong><br>Estado: ${escHtml(parcelStatusLabel(p.status))}<br>
+          Concelho: ${escHtml(p.concelho || '—')}<br>Área: ${p.area_ha ? escHtml(p.area_ha) + ' ha' : '—'}`);
       }
-    })
-    .catch(err => console.error('Erro ao carregar parcelas:', err));
-}
-
-loadParcelas();
-
-// ── Legend ───────────────────────────────────────────────────────────────────
-const legend = L.control({ position: 'bottomleft' });
-legend.onAdd = function() {
-  const div = L.DomUtil.create('div', 'map-legend');
-  div.innerHTML = `
-    <div class="legend-title">Proprietário</div>
-    <div><span class="legend-dot" style="background:#22c55e"></span>Identificado</div>
-    <div><span class="legend-dot" style="background:#f97316"></span>Não identificado</div>
-    <div><span class="legend-dot" style="background:#94a3b8"></span>Sem informação</div>
-  `;
-  return div;
-};
-legend.addTo(map);
+    }).addTo(map);
+    if (currentGeom) {
+      try { map.fitBounds(L.geoJSON(currentGeom).getBounds(), { padding: [30, 30] }); } catch(e) {}
+    }
+  })
+  .catch(err => console.error('Erro ao carregar parcelas:', err));
+parcelStatusLegend('bottomleft').addTo(map);
 </script>
 {% endblock %}

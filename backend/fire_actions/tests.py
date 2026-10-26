@@ -36,7 +36,7 @@ class FireActionTests(TestCase):
         self.staff = User.objects.create_user('s', password='x', is_staff=True)
         self.client.force_login(self.user)
         self.parcel = FireParcel.objects.create(
-            name='P', geometry='POLYGON((-8 37.1,-7.999 37.1,-7.999 37.101,-8 37.101,-8 37.1))')
+            name='P', geometry='POLYGON((-8 37.1,-7.999 37.1,-7.999 37.101,-8 37.101,-8 37.1))', status='apta')
         self.op = Operative.objects.create(name='Op', email='o@example.com', phone='1', certification_level='A')
         self.pp = FireAction.objects.create(name='PP', scheduled_date='2026-11-05')
         self.pp.parcels.set([self.parcel])
@@ -120,7 +120,7 @@ class FireActionTests(TestCase):
 
     def test_history_tracks_m2m_and_shows_on_pages(self):
         other = FireParcel.objects.create(
-            name='P2', geometry='POLYGON((-8 37.2,-7.999 37.2,-7.999 37.201,-8 37.201,-8 37.2))')
+            name='P2', geometry='POLYGON((-8 37.2,-7.999 37.2,-7.999 37.201,-8 37.201,-8 37.2))', status='apta')
         self.client.post(f'/preplan/{self.pp.pk}/editar/', {'name': 'PP', 'scheduled_date': '2026-11-05',
                                                             'parcels': [self.parcel.pk, other.pk]})
         last = self.pp.history.order_by('-history_date').first()

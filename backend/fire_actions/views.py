@@ -7,7 +7,7 @@ from core.decorators import staff_required
 from core.forms import form_errors_to_messages, clean_photos
 from django.contrib import messages
 from django.http import HttpResponse
-from .forms import PrePlanForm, BurningPlanForm
+from .forms import PrePlanForm, BurningPlanForm, selectable_parcels
 from .models import FireAction, BurningPlan, BurningPlanPhoto
 from parcelas.models import FireParcel
 from operatives.models import Operative
@@ -37,7 +37,7 @@ def _save_preplan(request, instance):
         return redirect('fire_actions:list')
     form_errors_to_messages(request, form)
     return render(request, 'fire_actions/preplan_form.html', {
-        'parcelas':         FireParcel.objects.all(),
+        'parcelas':         selectable_parcels(instance),
         'action_obj':       form.instance,
         'selected_parcels': _int_list(request.POST.getlist('parcels')),
     })
@@ -48,7 +48,7 @@ def preplan_create(request):
     if request.method == 'POST':
         return _save_preplan(request, FireAction())
     return render(request, 'fire_actions/preplan_form.html', {
-        'parcelas':   FireParcel.objects.all(),
+        'parcelas':   selectable_parcels(),
         'action_obj': None,
     })
 
@@ -59,7 +59,7 @@ def preplan_edit(request, pk):
     if request.method == 'POST':
         return _save_preplan(request, action)
     return render(request, 'fire_actions/preplan_form.html', {
-        'parcelas':         FireParcel.objects.all(),
+        'parcelas':         selectable_parcels(action),
         'action_obj':       action,
         'selected_parcels': list(action.parcels.values_list('pk', flat=True)),
     })

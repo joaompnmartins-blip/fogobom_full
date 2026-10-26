@@ -1,0 +1,134 @@
+{% extends "core/base.html" %}
+{% block title %}Avaliação — {{ parcela.name }}{% endblock %}
+{% block page_title %}Avaliação técnica: {{ parcela.name }}{% endblock %}
+{% block nav_parc %}active{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .eval-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px 14px }
+  .field ul { list-style:none; display:flex; flex-wrap:wrap; gap:4px 14px; padding:0 }
+  .field ul label { display:flex; gap:6px; align-items:center; text-transform:none; letter-spacing:0; font-size:13px; color:var(--text); font-weight:400 }
+  .field ul input { width:auto }
+  .field .err { color:#e57373; font-size:12px; margin-top:3px }
+  .field .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
+  table.veg input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:6px 8px }
+  table.veg input[type=checkbox] { width:auto }
+  .diff td, .diff th { padding:6px 8px }
+  .diff select { width:auto }
+</style>
+{% endblock %}
+{% block content %}
+<div class="msg msg-info">
+  Parcela {{ parcela.area_ha }} ha · {{ parcela.concelho|default:"concelho por determinar" }} · {{ parcela.get_vegetation_type_display }}.
+  Guarde em rascunho as vezes que precisar; ao <strong>concluir</strong>, a decisão é aplicada à parcela e o proponente é avisado por email.
+</div>
+
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start">
+  <div>
+    {% for title, fields in sections %}
+    <div class="card">
+      <div class="card-title">{{ title }}</div>
+      {% if forloop.first %}
+      <p class="hint" style="font-size:12px;color:var(--dim);margin-bottom:10px">
+        {% if ev.terrain_source %}Altitude, declive e exposição calculados automaticamente ({{ ev.terrain_source }}) — confirme no terreno.
+        {% else %}Não foi possível calcular o relevo automaticamente — preencha à mão ou tente recalcular.{% endif %}
+        <button type="submit" name="action" value="terrain" formnovalidate class="btn btn-secondary btn-sm" style="margin-left:6px">↻ Recalcular relevo</button>
+      </p>
+      {% endif %}
+      <div class="eval-grid">
+        {% for f, wide in fields %}
+        <div class="field" {% if wide %}style="grid-column:1/-1"{% endif %}>
+          <label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}
+          {% for e in f.errors %}<div class="err">{{ e }}</div>{% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="card">
+      <div class="card-title">Vegetação (inventário)</div>
+      {{ formset.management_form }}
+      <table class="veg">
+        <thead><tr><th>Espécie</th><th>Coberto (%)</th><th>Altura (m)</th><th>Idade (anos)</th><th>Remover</th></tr></thead>
+        <tbody>
+        {% for vf in formset %}
+          <tr>{% for hidden in vf.hidden_fields %}{{ hidden }}{% endfor %}
+            <td>{{ vf.species }}</td><td>{{ vf.cover_pct }}</td><td>{{ vf.height_m }}</td><td>{{ vf.age_years }}</td>
+            <td style="text-align:center">{% if vf.instance.pk %}{{ vf.DELETE }}{% endif %}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p style="font-size:12px;color:var(--dim);margin-top:6px">Guarde para obter mais linhas em branco.</p>
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="map" style="height:300px"></div></div>
+
+    <div class="card">
+      <div class="card-title">Classificação da dificuldade</div>
+      <table class="diff">
+        <thead><tr><th>Elemento (ponderação)</th><th>Valor (1 fácil – 5 difícil)</th></tr></thead>
+        <tbody>{% for f in difficulty_fields %}<tr><td>{{ f.label }}</td><td>{{ f }}</td></tr>{% endfor %}</tbody>
+      </table>
+      <p style="margin-top:8px;font-size:13px">Total: <strong id="diff-total">—</strong> · <span id="diff-class">preencha os 8 elementos</span></p>
+      <p style="font-size:11.5px;color:var(--dim)">Fácil &lt; 35 · Normal 35–54 · Difícil ≥ 55</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Fotografias da visita</div>
+      {% if ev.photos.all %}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        {% for ph in ev.photos.all %}<a href="{{ ph.image.url }}" target="_blank"><img src="{{ ph.image.url }}" style="height:70px;border-radius:4px;object-fit:cover"></a>{% endfor %}</div>{% endif %}
+      <div class="field"><input type="file" name="photos" multiple accept="image/*" style="color:var(--text)"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Decisão</div>
+      {% for f in decision_fields %}
+      <div class="form-row"><div class="field">
+        <label for="{{ f.id_for_label }}">{{ f.label }}{% if f.name != 'conditions' %} *{% endif %}</label>{{ f }}
+        {% if f.name == 'conditions' %}<div class="hint">Obrigatório se a decisão for “apta com condicionantes”.</div>{% endif %}
+        {% for e in f.errors %}<div class="err">{{ e }}</div>{% endfor %}
+      </div></div>
+      {% endfor %}
+      <div class="btn-group" style="flex-wrap:wrap">
+        <button type="submit" name="action" value="save" class="btn btn-secondary">💾 Guardar rascunho</button>
+        <button type="submit" name="action" value="conclude" class="btn btn-primary">✅ Concluir avaliação</button>
+        <button type="submit" name="action" value="cancel" formnovalidate class="btn btn-danger"
+                onclick="return confirm('Cancelar e apagar esta avaliação?')">Cancelar avaliação</button>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}', {
+  maxZoom: 19, attribution: '© OpenStreetMap © CARTO'
+});
+const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 21, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google' });
+const map = L.map('map', { layers: [sat] });
+L.control.layers({ 'Satélite': sat, 'Mapa': osm }, {}, { position: 'topright' }).addTo(map);
+const g = L.geoJSON({{ geom_json|safe }}, { style: { color: '#e8541a', weight: 2.5, fillOpacity: 0.2 } }).addTo(map);
+map.fitBounds(g.getBounds(), { padding: [20, 20] });
+
+// Live difficulty total (weights from the POQ annex)
+const WEIGHTS = { diff_escape: 1, diff_risk: 3, diff_fuels: 2, diff_environment: 2, diff_smoke: 1, diff_ignition: 2, diff_team: 1, diff_objectives: 3 };
+function updateDifficulty() {
+  let total = 0, complete = true;
+  for (const [name, w] of Object.entries(WEIGHTS)) {
+    const v = parseInt(document.querySelector(`[name=${name}]`).value);
+    if (isNaN(v)) complete = false; else total += v * w;
+  }
+  document.getElementById('diff-total').textContent = complete ? total : '—';
+  document.getElementById('diff-class').textContent = !complete ? 'preencha os 8 elementos'
+    : total < 35 ? 'Fácil / simples' : total < 55 ? 'Normal' : 'Difícil / complexa';
+}
+Object.keys(WEIGHTS).forEach(n => document.querySelector(`[name=${n}]`).addEventListener('change', updateDifficulty));
+updateDifficulty();
+</script>
+{% endblock %}

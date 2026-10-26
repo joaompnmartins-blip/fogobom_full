@@ -173,43 +173,61 @@
     <!-- 4 ─────────────────────────────────────────────────────────── -->
     <section id="parcelas">
       <h2>4. Parcelas</h2>
-      <p>Uma parcela é a área onde se realiza (ou pode realizar) uma queima, definida por um polígono no mapa.</p>
+      <p>Uma parcela é a área onde se pode realizar uma queima, definida por um polígono no mapa. Qualquer utilizador
+        pode <strong>propor</strong> parcelas; antes de poderem ser usadas numa ação de fogo controlado ou queimada,
+        têm de ser <strong>avaliadas no terreno por um técnico credenciado</strong>.</p>
+      <div class="flow">
+        <span>⚪ Proposta</span><b>→</b><span>🟡 Em avaliação</span><b>→</b><span>🟢 Apta · 🟠 Apta com condicionantes · 🔴 Não apta</span>
+      </div>
+      <p>Só parcelas <strong>aptas</strong> (com ou sem condicionantes) aparecem para escolha nos pré-planos.
+        Uma parcela considerada apta mantém-se apta.</p>
 
       <h3>Lista e mapa</h3>
-      <p>A página mostra todas as parcelas num mapa e numa tabela com concelho, vegetação, área, infraestrutura,
-        proprietário e <strong>data da última queima</strong> (calculada automaticamente a partir dos planos de queima).
-        No mapa, a cor indica se o proprietário está identificado:</p>
-      <p><span class="dot" style="background:#22c55e"></span>Identificado &nbsp;
-        <span class="dot" style="background:#f97316"></span>Não identificado &nbsp;
-        <span class="dot" style="background:#94a3b8"></span>Sem informação</p>
-      <p>Clique numa parcela do mapa para ver um resumo e os atalhos para o detalhe e a edição.
-        Pode alternar entre mapa e satélite no canto superior direito do mapa.</p>
+      <p>O mapa e a tabela mostram as parcelas com a cor do respetivo estado. Pode filtrar por estado (com o número de
+        parcelas em cada um), por tipologia e por concelho. A tabela indica também a <strong>data da última queima</strong>,
+        calculada automaticamente a partir dos planos de queima.</p>
 
-      <h3>Criar uma parcela</h3>
+      <h3>Propor uma parcela</h3>
       <ol>
-        <li>Em <span class="ui">Parcelas</span>, carregue em <span class="ui">+ Nova Parcela</span>.</li>
-        <li>Preencha o nome (obrigatório) e, se souber, concelho, tipo de vegetação, infraestrutura,
-          proprietário identificado e o nome e email do responsável.</li>
-        <li>Defina a geometria de uma de duas formas:
-          <ul>
-            <li><strong>Desenhar</strong>: use a ferramenta de polígono do mapa, clique em cada vértice e feche
-              o polígono clicando no primeiro ponto. As parcelas existentes aparecem a tracejado como referência.</li>
-            <li><strong>Importar</strong>: carregue em <span class="ui">📂 Importar GeoJSON / KML</span> e escolha um
-              ficheiro <code>.geojson</code>, <code>.json</code> ou <code>.kml</code>.</li>
-          </ul>
-        </li>
-        <li>Carregue em <span class="ui">💾 Guardar Parcela</span>.</li>
+        <li>Em <span class="ui">Parcelas</span>, carregue em <span class="ui">+ Propor Parcela</span>.</li>
+        <li>Indique o nome ou referência, a <strong>tipologia</strong> (matos, povoamento de pinheiro, povoamento de
+          eucalipto ou misto), as <strong>infraestruturas</strong> existentes, se <strong>existem dados do proprietário</strong>
+          e um responsável de contacto (nome e email). Pode juntar observações e fotografias.</li>
+        <li>Defina a delimitação: <strong>desenhe</strong> o polígono com a ferramenta do mapa (clique em cada vértice e
+          feche no primeiro ponto) ou <strong>importe</strong> um ficheiro <code>.geojson</code>, <code>.json</code> ou
+          <code>.kml</code> com <span class="ui">📂 Importar GeoJSON / KML</span>.</li>
+        <li>Carregue em <span class="ui">💾 Propor parcela</span>.</li>
       </ol>
-      <p>A <strong>área (ha)</strong> é calculada automaticamente a partir do polígono (sistema PT-TM06).</p>
+      <p>Enquanto desenha, a plataforma calcula automaticamente a <strong>área</strong>, o <strong>concelho</strong>, a(s)
+        <strong>freguesia(s)</strong> e o <strong>distrito</strong>, a partir dos limites administrativos oficiais (CAOP),
+        e avisa se a delimitação se <strong>sobrepõe</strong> a outra parcela. Se houver sobreposição, é pedida confirmação
+        antes de gravar, para evitar parcelas repetidas.</p>
       <div class="note warn">
         <strong>Regras da geometria:</strong> tem de ser um polígono. Polígonos cujas linhas se cruzam
         (por exemplo em forma de “laço”) são recusados — redesenhe-os. Se importar um ficheiro com várias
         partes, é guardada apenas a <strong>maior</strong>.</div>
+      <p>Os técnicos credenciados recebem um email com cada nova proposta; quando a avaliação for concluída, recebe um
+        email com a decisão e a justificação.</p>
 
       <h3>Editar uma parcela</h3>
-      <p>Abra a parcela e carregue em <span class="ui">✏️ Editar</span>. A geometria atual aparece no mapa;
-        <strong>se não a redesenhar nem importar outra, mantém-se a atual</strong>.
-        Se algum campo tiver um erro, a página indica-o e mantém o que escreveu, para poder corrigir.</p>
+      <p>Pode editar as parcelas que propôs <strong>enquanto estão no estado “Proposta”</strong>. Depois de entrarem em
+        avaliação, só um técnico as pode alterar. Se não redesenhar nem importar outra geometria, mantém-se a atual.</p>
+
+      <h3>Avaliação técnica (técnicos credenciados)</h3>
+      <p>Utilizadores com a credenciação de técnico <strong>validada e dentro da validade</strong> veem o botão
+        <span class="ui">📝 Avaliar parcela</span> no detalhe da parcela (e a lista de parcelas a aguardar avaliação no Dashboard).</p>
+      <ul>
+        <li>Ao iniciar, a <strong>altitude média, o declive médio e a exposição</strong> são calculados automaticamente a
+          partir do modelo de terreno — confirme-os no terreno (pode usar <span class="ui">↻ Recalcular relevo</span>).</li>
+        <li>Registe a caracterização física, o combustível, o inventário da vegetação (espécie, coberto, altura, idade),
+          as condicionantes, o tratamento proposto e a <strong>classificação da dificuldade</strong> (8 elementos do anexo
+          do POQ, com o total e a classe calculados automaticamente). Pode juntar fotografias da visita.</li>
+        <li>Use <span class="ui">💾 Guardar rascunho</span> as vezes que precisar. Para <span class="ui">✅ Concluir avaliação</span>
+          são obrigatórias a <strong>data da visita ao terreno</strong>, a decisão e a justificação (e as condicionantes, se a
+          decisão for “apta com condicionantes”).</li>
+        <li>Uma parcela já avaliada pode ser <strong>reavaliada</strong>: a nova avaliação parte dos dados da anterior e a
+          parcela mantém o estado até à nova decisão.</li>
+      </ul>
     </section>
 
     <!-- 5 ─────────────────────────────────────────────────────────── -->

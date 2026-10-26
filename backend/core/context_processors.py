@@ -15,3 +15,10 @@ def pending_validations(request):
     accounts = User.objects.filter(is_active=False, last_login__isnull=True).count()
     creds = Operative.objects.filter(credential_status=Operative.STATUS_PENDENTE).count()
     return {'pending_validations': accounts + creds}
+
+
+def user_roles(request):
+    """`user_is_tecnico`: validated, non-expired ICNF technician (can evaluate parcels)."""
+    user = getattr(request, 'user', None)
+    op = getattr(user, 'operative', None) if user and user.is_authenticated else None
+    return {'user_is_tecnico': bool(op and op.is_tecnico)}

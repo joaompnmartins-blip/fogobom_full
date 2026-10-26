@@ -13,7 +13,7 @@
       <div class="field"><label>Data Prevista *</label><input type="date" name="scheduled_date" value="{{ action_obj.scheduled_date|date:'Y-m-d' }}" required></div>
     </div>
     <div class="form-row">
-      <div class="field"><label>Parcelas</label>
+      <div class="field"><label>Parcelas (só parcelas avaliadas como aptas)</label>
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;max-height:180px;overflow-y:auto">
           {% for p in parcelas %}
           <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;text-transform:none;font-size:13px;letter-spacing:0;color:var(--text)">
@@ -21,7 +21,10 @@
               {% if p.pk in selected_parcels %}checked{% endif %}
               style="width:auto;background:none;border:none;padding:0">
             {{ p.name }} {% if p.concelho %}({{ p.concelho }}){% endif %}
+            {% if p.status == 'apta_condicionantes' %}<span class="badge badge-orange">com condicionantes</span>{% endif %}
           </label>
+          {% empty %}
+          <span style="color:var(--dim);font-size:13px">Ainda não há parcelas aptas. <a href="{% url 'parcelas:create' %}">Propor uma parcela</a> para avaliação técnica.</span>
           {% endfor %}
         </div>
       </div>

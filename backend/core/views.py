@@ -213,8 +213,15 @@ def dashboard(request):
                                                           credential_valid_until__isnull=False)
                     if op.credential_expiring or op.credential_expired]
 
+    my_op = getattr(request.user, 'operative', None)
+    to_evaluate = []
+    if my_op and my_op.is_tecnico:
+        to_evaluate = list(FireParcel.objects.filter(
+            status__in=[FireParcel.STATUS_PROPOSTA, FireParcel.STATUS_AVALIACAO]).order_by('created_at')[:10])
+
     return render(request, 'core/dashboard.html', {
-        'my_op':               getattr(request.user, 'operative', None),
+        'my_op':               my_op,
+        'to_evaluate':         to_evaluate,
         'expiring_credentials': expiring,
         'today':               today,
         'total_parcelas':      FireParcel.objects.count(),
