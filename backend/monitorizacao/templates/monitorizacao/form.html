@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+{% block title %}{{ label }} — {{ ex.parcel.name }}{% endblock %}
+{% block page_title %}{{ label }} — {{ ex.parcel.name }}{% endblock %}
+{% block nav_mon %}active{% endblock %}
+{% block extra_head %}
+<style>
+  .fgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px 14px }
+  .fgrid .wide { grid-column:1/-1 }
+  .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
+</style>
+{% endblock %}
+{% block content %}
+<div class="msg msg-info">Queima de <a href="{% url 'fire_actions:burning_plan_detail' ex.plan_id %}">{{ action.name }}</a> em {{ ex.date|date:"d/m/Y" }}
+  ({{ ex.get_formation_display|lower }}, {{ ex.area_treated_ha|default:"?" }} ha).
+  {% if visit.due %}Data prevista da visita: {{ visit.due|date:"d/m/Y" }} (prazo {{ visit.deadline|date:"d/m/Y" }}).{% endif %}
+  Preencha só o que se aplica à parcela.</div>
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+<div class="card">
+  <div class="card-title">Visita</div>
+  <div class="fgrid"><div class="field"><label>Data da visita *</label>{{ form.date }}</div></div>
+</div>
+{% for title, fields in form.sections %}
+<div class="card">
+  <div class="card-title">{{ title }}</div>
+  <div class="fgrid">{% for f in fields %}
+    <div class="field{% if f.name == 'soil_notes' or f.name == 'veg_species' or f.name == 'notes' %} wide{% endif %}"><label>{{ f.label|capfirst }}</label>{{ f }}{% if f.help_text %}<div class="hint">{{ f.help_text }}</div>{% endif %}
+      {% if f.name == 'soil_report' and a.soil_report %}<div class="hint"><a href="{{ a.soil_report.url }}" target="_blank">Relatório atual</a></div>{% endif %}</div>
+  {% endfor %}</div>
+  {% if title == 'Critérios específicos da parcela' %}<p class="hint">Critérios definidos para esta parcela. <a href="{% url 'monitorizacao:criteria' ex.parcel.pk %}">Gerir critérios</a></p>{% endif %}
+</div>
+{% endfor %}
+{% if not form.criteria %}<p class="hint" style="margin-bottom:12px">Esta parcela não tem critérios de monitorização próprios. <a href="{% url 'monitorizacao:criteria' ex.parcel.pk %}">Definir critérios</a></p>{% endif %}
+<div class="card">
+  <div class="card-title">Fotografias</div>
+  {% if a %}{% with photos=a.photos.all %}{% if photos %}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">{% for ph in photos %}
+    <a href="{{ ph.image.url }}" target="_blank" title="{{ ph.caption }}"><img src="{{ ph.image.url }}" style="height:70px;border-radius:4px;object-fit:cover"></a>{% endfor %}</div>{% endif %}{% endwith %}{% endif %}
+  <div class="fgrid">
+    <div class="field"><label>Legenda</label><input type="text" name="photo_caption"></div>
+    <div class="field"><label>Ficheiros</label><input type="file" name="photos" multiple accept="image/*" style="color:var(--text)"></div>
+  </div>
+</div>
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 Guardar</button>
+  <a href="{% if a %}{% url 'monitorizacao:detail' a.pk %}{% else %}{% url 'fire_actions:burning_plan_detail' ex.plan_id %}{% endif %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+{% endblock %}

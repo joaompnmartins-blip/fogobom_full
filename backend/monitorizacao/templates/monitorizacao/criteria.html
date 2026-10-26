@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% block title %}Critérios de monitorização — {{ parcela.name }}{% endblock %}
+{% block page_title %}Critérios de monitorização — {{ parcela.name }}{% endblock %}
+{% block nav_parc %}active{% endblock %}
+{% block content %}
+<div class="msg msg-info">Critérios próprios desta parcela, registados em todas as visitas de monitorização
+  (por exemplo: espécie protegida, regeneração de sobreiro numa parcela de amostragem, estacas de erosão, abundância de uma espécie invasora).
+  Um critério já usado não é apagado: fica inativo, para manter o histórico.</div>
+<form method="post">{% csrf_token %}{{ formset.management_form }}
+<div class="card"><div style="overflow-x:auto"><table>
+  <thead><tr><th>Critério</th><th>Unidade / escala</th><th>Como medir</th><th>Ativo</th><th>Remover</th></tr></thead>
+  <tbody>{% for f in formset %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+    <td>{{ f.name }}</td><td>{{ f.unit }}</td><td>{{ f.description }}</td><td>{{ f.active }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 Guardar</button>
+  <a href="{% url 'parcelas:detail' parcela.pk %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+{% endblock %}

@@ -70,6 +70,7 @@
       <li><a href="#pfc">Planos de Fogo Controlado</a></li>
       <li><a href="#planos">Execuções (POQ)</a></li>
       <li><a href="#relatorio">POQ-Execução (Word)</a></li>
+      <li><a href="#monitorizacao">Impacto e monitorização</a></li>
       <li><a href="#calendario">Calendário</a></li>
       <li><a href="#meteorologia">Meteorologia</a></li>
       <li><a href="#faq">Perguntas frequentes</a></li>
@@ -83,7 +84,7 @@
 
     <p>O trabalho na plataforma segue normalmente esta sequência:</p>
     <div class="flow">
-      <span>🗺️ Parcela</span><b>→</b><span>📢 Ação</span><b>→</b><span>📄 Execução</span><b>→</b><span>📥 POQ-Execução</span>
+      <span>🗺️ Parcela</span><b>→</b><span>📢 Ação</span><b>→</b><span>📄 Execução</span><b>→</b><span>📥 POQ-Execução</span><b>→</b><span>🌱 Monitorização</span>
     </div>
 
     <!-- 1 ─────────────────────────────────────────────────────────── -->
@@ -149,6 +150,7 @@
         <tr><td>📋 Ações</td><td>Todas as ações (fogo controlado e queimadas), com filtro por estado</td></tr>
         <tr><td>🗂️ Planos (PFC)</td><td>Planos de Fogo Controlado: parcelas, prescrição, aprovação e custos</td></tr>
         <tr><td>📄 Execuções (POQ)</td><td>Registo da execução de cada queima, por parcela e dia, e POQ-Execução em Word</td></tr>
+        <tr><td>🌱 Monitorização</td><td>Visitas de avaliação do impacto e de monitorização das parcelas queimadas (POQ-Impacto)</td></tr>
         <tr><td>📅 Calendário</td><td>Vista mensal das queimas planeadas e executadas</td></tr>
         <tr><td>👷 Operacionais</td><td>Pessoas que participam nas queimas</td></tr>
         <tr><td>🌤️ Meteorologia</td><td>Previsão da humidade do combustível e recomendação para fogo controlado</td></tr>
@@ -437,9 +439,47 @@
       <p>O ficheiro pode ser editado no Word antes de ser impresso ou enviado.</p>
     </section>
 
+    <section id="monitorizacao">
+      <h2>10. Impacto e monitorização (POQ-Impacto)</h2>
+      <p>Depois de cada queima, cada parcela é acompanhada no terreno. As visitas são calculadas automaticamente:</p>
+      <table>
+        <tr><th>Visita</th><th>Quando</th><th>O que registar</th></tr>
+        <tr><td>1.ª fase — avaliação imediata</td><td>Até 30 dias após a queima</td><td>Por estrato: área percorrida (classes de 0 % a &gt; 75 %),
+          redução da manta morta (L, F, H), solo mineral exposto, copa consumida, rebentamento, crestamento e altura do tronco
+          queimado, derrame de resina</td></tr>
+        <tr><td>2.ª fase — 6 meses</td><td>6 meses após a queima (60 dias de margem)</td><td>Erosão (movimento de solo, ravinação),
+          rebentamento e germinação de herbáceas e arbustos, copas mortas, mortalidade das árvores (e por escolitídeos), regeneração</td></tr>
+        <tr><td>Monitorização anual</td><td>Todos os anos na data da queima (60 dias de margem), até a parcela voltar a ser queimada</td>
+          <td>Os indicadores da 2.ª fase e o solo mineral exposto</td></tr>
+      </table>
+      <p>Em todas as visitas pode registar também o <strong>solo</strong> (cobertura, amostra, pH, matéria orgânica, observações e o
+        relatório da análise em PDF), a <strong>regeneração da vegetação</strong> (cobertura e espécies), os
+        <strong>critérios próprios da parcela</strong> e fotografias.</p>
+
+      <h3>Onde registar</h3>
+      <ul>
+        <li>Em <span class="ui">🌱 Monitorização</span> estão as visitas por fazer: em atraso, a realizar e as previstas nos
+          próximos 60 dias. O número a vermelho no menu indica as visitas em atraso (visível para técnicos e administradores).</li>
+        <li>Na página da execução, o quadro <em>Impacto e monitorização</em> mostra as visitas de cada parcela;
+          carregue em <span class="ui">+ …</span> para registar.</li>
+        <li>Quem pode gerir a ação (quem a anunciou, o técnico responsável, técnicos credenciados e administradores)
+          regista e edita as visitas.</li>
+      </ul>
+
+      <h3>Critérios próprios da parcela</h3>
+      <p>No detalhe da parcela, em <em>Impacto e monitorização</em> → <span class="ui">gerir</span>, um técnico credenciado
+        define critérios específicos (por exemplo, a regeneração de sobreiro numa parcela de amostragem ou as estacas de erosão),
+        com a unidade e o modo de medir. Passam a aparecer em todas as visitas. Um critério já usado não se apaga: fica inativo.</p>
+
+      <h3>POQ-Impacto (Word)</h3>
+      <p>Na página da execução carregue em <span class="ui">📥 POQ-Impacto (Word)</span>. O documento segue o modelo do ICNF:
+        manta morta, herbáceas, arbustos, árvores e restos lenhosos, com as colunas da 1.ª e da 2.ª fase, e o índice de
+        fotografias. Em anexo seguem os dados de solo e regeneração de todas as visitas, os critérios próprios das parcelas e as fotografias.</p>
+    </section>
+
     <!-- 9 ─────────────────────────────────────────────────────────── -->
     <section id="calendario">
-      <h2>10. Calendário</h2>
+      <h2>11. Calendário</h2>
       <p>Mostra as ações na respetiva <strong>data prevista</strong>, com a cor do estado:
         <span class="dot" style="background:#e8541a"></span>prevista ·
         <span class="dot" style="background:#2e9e4f"></span>confirmada ·
@@ -451,7 +491,7 @@
 
     <!-- 10 ────────────────────────────────────────────────────────── -->
     <section id="meteorologia">
-      <h2>11. Meteorologia</h2>
+      <h2>12. Meteorologia</h2>
       <p>Ferramenta de apoio à decisão que estima a <strong>humidade do combustível fino morto (HC)</strong>
         para os próximos 5 dias, no período diurno (08h–18h), a partir da previsão meteorológica.</p>
 
@@ -503,7 +543,7 @@
 
     <!-- 11 ────────────────────────────────────────────────────────── -->
     <section id="faq">
-      <h2>12. Perguntas frequentes</h2>
+      <h2>13. Perguntas frequentes</h2>
 
       <h3>Não encontro o botão para eliminar um registo.</h3>
       <p>Eliminar parcelas, operacionais, ações ou execuções está reservado aos administradores.
@@ -515,6 +555,9 @@
 
       <h3>Não consigo registar a execução de uma ação.</h3>
       <p>Cada ação só tem uma execução. Se já existir, abra-a e use <span class="ui">+ Acrescentar execução</span> para outra parcela ou outro dia.</p>
+
+      <h3>Não consigo eliminar uma execução.</h3>
+      <p>Se já existirem avaliações de impacto ou de monitorização dessa execução, peça a um administrador para as eliminar primeiro.</p>
 
       <h3>A data da última queima de uma parcela está vazia.</h3>
       <p>Esta data vem das execuções: aparece quando existir uma execução dessa parcela.</p>

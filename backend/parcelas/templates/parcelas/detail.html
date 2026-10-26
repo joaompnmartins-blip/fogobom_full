@@ -107,6 +107,24 @@
 </div>
 {% endif %}
 
+<div class="card" style="margin-top:16px">
+  <div class="card-title">Impacto e monitorização</div>
+  {% if assessments %}<table>
+    <thead><tr><th>Queima</th><th>Visita</th><th>Data</th><th>Cobertura vegetal</th><th>Solo exposto</th><th>Erosão</th></tr></thead>
+    <tbody>{% for a in assessments %}<tr>
+      <td><a href="{% url 'fire_actions:burning_plan_detail' a.execution.plan_id %}">{{ a.execution.date|date:"d/m/Y" }}</a></td>
+      <td><a href="{% url 'monitorizacao:detail' a.pk %}">{{ a.label }}</a></td>
+      <td>{{ a.date|date:"d/m/Y" }}</td>
+      <td>{% if a.veg_cover_pct is not None %}{{ a.veg_cover_pct|floatformat:"-1" }} %{% else %}—{% endif %}</td>
+      <td>{% if a.soil_exposed_pct is not None %}{{ a.soil_exposed_pct|floatformat:"-1" }} %{% else %}—{% endif %}</td>
+      <td>{% if a.soil_movement or a.gullying %}<span class="badge badge-red">{% if a.soil_movement %}movimento de solo {% endif %}{% if a.gullying %}ravinação{% endif %}</span>{% elif a.soil_movement is None and a.gullying is None %}—{% else %}não{% endif %}</td>
+    </tr>{% endfor %}</tbody></table>
+  {% else %}<p style="color:var(--dim);font-size:13px">Sem avaliações de impacto registadas.</p>{% endif %}
+  <p style="font-size:12.5px;margin-top:10px"><strong>Critérios próprios de monitorização:</strong>
+    {% for c in criteria %}{{ c }}{% if not c.active %} (inativo){% endif %}{% if not forloop.last %}; {% endif %}{% empty %}nenhum{% endfor %}
+    {% if can_evaluate %} · <a href="{% url 'monitorizacao:criteria' parcela.pk %}">gerir</a>{% endif %}</p>
+</div>
+
 <div style="margin-top:16px">{% change_history parcela %}</div>
 {% endblock %}
 

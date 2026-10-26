@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'operatives',
     'fire_actions',
     'pfc',
+    'monitorizacao',
 ]
 
 MIDDLEWARE = [
@@ -63,6 +64,7 @@ TEMPLATES = [{
         'core.context_processors.map_keys',
         'core.context_processors.pending_validations',
         'core.context_processors.user_roles',
+        'monitorizacao.context_processors.monitoring_overdue',
     ]},
 }]
 

@@ -91,7 +91,11 @@ def parcela_detail(request, pk):
     parcela = get_object_or_404(FireParcel.objects.select_related('proposed_by'), pk=pk)
     evaluations = list(parcela.evaluations.select_related('evaluator').prefetch_related('vegetation', 'photos'))
     open_eval = next((e for e in evaluations if not e.is_complete), None)
+    from monitorizacao.models import Assessment
     return render(request, 'parcelas/detail.html', {
+        'assessments': Assessment.objects.filter(execution__parcel=parcela).select_related('execution')
+                                         .order_by('-date'),
+        'criteria':    parcela.monitoring_criteria.all(),
         'parcela':     parcela,
         'geom_json':   parcela.geometry.json if parcela.geometry else '',
         'last_burn':   last_burn_date_for_parcela(parcela),
