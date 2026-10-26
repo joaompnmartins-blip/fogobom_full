@@ -1,7 +1,14 @@
-from unittest import mock
+import os
+import shutil
+import tempfile
+from io import StringIO
+from pathlib import Path
+from unittest import mock, skipUnless
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 
 STRONG_PW = 'Fogo-Bom-2026!x'
@@ -124,6 +131,63 @@ class AuthTests(TestCase):
     def test_pages_require_login(self):
         for url in ['/', '/calendario/', '/meteorologia/', '/parcelas/', '/preplan/', '/operacionais/']:
             self.assertEqual(self.client.get(url).status_code, 302, url)
+
+
+class BackupTests(TestCase):
+    CFG = {'bucket': 'b', 'endpoint': 'https://r2.example', 'access_key': 'k', 'secret_key': 's', 'region': 'auto'}
+
+    def test_skips_without_configuration(self):
+        out = StringIO()
+        with mock.patch.dict(os.environ, {}, clear=True):
+            call_command('backup', stdout=out)
+        self.assertIn('não configurado', out.getvalue())
+
+    def test_prune_keeps_newest(self):
+        from core.management.commands.backup import prune
+        client = mock.MagicMock()
+        keys = ['db/fogobom-20260101-030000.dump', 'db/fogobom-20260103-030000.dump',
+                'db/fogobom-20260102-030000.dump']
+        client.get_paginator.return_value.paginate.return_value = [{'Contents': [{'Key': k} for k in keys]}]
+        removed = prune(client, 'b', 'db/', keep=2)
+        self.assertEqual(removed, ['db/fogobom-20260101-030000.dump'])
+
+    def test_next_run(self):
+        from datetime import datetime
+        from core.management.commands.backup_scheduler import next_run
+        self.assertEqual(next_run(datetime(2026, 1, 1, 2, 0), 3), datetime(2026, 1, 1, 3, 0))
+        self.assertEqual(next_run(datetime(2026, 1, 1, 3, 0), 3), datetime(2026, 1, 2, 3, 0))
+
+    def fake_dump(self, path):
+        path.write_bytes(b'dump')
+        return path
+
+    def test_uploads_and_prunes(self):
+        client = mock.MagicMock()
+        client.get_paginator.return_value.paginate.return_value = [{'Contents': []}]
+        with mock.patch('core.management.commands.backup.backup_config', return_value=self.CFG), \
+             mock.patch('core.management.commands.backup.s3_client', return_value=client), \
+             mock.patch('core.management.commands.backup.Command.dump_database', side_effect=self.fake_dump):
+            call_command('backup', stdout=StringIO())
+        key = client.upload_file.call_args.args[2]
+        self.assertTrue(key.startswith('db/fogobom-') and key.endswith('.dump'))
+
+    @override_settings(ADMIN_EMAIL='admin@example.com')
+    def test_failure_emails_admin(self):
+        from django.core import mail
+        with mock.patch('core.management.commands.backup.backup_config', return_value=self.CFG), \
+             mock.patch('core.management.commands.backup.Command.dump_database', side_effect=RuntimeError('boom')):
+            with self.assertRaises(CommandError):
+                call_command('backup', stdout=StringIO())
+        self.assertEqual(mail.outbox[0].to, ['admin@example.com'])
+        self.assertIn('boom', mail.outbox[0].body)
+
+    @skipUnless(shutil.which('pg_dump'), 'pg_dump not installed')
+    def test_real_pg_dump_to_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            call_command('backup', output_dir=tmp, stdout=StringIO())
+            dumps = list(Path(tmp).glob('fogobom-*.dump'))
+            self.assertEqual(len(dumps), 1)
+            self.assertEqual(dumps[0].read_bytes()[:5], b'PGDMP')
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)

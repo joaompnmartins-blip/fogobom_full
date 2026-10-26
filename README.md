@@ -45,9 +45,32 @@ fogobom_full/
 | `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS` | não | HTTPS; por omissão `true` / `3600` quando `DEBUG=false` |
 | `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_REGION_NAME`, `AWS_S3_ENDPOINT_URL`, `AWS_S3_CUSTOM_DOMAIN` | não | Guardar ficheiros em S3/R2 em vez do disco |
 
-\* necessárias para os emails funcionarem.
+| `BACKUP_S3_BUCKET`, `BACKUP_S3_ENDPOINT_URL`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY` | não** | Destino dos backups (Cloudflare R2 ou outro S3); sem elas não há backups |
+| `BACKUP_HOUR` | não | Hora do backup diário (por omissão 3) |
+
+\* necessárias para os emails funcionarem. \*\* fortemente recomendadas.
 
 Nunca colocar chaves no código nem no repositório — apenas nas variáveis do Railway.
+
+## Backups
+
+Com as variáveis `BACKUP_S3_*` definidas, o container faz:
+
+- **backup da base de dados antes de cada deploy** (antes das migrações) e **diariamente** às `BACKUP_HOUR`;
+- **cópia das fotos/ficheiros** (`backend/media`) **ao domingo**;
+- guarda os **30** backups mais recentes da base de dados (`db/`) e as **4** cópias de media mais recentes (`media/`);
+- envia email ao `ADMIN_EMAIL` se um backup falhar.
+
+Backup manual: `railway ssh --service fogobom-algarve "cd backend && python manage.py backup --media"`.
+
+**Restaurar** (formato `pg_dump --format=custom`):
+
+```bash
+# 1. Descarregar o ficheiro db/fogobom-AAAAMMDD-HHMMSS.dump do bucket
+# 2. Restaurar para a base de dados (apaga e recria os objetos existentes)
+pg_restore --clean --if-exists --no-owner -h HOST -p PORTA -U UTILIZADOR -d firedb fogobom-AAAAMMDD-HHMMSS.dump
+# 3. Fotos: extrair fogobom-media-*.tar.gz para backend/ (cria a pasta media/)
+```
 
 ## Utilizadores e permissões
 
