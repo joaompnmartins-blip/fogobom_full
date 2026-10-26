@@ -8,7 +8,7 @@
   <div class="card-title">{{ plans.count }} Plano{{ plans.count|pluralize:"s" }} de Queima</div>
   {% if plans %}
   <table>
-    <thead><tr><th>Pré-Plano</th><th>Data Execução</th><th>Operacionais</th><th>Ações</th></tr></thead>
+    <thead><tr><th>Ação</th><th>Data Execução</th><th>Operacionais</th><th>Ações</th></tr></thead>
     <tbody>
     {% for bp in plans %}
     <tr>
@@ -26,7 +26,7 @@
     </tbody>
   </table>
   {% else %}
-  <p style="color:var(--dim)">Nenhum plano de queima. Crie primeiro um <a href="{% url 'fire_actions:list' %}">Pré-Plano →</a></p>
+  <p style="color:var(--dim)">Nenhum plano de queima. Anuncie primeiro uma <a href="{% url 'fire_actions:list' %}">ação →</a></p>
   {% endif %}
 </div>
 {% endblock %}

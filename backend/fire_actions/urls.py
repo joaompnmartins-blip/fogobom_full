@@ -4,8 +4,14 @@ from . import views
 app_name = 'fire_actions'
 
 urlpatterns = [
-    # Pré-Planos
+    # Ações
     path('',                                views.preplan_list,         name='list'),
+    path('proximas/',                       views.announcements,        name='announcements'),
+    path('<int:pk>/estado/',               views.action_status,         name='status'),
+    path('<int:pk>/participar/',           views.participate,           name='participate'),
+    path('<int:pk>/participantes/<int:part_pk>/', views.participant_decision, name='participant_decision'),
+    path('<int:pk>/comunicacao/',          views.action_communication,  name='communication'),
+    path('<int:pk>/calendario.ics',        views.action_ics,            name='ics'),
     path('novo/',                           views.preplan_create,       name='create'),
     path('<int:pk>/',                       views.preplan_detail,       name='detail'),
     path('<int:pk>/editar/',               views.preplan_edit,          name='edit'),

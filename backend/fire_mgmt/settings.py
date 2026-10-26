@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
@@ -135,6 +136,12 @@ EMAIL_HOST_USER    = 'resend'
 EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'noreply@fogobom.com')
 ADMIN_EMAIL        = os.environ.get('ADMIN_EMAIL', '')
+
+# Test runs must not depend on IPMA / Open-Meteo (tests mock them explicitly)
+EXTERNAL_HTTP_DISABLED = len(sys.argv) > 1 and sys.argv[1] == 'test'
+
+# Public address used in links of emails sent outside a request (reminders)
+SITE_URL = os.environ.get('SITE_URL', 'https://fogobomalgarve.com')
 
 # Password reset links expire after 2 hours
 PASSWORD_RESET_TIMEOUT = 2 * 60 * 60

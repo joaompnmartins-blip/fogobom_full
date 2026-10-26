@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+{% block title %}Próximas ações{% endblock %}
+{% block page_title %}Próximas ações{% endblock %}
+{% block nav_ann %}active{% endblock %}
+{% block topbar_actions %}<a href="{% url 'fire_actions:create' %}" class="btn btn-primary btn-sm">+ Anunciar ação</a>{% endblock %}
+{% block extra_head %}
+<style>
+  .ann { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px }
+  .ann .card { margin:0; display:flex; flex-direction:column; gap:8px }
+  .ann h3 { font-family:var(--fh); font-size:20px; color:#fff; margin:0 }
+  .meta { font-size:13px; color:var(--dim) }
+  .prob { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600 }
+  .prob-alta { background:#1e4a2a; color:#6fcf97 } .prob-media { background:#3a2e10; color:#f5c242 }
+  .prob-baixa { background:#3a1010; color:#e57373 } .prob-none { background:var(--bg3); color:var(--dim) }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+</style>
+{% endblock %}
+{% block content %}
+<p style="color:var(--dim);font-size:13px;margin-bottom:14px">Ações de fogo controlado e queimadas anunciadas. Inscreva-se nas que quer acompanhar —
+  recebe um email se a ação mudar e um lembrete na véspera.</p>
+{% if actions %}
+<div class="ann">
+{% for a in actions %}
+  <div class="card">
+    <div class="row">
+      <span class="badge {% if a.status == 'confirmada' %}badge-green{% elif a.status == 'adiada' %}badge-orange{% else %}badge-gray{% endif %}">{{ a.get_status_display }}</span>
+      <span class="badge badge-gray">{{ a.get_action_type_display }}</span>
+      {% if a.training %}<span class="badge badge-gray">formação</span>{% endif %}
+    </div>
+    <h3><a href="{% url 'fire_actions:detail' a.pk %}" style="color:inherit;text-decoration:none">{{ a.name }}</a></h3>
+    <div class="meta">📅 {{ a.scheduled_date|date:"l, d/m/Y" }}{% if a.start_time %} · {{ a.start_time|time:"H:i" }}{% endif %}
+      {% if a.alt_date_1 %}<br>Alternativas: {{ a.alt_date_1|date:"d/m" }}{% if a.alt_date_2 %}, {{ a.alt_date_2|date:"d/m" }}{% endif %}{% endif %}</div>
+    <div class="meta">📍 {% for p in a.parcels.all %}{{ p.name }}{% if p.concelho %} ({{ p.concelho }}){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</div>
+    <div class="row">
+      <span style="font-size:12.5px">Probabilidade:</span>
+      <span class="prob prob-{{ a.outlook.probability|default:'none' }}">{{ a.outlook.probability_label }}</span>
+      {% if a.outlook.blocked %}<span class="badge badge-red">perigo IPMA impede queima</span>{% endif %}
+    </div>
+    {% if a.outlook.reasons %}<div class="meta" style="font-size:12px">{{ a.outlook.reasons.0 }}</div>{% endif %}
+    <div class="meta">🙋 {{ a.n_part }} inscrito{{ a.n_part|pluralize }}{% if a.slots %} · {{ a.slots }} vagas{% endif %}</div>
+    <div class="row" style="margin-top:auto">
+      <form method="post" action="{% url 'fire_actions:participate' a.pk %}">{% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'fire_actions:announcements' %}">
+        {% if a.my_intent == 'vou' %}
+          <input type="hidden" name="intent" value="nao"><button class="btn btn-secondary btn-sm">✓ Inscrito · cancelar</button>
+        {% else %}
+          <input type="hidden" name="intent" value="vou"><button class="btn btn-primary btn-sm">🙋 Quero participar</button>
+        {% endif %}
+      </form>
+      <a href="{% url 'fire_actions:detail' a.pk %}" class="btn btn-secondary btn-sm">Detalhes</a>
+      <a href="{% url 'fire_actions:ics' a.pk %}" class="btn btn-secondary btn-sm" title="Adicionar à agenda">📅</a>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card"><p style="color:var(--dim)">Não há ações anunciadas para os próximos dias. <a href="{% url 'fire_actions:create' %}">Anunciar uma ação →</a></p></div>
+{% endif %}
+{% endblock %}

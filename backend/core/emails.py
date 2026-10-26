@@ -21,3 +21,15 @@ def send_async(subject, message, recipient_list):
         args=(subject, message, recipient_list),
         daemon=True,
     ).start()
+
+
+def _send_each(subject, message, recipients):
+    for email in recipients:
+        _send_mail_logged(subject, message, [email])
+
+
+def send_async_each(subject, message, recipients):
+    """One email per recipient (addresses are not disclosed to each other), in one background thread."""
+    recipients = sorted(set(r for r in recipients if r))
+    if recipients:
+        threading.Thread(target=_send_each, args=(subject, message, recipients), daemon=True).start()

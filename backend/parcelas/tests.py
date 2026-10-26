@@ -305,12 +305,12 @@ class ActionParcelSelectionTests(TestCase):
         self.client.force_login(User.objects.create_user('u', password='x'))
         apta = FireParcel.objects.create(name='Apta', geometry=wkt(-8, 37.1, .001, .001), status='apta')
         prop = FireParcel.objects.create(name='Proposta', geometry=wkt(-8.1, 37.1, .001, .001))
-        page = self.client.get('/preplan/novo/')
+        page = self.client.get('/acoes/novo/')
         self.assertContains(page, 'Apta')
         self.assertNotContains(page, 'value="%d"' % prop.pk)
-        self.client.post('/preplan/novo/', {'name': 'A1', 'scheduled_date': '2026-11-05', 'parcels': [prop.pk]})
+        self.client.post('/acoes/novo/', {'name': 'A1', 'scheduled_date': '2026-11-05', 'parcels': [prop.pk]})
         self.assertFalse(FireAction.objects.filter(name='A1').exists())
-        self.client.post('/preplan/novo/', {'name': 'A2', 'scheduled_date': '2026-11-05', 'parcels': [apta.pk]})
+        self.client.post('/acoes/novo/', {'name': 'A2', 'scheduled_date': '2026-11-05', 'parcels': [apta.pk]})
         self.assertEqual(list(FireAction.objects.get(name='A2').parcels.all()), [apta])
 
 

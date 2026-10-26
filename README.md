@@ -42,6 +42,7 @@ fogobom_full/
 | `DJANGO_SUPERUSER_USERNAME`, `_EMAIL`, `_PASSWORD` | não | Cria o superuser no primeiro arranque (não altera um existente) |
 | `CARTO_API_KEY` | não | Chave dos mapas base CARTO (sem ela aparece marca d'água) |
 | `MAPTILER_API_KEY` | não | Relevo/declive na página de Meteorologia |
+| `SITE_URL` | não | Endereço público usado nos links dos lembretes (por omissão https://fogobomalgarve.com) |
 | `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS` | não | HTTPS; por omissão `true` / `3600` quando `DEBUG=false` |
 | `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_REGION_NAME`, `AWS_S3_ENDPOINT_URL`, `AWS_S3_CUSTOM_DOMAIN` | não | Guardar ficheiros em S3/R2 em vez do disco |
 
@@ -122,10 +123,11 @@ python manage.py runserver    # → http://localhost:8000
 | `/` | Dashboard |
 | `/login/` | Login / Registo |
 | `/parcelas/` | Lista de parcelas |
-| `/parcelas/nova/` | Nova parcela (desenho no mapa ou importação GeoJSON/KML) |
+| `/parcelas/nova/` | Propor parcela (desenho no mapa ou importação GeoJSON/KML) |
 | `/operacionais/` | Lista de operacionais |
-| `/preplan/` | Lista de pré-planos |
-| `/preplan/burning/` | Lista de planos de queima (relatório Word em cada plano) |
+| `/acoes/proximas/` | Próximas ações (anúncios, probabilidade, inscrições) |
+| `/acoes/` | Todas as ações (fogo controlado e queimadas) |
+| `/acoes/burning/` | Planos de queima / execução (relatório Word em cada plano) |
 | `/meteorologia/` | Meteorologia e humidade de combustíveis (FiredPT) |
 | `/calendario/` | Calendário de queimas |
 | `/utilizadores/pendentes/` | Aprovação de novos utilizadores (staff) |

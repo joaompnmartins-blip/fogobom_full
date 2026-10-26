@@ -89,7 +89,8 @@
       <div class="nav-sec">Território</div>
       <a href="{% url 'parcelas:list' %}" class="nav-item {% block nav_parc %}{% endblock %}"><span class="ni">🗺️</span>Parcelas</a>
       <div class="nav-sec">Operações</div>
-      <a href="{% url 'fire_actions:list' %}" class="nav-item {% block nav_pp %}{% endblock %}"><span class="ni">📋</span>Pré-Planos</a>
+      <a href="{% url 'fire_actions:announcements' %}" class="nav-item {% block nav_ann %}{% endblock %}"><span class="ni">📢</span>Próximas ações</a>
+      <a href="{% url 'fire_actions:list' %}" class="nav-item {% block nav_pp %}{% endblock %}"><span class="ni">📋</span>Ações</a>
       <a href="{% url 'fire_actions:burning_plan_list' %}" class="nav-item {% block nav_bp %}{% endblock %}"><span class="ni">📄</span>Planos de Queima</a>
       <a href="{% url 'core:calendario' %}" class="nav-item {% block nav_cal %}{% endblock %}"><span class="ni">📅</span>Calendário</a>
       <div class="nav-sec">Recursos</div>

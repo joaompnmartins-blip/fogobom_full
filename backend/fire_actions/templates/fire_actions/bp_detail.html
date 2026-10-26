@@ -13,7 +13,7 @@
     <div class="card">
       <div class="card-title">Identificação</div>
       <table><tbody>
-        <tr><td style="color:var(--dim);width:45%">Pré-Plano</td><td><a href="{% url 'fire_actions:detail' bp.pre_plan.pk %}">{{ bp.pre_plan.name }}</a></td></tr>
+        <tr><td style="color:var(--dim);width:45%">Ação</td><td><a href="{% url 'fire_actions:detail' bp.pre_plan.pk %}">{{ bp.pre_plan.name }}</a></td></tr>
         <tr><td style="color:var(--dim)">Parcela(s)</td><td>{% for p in bp.pre_plan.parcels.all %}{{ p.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
         <tr><td style="color:var(--dim)">Data Execução</td><td>{{ bp.execution_date|date:"d/m/Y" }}</td></tr>
         <tr><td style="color:var(--dim)">Operacionais</td><td>{% for o in bp.operatives.all %}{{ o.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>

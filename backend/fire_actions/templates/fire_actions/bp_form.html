@@ -12,12 +12,12 @@
 
 {% if not bp.pk %}
 <div class="card">
-  <div class="card-title">Pré-Plano Associado</div>
+  <div class="card-title">Ação associada</div>
   {% if preplan %}
     <input type="hidden" name="pre_plan" value="{{ preplan.pk }}">
     <p><strong>{{ preplan.name }}</strong> — {{ preplan.scheduled_date|date:"d/m/Y" }}</p>
   {% else %}
-  <div class="field"><label>Selecionar Pré-Plano *</label>
+  <div class="field"><label>Selecionar ação *</label>
     <select name="pre_plan" required>
       <option value="">— selecionar —</option>
       {% for pp in preplans_without_bp %}

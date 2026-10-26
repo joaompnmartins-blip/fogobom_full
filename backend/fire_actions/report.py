@@ -290,7 +290,7 @@ def generate_bp_docx(bp) -> bytes:
     t.style = 'Table Grid'
     parcel_names = ', '.join(p.name for p in bp.pre_plan.parcels.all()) or '—'
     rows_data = [
-        ('Pré-Plano associado', bp.pre_plan.name),
+        ('Ação associada', bp.pre_plan.name),
         ('Parcela(s)',          parcel_names),
         ('Responsável',         bp.pre_plan.responsible),
         ('Data de Execução',    str(bp.execution_date)),

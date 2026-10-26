@@ -70,8 +70,13 @@ def _profile_for(user):
 
 @login_required
 def profile(request):
+    from core.models import UserPreferences
     op = _profile_for(request.user)
+    prefs = UserPreferences.for_user(request.user)
     if request.method == 'POST':
+        for f in PREF_FIELDS:
+            setattr(prefs, f, bool(request.POST.get(f)))
+        prefs.save()
         before = (op.credential_type, op.credential_number) if op.pk else None
         form = ProfileForm(request.POST, instance=op)
         if form.is_valid():
@@ -101,7 +106,11 @@ def profile(request):
         'op': op,
         'types': Operative.CREDENTIAL_TYPES,
         'participations': op.burning_plans.count() if op.pk else 0,
+        'prefs': [(f, prefs._meta.get_field(f).verbose_name, getattr(prefs, f)) for f in PREF_FIELDS],
     })
+
+
+PREF_FIELDS = ['email_new_actions', 'email_action_updates', 'email_reminders']
 
 
 @require_POST

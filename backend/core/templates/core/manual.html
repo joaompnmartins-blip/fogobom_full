@@ -66,7 +66,7 @@
       <li><a href="#dashboard">Dashboard</a></li>
       <li><a href="#parcelas">Parcelas</a></li>
       <li><a href="#operacionais">Operacionais</a></li>
-      <li><a href="#preplanos">Pré-Planos</a></li>
+      <li><a href="#preplanos">Ações de fogo</a></li>
       <li><a href="#planos">Planos de Queima</a></li>
       <li><a href="#relatorio">Relatório Word</a></li>
       <li><a href="#calendario">Calendário</a></li>
@@ -82,7 +82,7 @@
 
     <p>O trabalho na plataforma segue normalmente esta sequência:</p>
     <div class="flow">
-      <span>🗺️ Parcela</span><b>→</b><span>📋 Pré-Plano</span><b>→</b><span>📄 Plano de Queima</span><b>→</b><span>📥 Relatório Word</span>
+      <span>🗺️ Parcela</span><b>→</b><span>📢 Ação</span><b>→</b><span>📄 Plano de Queima</span><b>→</b><span>📥 Relatório Word</span>
     </div>
 
     <!-- 1 ─────────────────────────────────────────────────────────── -->
@@ -144,7 +144,8 @@
         <tr><th>Menu</th><th>Para quê</th></tr>
         <tr><td>📊 Dashboard</td><td>Resumo geral, próximas queimas e planos recentes</td></tr>
         <tr><td>🗺️ Parcelas</td><td>Áreas de intervenção, com mapa</td></tr>
-        <tr><td>📋 Pré-Planos</td><td>Planeamento das queimas (data prevista e parcelas)</td></tr>
+        <tr><td>📢 Próximas ações</td><td>Ações anunciadas: probabilidade de realização e inscrições</td></tr>
+        <tr><td>📋 Ações</td><td>Todas as ações (fogo controlado e queimadas), com filtro por estado</td></tr>
         <tr><td>📄 Planos de Queima</td><td>Registo da execução de cada queima e relatório Word</td></tr>
         <tr><td>📅 Calendário</td><td>Vista mensal das queimas planeadas e executadas</td></tr>
         <tr><td>👷 Operacionais</td><td>Pessoas que participam nas queimas</td></tr>
@@ -163,10 +164,10 @@
       <h2>3. Dashboard</h2>
       <p>É a página inicial após iniciar sessão. Mostra:</p>
       <ul>
-        <li><strong>Totais</strong>: parcelas, pré-planos ativos (ainda não executados), planos de queima e operacionais.</li>
-        <li><strong>Próximas queimas</strong>: pré-planos com data prevista nos próximos 30 dias.</li>
+        <li><strong>Totais</strong>: parcelas, ações por realizar, planos de queima e operacionais.</li>
+        <li><strong>Próximas ações</strong>: ações dos próximos 30 dias, com o estado e a probabilidade de realização.</li>
         <li><strong>Planos recentes</strong>: os últimos planos de queima registados.</li>
-        <li><strong>Ações rápidas</strong>: atalhos para criar parcela, pré-plano, operacional ou abrir a meteorologia.</li>
+        <li><strong>Ações rápidas</strong>: atalhos para propor parcela, anunciar ação, criar operacional ou abrir a meteorologia.</li>
       </ul>
     </section>
 
@@ -179,7 +180,7 @@
       <div class="flow">
         <span>⚪ Proposta</span><b>→</b><span>🟡 Em avaliação</span><b>→</b><span>🟢 Apta · 🟠 Apta com condicionantes · 🔴 Não apta</span>
       </div>
-      <p>Só parcelas <strong>aptas</strong> (com ou sem condicionantes) aparecem para escolha nos pré-planos.
+      <p>Só parcelas <strong>aptas</strong> (com ou sem condicionantes) aparecem para escolha nas ações.
         Uma parcela considerada apta mantém-se apta.</p>
 
       <h3>Lista e mapa</h3>
@@ -244,36 +245,88 @@
 
     <!-- 6 ─────────────────────────────────────────────────────────── -->
     <section id="preplanos">
-      <h2>6. Pré-Planos</h2>
-      <p>O pré-plano é o planeamento de uma queima: nome da ação, responsável, data prevista e parcelas abrangidas.</p>
+      <h2>6. Ações de fogo</h2>
+      <p>Uma ação é uma operação de <strong>fogo controlado</strong> ou uma <strong>queimada</strong> numa ou mais parcelas
+        aptas. Qualquer utilizador pode anunciar uma ação; todos os utilizadores a veem em
+        <span class="ui">📢 Próximas ações</span> e podem inscrever-se para participar.</p>
+
+      <h3>Anunciar uma ação</h3>
       <ol>
-        <li>Em <span class="ui">Pré-Planos</span>, carregue em <span class="ui">+ Novo Pré-Plano</span>.</li>
-        <li>Indique o nome da ação e a data prevista (obrigatórios), o responsável e notas.</li>
-        <li>Selecione uma ou mais parcelas na lista.</li>
-        <li>Carregue em <span class="ui">💾 Guardar Pré-Plano</span>.</li>
+        <li>Em <span class="ui">📢 Próximas ações</span> ou <span class="ui">📋 Ações</span>, carregue em <span class="ui">+ Anunciar ação</span>.</li>
+        <li>Indique o nome, o <strong>tipo</strong> (fogo controlado ou queimada — neste caso também a finalidade:
+          renovação de pastagens, restolho ou sobrantes cortados), se é uma <strong>ação de formação</strong>, os objetivos
+          e o <strong>técnico responsável</strong>.</li>
+        <li>Defina a <strong>data prevista</strong>, a hora, até duas <strong>datas alternativas</strong> e o
+          <strong>ponto de encontro</strong> (clique no mapa para o marcar).</li>
+        <li>Opcionalmente indique as vagas, o que levar e a probabilidade de realização (se a deixar em branco, a
+          plataforma sugere-a automaticamente).</li>
+        <li>Preencha o <strong>enquadramento legal</strong> e escolha as parcelas (só aparecem as parcelas aptas).</li>
+        <li>Carregue em <span class="ui">💾 Anunciar ação</span>. Os utilizadores recebem um email com o anúncio.</li>
       </ol>
+      <div class="note warn"><strong>Enquadramento legal:</strong>
+        <ul>
+          <li><strong>Fogo controlado</strong>: é executado sob responsabilidade de um técnico credenciado, ao abrigo de um
+            <strong>Plano de Fogo Controlado (PFC)</strong> aprovado — indique o n.º do PFC.</li>
+          <li><strong>Queimada</strong>: com técnico credenciado basta a <strong>comunicação prévia</strong> ao município; sem
+            técnico é necessária <strong>autorização do município</strong> e acompanhamento (bombeiros, sapadores…).
+            Indique o n.º/referência e a data, e pode juntar o documento.</li>
+          <li>Não é permitido queimar com perigo de incêndio rural <strong>«muito elevado» ou «máximo»</strong> no concelho.</li>
+        </ul>
+      </div>
+
+      <h3>Probabilidade de realização</h3>
+      <p>Para cada data (prevista e alternativas) a plataforma mostra a <strong>probabilidade</strong>
+        (<strong>alta</strong>, <strong>média</strong> ou <strong>baixa</strong>) e os motivos:</p>
+      <ul>
+        <li>a <strong>humidade do combustível</strong> prevista na parcela (mesmo cálculo da página de Meteorologia,
+          disponível a 16 dias);</li>
+        <li>o <strong>perigo de incêndio rural do IPMA</strong> no concelho (publicado para hoje e os 2 dias seguintes) —
+          com perigo «muito elevado» ou «máximo» a probabilidade é baixa e a ação não pode ser confirmada;</li>
+        <li>o <strong>enquadramento legal</strong>: se estiver incompleto, a probabilidade não passa de média.</li>
+      </ul>
+      <p>O técnico pode fixar a probabilidade manualmente; nesse caso a sugestão automática continua visível.</p>
+
       <h3>Estados</h3>
       <table>
         <tr><th>Estado</th><th>Significado</th></tr>
-        <tr><td><span class="dot" style="background:#e8541a"></span>Pré-Plano</td><td>Planeado, ainda sem plano de queima</td></tr>
-        <tr><td><span class="dot" style="background:#3a8c50"></span>Executada</td><td>Já tem plano de queima registado (passa a este estado automaticamente)</td></tr>
+        <tr><td>Prevista</td><td>Anunciada; ainda por confirmar</td></tr>
+        <tr><td>Confirmada</td><td>Enquadramento legal completo e condições permitidas — vai realizar-se</td></tr>
+        <tr><td>Adiada</td><td>Sem nova data definida (se indicar uma nova data, volta a “Prevista” nessa data)</td></tr>
+        <tr><td>Cancelada</td><td>Não se realiza (com o motivo); pode ser reaberta</td></tr>
+        <tr><td>Realizada</td><td>Já tem a execução registada (plano de queima) — passa a este estado automaticamente</td></tr>
       </table>
-      <p>No detalhe do pré-plano encontra o botão <span class="ui">📄 Criar Plano de Queima</span> ou, se já existir,
-        <span class="ui">📄 Ver Plano de Queima</span>.</p>
+      <p>Quem anunciou a ação, o técnico responsável, os técnicos credenciados e os administradores podem editá-la e
+        mudar o estado. Os inscritos recebem um email sempre que a ação é confirmada, adiada, cancelada ou muda de data.</p>
+
+      <h3>Inscrever-se e participar</h3>
+      <ul>
+        <li>Em <span class="ui">📢 Próximas ações</span> carregue em <span class="ui">🙋 Quero participar</span>, ou no detalhe
+          da ação escolha “Vou participar” / “Talvez”, a função pretendida (ignição, segurança, vigia, apoio…) e uma nota.</li>
+        <li>O técnico <strong>confirma</strong> os participantes (respeitando as vagas). Recebe um email com a decisão.</li>
+        <li>Na véspera da ação recebe um <strong>lembrete</strong> por email.</li>
+        <li>Com <span class="ui">📅 .ics</span> pode adicionar a ação à sua agenda (Google, Outlook, telemóvel).</li>
+        <li>Ao registar a execução (plano de queima), os participantes confirmados ficam pré-selecionados como operacionais.</li>
+      </ul>
+      <p>Pode escolher que emails recebe em <span class="ui">👤 O meu perfil</span> → <em>Avisos por email</em>.</p>
+
+      <h3>No dia da ação</h3>
+      <p>No detalhe da ação, quem gere a ação regista quando <strong>comunicou o início e o fim</strong> da operação à
+        proteção civil (botões <span class="ui">📞 Registar início comunicado</span> e <span class="ui">📞 Registar fim comunicado</span>).
+        Depois, registe a execução com <span class="ui">📄 Registar execução</span>.</p>
     </section>
 
     <!-- 7 ─────────────────────────────────────────────────────────── -->
     <section id="planos">
       <h2>7. Planos de Queima</h2>
       <p>O plano de queima regista a execução: data, equipa, meios, humidade dos combustíveis, meteorologia,
-        resultados e fotografias. Cada pré-plano tem <strong>um único</strong> plano de queima.</p>
+        resultados e fotografias. Cada ação tem <strong>um único</strong> plano de queima.</p>
 
       <h3>Criar um plano de queima</h3>
       <p>Pode começar de duas formas:</p>
       <ul>
-        <li>Na lista de pré-planos, carregue em <span class="ui">📄 Queima</span> na linha do pré-plano (recomendado); ou</li>
-        <li>Em <span class="ui">Planos de Queima</span> → <span class="ui">+ Novo Plano</span> e escolha o pré-plano na lista
-          (só aparecem pré-planos ainda sem plano).</li>
+        <li>No detalhe da ação, carregue em <span class="ui">📄 Registar execução</span> (recomendado); ou</li>
+        <li>Em <span class="ui">Planos de Queima</span> → <span class="ui">+ Novo Plano</span> e escolha a ação na lista
+          (só aparecem ações ainda sem plano).</li>
       </ul>
       <p>O formulário está organizado em secções:</p>
       <table>
@@ -287,8 +340,8 @@
         <tr><td>Fotografias</td><td>Uma ou várias imagens (ver abaixo)</td></tr>
         <tr><td>Esquema Tático</td><td>Mapa com o limite das parcelas, apenas para visualização</td></tr>
       </table>
-      <p>Ao guardar, o pré-plano passa a <strong>Executada</strong> com a data de execução do plano.
-        Se mais tarde alterar a data no plano, a do pré-plano é atualizada automaticamente.</p>
+      <p>Ao guardar, a ação passa a <strong>Realizada</strong> com a data de execução do plano.
+        Se mais tarde alterar a data no plano, a da ação é atualizada automaticamente.</p>
 
       <h3>Fotografias</h3>
       <ul>
@@ -304,7 +357,7 @@
       <p>No detalhe de um plano de queima carregue em <span class="ui">📥 Relatório Word</span>
         (ou em <span class="ui">📥 Relatório</span> na lista). É descarregado um ficheiro <code>.docx</code> com:</p>
       <ol>
-        <li>Identificação (pré-plano, parcelas, responsável, data)</li>
+        <li>Identificação (ação, parcelas, responsável, data)</li>
         <li>Equipa e meios</li>
         <li>Problemas identificados</li>
         <li>Humidade dos combustíveis</li>
@@ -321,10 +374,13 @@
     <!-- 9 ─────────────────────────────────────────────────────────── -->
     <section id="calendario">
       <h2>9. Calendário</h2>
-      <p>Mostra os pré-planos na respetiva <strong>data prevista</strong>:
-        <span class="dot" style="background:#e8541a"></span>por executar ·
-        <span class="dot" style="background:#3a8c50"></span>executados.
-        Clique num evento para abrir o pré-plano. Use as setas para mudar de mês e o botão de lista para ver os eventos do mês em lista.</p>
+      <p>Mostra as ações na respetiva <strong>data prevista</strong>, com a cor do estado:
+        <span class="dot" style="background:#e8541a"></span>prevista ·
+        <span class="dot" style="background:#2e9e4f"></span>confirmada ·
+        <span class="dot" style="background:#b7791f"></span>adiada ·
+        <span class="dot" style="background:#6b7280"></span>cancelada ·
+        <span class="dot" style="background:#3a6c8c"></span>realizada.
+        Clique num evento para abrir a ação. Use as setas para mudar de mês e o botão de lista para ver os eventos do mês em lista.</p>
     </section>
 
     <!-- 10 ────────────────────────────────────────────────────────── -->
@@ -384,18 +440,18 @@
       <h2>11. Perguntas frequentes</h2>
 
       <h3>Não encontro o botão para eliminar um registo.</h3>
-      <p>Eliminar parcelas, operacionais, pré-planos ou planos de queima está reservado aos administradores.
+      <p>Eliminar parcelas, operacionais, ações ou planos de queima está reservado aos administradores.
         Se precisar de eliminar algo, peça a um administrador.</p>
 
       <h3>Ao guardar, a página voltou com mensagens a vermelho.</h3>
       <p>Algum campo tem um valor inválido (por exemplo uma data em falta, um email mal escrito ou um número negativo).
         As mensagens indicam o campo; o que escreveu mantém-se, basta corrigir e guardar de novo.</p>
 
-      <h3>Não consigo criar o plano de queima de um pré-plano.</h3>
-      <p>Cada pré-plano só pode ter um plano de queima. Se já existir, use <span class="ui">✏️ Editar</span> no plano existente.</p>
+      <h3>Não consigo registar a execução de uma ação.</h3>
+      <p>Cada ação só pode ter um plano de queima. Se já existir, use <span class="ui">✏️ Editar</span> no plano existente.</p>
 
       <h3>A data da última queima de uma parcela está vazia.</h3>
-      <p>Esta data vem dos planos de queima. Aparece quando existir um plano de queima de um pré-plano que inclua essa parcela.</p>
+      <p>Esta data vem dos planos de queima. Aparece quando existir um plano de queima de uma ação que inclua essa parcela.</p>
 
       <h3>O mapa da Meteorologia não mostra previsão.</h3>
       <p>A previsão vem de serviços externos e precisa de ligação à internet. Aguarde alguns segundos e clique de novo;

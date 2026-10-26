@@ -1,41 +1,151 @@
 {% extends "core/base.html" %}
-{% block title %}{% if action_obj.pk %}Editar{% else %}Novo{% endif %} Pré-Plano{% endblock %}
-{% block page_title %}{% if action_obj.pk %}Editar Pré-Plano{% else %}Novo Pré-Plano{% endif %}{% endblock %}
+{% block title %}{% if action_obj.pk %}Editar ação{% else %}Nova ação{% endif %}{% endblock %}
+{% block page_title %}{% if action_obj.pk %}Editar ação{% else %}Anunciar nova ação{% endif %}{% endblock %}
 {% block nav_pp %}active{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .fgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px 14px }
+  .fgrid .wide { grid-column:1/-1 }
+  .field ul { list-style:none; display:flex; flex-wrap:wrap; gap:4px 14px; padding:0 }
+  .field ul label { display:flex; gap:6px; align-items:center; text-transform:none; letter-spacing:0; font-size:13px; color:var(--text); font-weight:400 }
+  .field ul input, .field input[type=checkbox] { width:auto }
+  .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
+  .check { display:flex; gap:8px; align-items:center; text-transform:none !important; letter-spacing:0 !important; font-size:13px !important; color:var(--text) !important }
+</style>
+{% endblock %}
 {% block content %}
-<div class="card" style="max-width:760px">
-  <form method="post" enctype="multipart/form-data">{% csrf_token %}
-    <div class="form-row">
-      <div class="field"><label>Nome da Ação *</label><input type="text" name="name" value="{{ action_obj.name|default:'' }}" required></div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="field"><label>Responsável</label><input type="text" name="responsible" value="{{ action_obj.responsible|default:'' }}"></div>
-      <div class="field"><label>Data Prevista *</label><input type="date" name="scheduled_date" value="{{ action_obj.scheduled_date|date:'Y-m-d' }}" required></div>
-    </div>
-    <div class="form-row">
-      <div class="field"><label>Parcelas (só parcelas avaliadas como aptas)</label>
-        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;max-height:180px;overflow-y:auto">
-          {% for p in parcelas %}
-          <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;text-transform:none;font-size:13px;letter-spacing:0;color:var(--text)">
-            <input type="checkbox" name="parcels" value="{{ p.pk }}"
-              {% if p.pk in selected_parcels %}checked{% endif %}
-              style="width:auto;background:none;border:none;padding:0">
-            {{ p.name }} {% if p.concelho %}({{ p.concelho }}){% endif %}
-            {% if p.status == 'apta_condicionantes' %}<span class="badge badge-orange">com condicionantes</span>{% endif %}
-          </label>
-          {% empty %}
-          <span style="color:var(--dim);font-size:13px">Ainda não há parcelas aptas. <a href="{% url 'parcelas:create' %}">Propor uma parcela</a> para avaliação técnica.</span>
-          {% endfor %}
-        </div>
+{% if not action_obj.pk %}
+<div class="msg msg-info">A ação fica <strong>prevista</strong> e é anunciada a todos os utilizadores, que se podem inscrever.
+  Confirme-a quando o enquadramento legal estiver completo e as condições o permitirem.</div>
+{% endif %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}
+{{ form.meeting_lat }}{{ form.meeting_lng }}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start">
+  <div>
+    <div class="card">
+      <div class="card-title">Identificação</div>
+      <div class="fgrid">
+        <div class="field wide"><label>Nome da ação *</label>{{ form.name }}</div>
+        <div class="field"><label>Tipo</label>{{ form.action_type }}</div>
+        <div class="field" id="f-purpose"><label>Finalidade (queimada)</label>{{ form.purpose }}
+          <div class="hint">Renovação de pastagens, restolho ou sobrantes cortados não amontoados (DL 82/2021).</div></div>
+        <div class="field wide"><label class="check">{{ form.training }} Ação de formação</label></div>
+        <div class="field wide"><label>Objetivos</label>{{ form.objectives }}</div>
+        <div class="field wide"><label>Técnico responsável</label>{{ form.responsible_user }}
+          <div class="hint">Obrigatoriamente um técnico credenciado (validado) no fogo controlado e nas queimadas com comunicação prévia.</div></div>
       </div>
     </div>
-    <div class="form-row">
-      <div class="field"><label>Notas</label><textarea name="notes">{{ action_obj.notes|default:'' }}</textarea></div>
+
+    <div class="card">
+      <div class="card-title">Data e local</div>
+      <div class="fgrid">
+        <div class="field"><label>Data prevista *</label><input type="date" name="scheduled_date" value="{{ form.scheduled_date.value|date:'Y-m-d'|default:form.scheduled_date.value|default:'' }}" required></div>
+        <div class="field"><label>Hora de início</label><input type="time" name="start_time" value="{{ form.start_time.value|time:'H:i'|default:form.start_time.value|default:'' }}"></div>
+        <div class="field"><label>Data alternativa 1</label><input type="date" name="alt_date_1" value="{{ form.alt_date_1.value|date:'Y-m-d'|default:form.alt_date_1.value|default:'' }}"></div>
+        <div class="field"><label>Data alternativa 2</label><input type="date" name="alt_date_2" value="{{ form.alt_date_2.value|date:'Y-m-d'|default:form.alt_date_2.value|default:'' }}"></div>
+        <div class="field wide"><label>Indicações do ponto de encontro</label>{{ form.meeting_notes }}</div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;margin:10px 0 0"><div id="map" style="height:280px"></div></div>
+      <p class="hint">Clique no mapa para marcar o <strong>ponto de encontro</strong> (clique de novo para mudar). <a href="#" id="clear-meeting">Remover ponto</a></p>
     </div>
-    <div class="btn-group">
-      <button type="submit" class="btn btn-primary">💾 Guardar Pré-Plano</button>
-      <a href="{% url 'fire_actions:list' %}" class="btn btn-secondary">Cancelar</a>
+
+    <div class="card">
+      <div class="card-title">Participação</div>
+      <div class="fgrid">
+        <div class="field"><label>Vagas para participantes</label>{{ form.slots }}<div class="hint">Vazio = sem limite.</div></div>
+        <div class="field"><label>Probabilidade de realização</label>{{ form.probability_manual }}
+          <div class="hint">Deixe em branco para usar a sugestão automática (previsão, perigo IPMA, enquadramento legal).</div></div>
+        <div class="field wide"><label>O que levar / requisitos</label>{{ form.requirements }}</div>
+        <div class="field wide"><label>Notas</label>{{ form.notes }}</div>
+      </div>
     </div>
-  </form>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-title">Enquadramento legal</div>
+      <div id="legal-fc">
+        <div class="field"><label>N.º do PFC aprovado</label>{{ form.pfc_reference }}
+          <div class="hint">O fogo controlado executa-se ao abrigo de um Plano de Fogo Controlado aprovado (n.º/credenciação/ano).</div></div>
+      </div>
+      <div id="legal-queimada" class="fgrid">
+        <div class="field wide"><label>Comunicação / autorização do município</label>{{ form.legal_mode }}
+          <div class="hint">Com técnico credenciado: comunicação prévia. Sem técnico: autorização do município (art. 65.º do DL 82/2021).</div></div>
+        <div class="field"><label>N.º / referência</label>{{ form.legal_reference }}</div>
+        <div class="field"><label>Data</label><input type="date" name="legal_date" value="{{ form.legal_date.value|date:'Y-m-d'|default:form.legal_date.value|default:'' }}"></div>
+        <div class="field wide"><label>Documento (opcional)</label>
+          {% if action_obj.legal_document %}<div class="hint">Atual: <a href="{{ action_obj.legal_document.url }}" target="_blank">{{ action_obj.legal_document.name|cut:"action_documents/" }}</a></div>{% endif %}
+          <input type="file" name="legal_document" style="color:var(--text)"></div>
+        <div class="field wide"><label>Acompanhamento (se não houver técnico credenciado)</label>{{ form.accompaniment }}
+          <div class="hint">Equipa de bombeiros, sapadores florestais, GNR/UEPS, FEPC…</div></div>
+      </div>
+      <p class="hint" style="margin-top:8px">Não é permitido queimar nos concelhos com perigo de incêndio rural «muito elevado» ou «máximo»: a plataforma verifica-o automaticamente.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Parcelas (só parcelas avaliadas como aptas)</div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:10px;max-height:260px;overflow-y:auto">
+        {% for p in parcelas %}
+        <label style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;text-transform:none;font-size:13px;letter-spacing:0;color:var(--text)">
+          <input type="checkbox" name="parcels" value="{{ p.pk }}" {% if p.pk in selected_parcels %}checked{% endif %}
+            style="width:auto;background:none;border:none;padding:0">
+          {{ p.name }} {% if p.concelho %}({{ p.concelho }}){% endif %} · {{ p.area_ha|default:"?" }} ha
+          {% if p.status == 'apta_condicionantes' %}<span class="badge badge-orange">com condicionantes</span>{% endif %}
+        </label>
+        {% empty %}
+        <span style="color:var(--dim);font-size:13px">Ainda não há parcelas aptas. <a href="{% url 'parcelas:create' %}">Propor uma parcela</a> para avaliação técnica.</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
 </div>
+<div class="btn-group">
+  <button type="submit" class="btn btn-primary">💾 {% if action_obj.pk %}Guardar{% else %}Anunciar ação{% endif %}</button>
+  <a href="{% if action_obj.pk %}{% url 'fire_actions:detail' action_obj.pk %}{% else %}{% url 'fire_actions:list' %}{% endif %}" class="btn btn-secondary">Cancelar</a>
+</div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Show the legal block that applies to the chosen type
+const typeSel = document.querySelector('[name=action_type]');
+function toggleType() {
+  const fc = typeSel.value === 'fogo_controlado';
+  document.getElementById('legal-fc').style.display = fc ? 'block' : 'none';
+  document.getElementById('legal-queimada').style.display = fc ? 'none' : 'grid';
+  document.getElementById('f-purpose').style.display = fc ? 'none' : 'block';
+}
+typeSel.addEventListener('change', toggleType);
+toggleType();
+
+// Meeting point picker
+const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}', {
+  maxZoom: 19, attribution: '© OpenStreetMap © CARTO'
+});
+const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 21, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google' });
+const map = L.map('map', { layers: [osm] }).setView([37.2, -8.1], 9);
+L.control.layers({ 'Mapa': osm, 'Satélite': sat }, {}, { position: 'topright' }).addTo(map);
+const latIn = document.querySelector('[name=meeting_lat]'), lngIn = document.querySelector('[name=meeting_lng]');
+let marker = null;
+function setMarker(lat, lng) {
+  if (marker) marker.setLatLng([lat, lng]); else marker = L.marker([lat, lng]).addTo(map).bindTooltip('Ponto de encontro');
+  latIn.value = lat.toFixed(6); lngIn.value = lng.toFixed(6);
+}
+if (latIn.value && lngIn.value) { setMarker(parseFloat(latIn.value), parseFloat(lngIn.value)); map.setView([parseFloat(latIn.value), parseFloat(lngIn.value)], 14); }
+map.on('click', e => setMarker(e.latlng.lat, e.latlng.lng));
+document.getElementById('clear-meeting').addEventListener('click', e => {
+  e.preventDefault(); if (marker) { map.removeLayer(marker); marker = null; } latIn.value = ''; lngIn.value = '';
+});
+// Show the aptas parcels for orientation
+fetch("{% url 'parcelas:geojson' %}").then(r => r.json()).then(data => {
+  const layer = L.geoJSON(data, {
+    filter: f => ['apta', 'apta_condicionantes'].includes(f.properties.status),
+    style: { color: '#22c55e', weight: 1.5, fillOpacity: 0.2 },
+    onEachFeature: (f, l) => l.bindTooltip(escHtml(f.properties.name))
+  }).addTo(map);
+  if (!marker && layer.getLayers().length) map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+});
+</script>
 {% endblock %}

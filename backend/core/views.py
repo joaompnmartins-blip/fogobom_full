@@ -198,11 +198,14 @@ def dashboard(request):
     from fire_actions.models import FireAction, BurningPlan
 
     today    = timezone.localdate()
-    upcoming = FireAction.objects.filter(
+    from fire_actions.outlook import action_outlook
+    upcoming = list(FireAction.objects.filter(
         scheduled_date__gte=today,
         scheduled_date__lte=today + timedelta(days=30),
-        status='Pre-Plano'
-    ).order_by('scheduled_date')[:8]
+        status__in=FireAction.OPEN_STATUSES,
+    ).order_by('scheduled_date')[:8])
+    for a in upcoming:
+        a.outlook = action_outlook(a)
 
     recent_plans = BurningPlan.objects.select_related('pre_plan').order_by('-created_at')[:8]
 
@@ -225,7 +228,7 @@ def dashboard(request):
         'expiring_credentials': expiring,
         'today':               today,
         'total_parcelas':      FireParcel.objects.count(),
-        'total_preplans':      FireAction.objects.filter(status='Pre-Plano').count(),
+        'total_preplans':      FireAction.objects.filter(status__in=FireAction.OPEN_STATUSES).count(),
         'total_burning_plans': BurningPlan.objects.count(),
         'total_operatives':    Operative.objects.count(),
         'upcoming':            upcoming,
@@ -236,13 +239,15 @@ def dashboard(request):
 @login_required
 def calendario(request):
     from fire_actions.models import FireAction
+    colors = {'prevista': '#e8541a', 'confirmada': '#2e9e4f', 'adiada': '#b7791f',
+              'cancelada': '#6b7280', 'realizada': '#3a6c8c'}
     events = []
     for a in FireAction.objects.all():
         events.append({
-            'title': a.name,
+            'title': ('✖ ' if a.status == 'cancelada' else '') + a.name,
             'start': str(a.scheduled_date),
-            'color': '#e8541a' if a.status == 'Pre-Plano' else '#3a8c50',
-            'url':   f'/preplan/{a.pk}/',
+            'color': colors.get(a.status, '#e8541a'),
+            'url':   f'/acoes/{a.pk}/',
         })
     return render(request, 'core/calendario.html', {'events': events})
 

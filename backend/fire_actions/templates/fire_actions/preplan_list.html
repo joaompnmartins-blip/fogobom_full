@@ -1,41 +1,45 @@
 {% extends "core/base.html" %}
-{% block title %}Pré-Planos{% endblock %}
-{% block page_title %}Pré-Planos{% endblock %}
+{% block title %}Ações{% endblock %}
+{% block page_title %}Ações{% endblock %}
 {% block nav_pp %}active{% endblock %}
-{% block topbar_actions %}<a href="{% url 'fire_actions:create' %}" class="btn btn-primary btn-sm">+ Novo Pré-Plano</a>{% endblock %}
+{% block topbar_actions %}<a href="{% url 'fire_actions:create' %}" class="btn btn-primary btn-sm">+ Anunciar ação</a>{% endblock %}
 {% block content %}
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+  <a href="?" class="btn btn-sm {% if not status %}btn-primary{% else %}btn-secondary{% endif %}">Todas</a>
+  {% for code, label in statuses %}<a href="?status={{ code }}" class="btn btn-sm {% if status == code %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>{% endfor %}
+</div>
 <div class="card">
-  <div class="card-title">{{ actions.count }} Pré-Plano{{ actions.count|pluralize:"s" }}</div>
+  <div class="card-title">{{ actions|length }} ação{{ actions|length|pluralize:"ões" }}</div>
   {% if actions %}
+  <div style="overflow-x:auto">
   <table>
-    <thead><tr><th>Nome</th><th>Responsável</th><th>Data</th><th>Parcelas</th><th>Estado</th><th>Ações</th></tr></thead>
+    <thead><tr><th>Nome</th><th>Tipo</th><th>Data</th><th>Estado</th><th>Responsável</th><th>Parcelas</th><th>Inscritos</th><th>Ações</th></tr></thead>
     <tbody>
     {% for a in actions %}
     <tr>
-      <td><a href="{% url 'fire_actions:detail' a.pk %}">{{ a.name }}</a></td>
-      <td>{{ a.responsible|default:"—" }}</td>
+      <td><a href="{% url 'fire_actions:detail' a.pk %}">{{ a.name }}</a>{% if a.training %} <span class="badge badge-gray">formação</span>{% endif %}</td>
+      <td>{{ a.get_action_type_display }}</td>
       <td>{{ a.scheduled_date|date:"d/m/Y" }}</td>
+      <td>{% if a.status == 'realizada' %}<span class="badge badge-green">Realizada</span>
+          {% elif a.status == 'confirmada' %}<span class="badge badge-green">Confirmada</span>
+          {% elif a.status == 'cancelada' %}<span class="badge badge-red">Cancelada</span>
+          {% elif a.status == 'adiada' %}<span class="badge badge-orange">Adiada</span>
+          {% else %}<span class="badge badge-orange">Prevista</span>{% endif %}</td>
+      <td>{% if a.responsible_user %}{{ a.responsible_user.operative.name|default:a.responsible_user.username }}{% else %}{{ a.responsible|default:"—" }}{% endif %}</td>
       <td>{{ a.parcels.count }}</td>
-      <td>
-        {% if a.status == 'Pre-Plano' %}<span class="badge badge-orange">Pré-Plano</span>
-        {% else %}<span class="badge badge-green">Executada</span>{% endif %}
-      </td>
+      <td>{{ a.n_part }}</td>
       <td style="white-space:nowrap">
-        <a href="{% url 'fire_actions:detail' a.pk %}" class="btn btn-secondary btn-sm">👁️</a>
-        <a href="{% url 'fire_actions:edit' a.pk %}" class="btn btn-secondary btn-sm">✏️</a>
-        {% if a.status == 'Pre-Plano' %}
-        <a href="{% url 'fire_actions:burning_plan_create_from' a.pk %}" class="btn btn-primary btn-sm">📄 Queima</a>
-        {% else %}
-        <a href="{% url 'fire_actions:burning_plan_detail' a.burningplan.pk %}" class="btn btn-secondary btn-sm">📄</a>
-        {% endif %}
-        {% if request.user.is_staff %}<a href="{% url 'fire_actions:delete' a.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}
+        <a href="{% url 'fire_actions:detail' a.pk %}" class="btn btn-secondary btn-sm" title="Ver detalhe">👁️</a>
+        {% if a.status == 'realizada' and a.burningplan %}<a href="{% url 'fire_actions:burning_plan_detail' a.burningplan.pk %}" class="btn btn-secondary btn-sm" title="Plano de queima">📄</a>{% endif %}
+        {% if request.user.is_staff %}<a href="{% url 'fire_actions:delete' a.pk %}" class="btn btn-danger btn-sm" title="Eliminar">🗑️</a>{% endif %}
       </td>
     </tr>
     {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
-  <p style="color:var(--dim)">Nenhum pré-plano. <a href="{% url 'fire_actions:create' %}">Criar →</a></p>
+  <p style="color:var(--dim)">Nenhuma ação. <a href="{% url 'fire_actions:create' %}">Anunciar →</a></p>
   {% endif %}
 </div>
 {% endblock %}

@@ -4,26 +4,177 @@
 {% block page_title %}{{ action.name }}{% endblock %}
 {% block nav_pp %}active{% endblock %}
 {% block topbar_actions %}
-  <a href="{% url 'fire_actions:edit' action.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>
-  {% if not has_bp %}<a href="{% url 'fire_actions:burning_plan_create_from' action.pk %}" class="btn btn-primary btn-sm">📄 Criar Plano de Queima</a>{% endif %}
+  <a href="{% url 'fire_actions:ics' action.pk %}" class="btn btn-secondary btn-sm" title="Adicionar à agenda">📅 .ics</a>
+  {% if can_manage %}<a href="{% url 'fire_actions:edit' action.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
+  {% if has_bp %}<a href="{% url 'fire_actions:burning_plan_detail' action.burningplan.pk %}" class="btn btn-secondary btn-sm">📄 Plano de Queima</a>
+  {% elif can_manage and action.status != 'cancelada' %}<a href="{% url 'fire_actions:burning_plan_create_from' action.pk %}" class="btn btn-primary btn-sm">📄 Registar execução</a>{% endif %}
+{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  .kv td:first-child { color:var(--dim); width:40% }
+  .prob { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600 }
+  .prob-alta { background:#1e4a2a; color:#6fcf97 } .prob-media { background:#3a2e10; color:#f5c242 }
+  .prob-baixa { background:#3a1010; color:#e57373 } .prob-none { background:var(--bg3); color:var(--dim) }
+  .outlook { border:1px solid var(--border); border-radius:6px; padding:10px 12px; margin-bottom:10px }
+  .outlook ul { margin:6px 0 0 18px; font-size:12.5px; color:var(--dim) }
+  .inline-form { display:flex; gap:6px; align-items:center; flex-wrap:wrap }
+  .inline-form input, .inline-form select { width:auto }
+</style>
 {% endblock %}
 {% block content %}
-<div class="card" style="max-width:600px">
-  <div class="card-title">Informação</div>
-  <table><tbody>
-    <tr><td style="color:var(--dim);width:40%">Responsável</td><td>{{ action.responsible|default:"—" }}</td></tr>
-    <tr><td style="color:var(--dim)">Data prevista</td><td>{{ action.scheduled_date|date:"d/m/Y" }}</td></tr>
-    <tr><td style="color:var(--dim)">Estado</td><td>
-      {% if action.status == 'Pre-Plano' %}<span class="badge badge-orange">Pré-Plano</span>
-      {% else %}<span class="badge badge-green">Executada</span>{% endif %}
-    </td></tr>
-    <tr><td style="color:var(--dim)">Parcelas</td><td>{% for p in action.parcels.all %}<a href="{% url 'parcelas:detail' p.pk %}">{{ p.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
-    <tr><td style="color:var(--dim)">Notas</td><td>{{ action.notes|default:"—" }}</td></tr>
-  </tbody></table>
-  <div class="btn-group">
-    {% if has_bp %}<a href="{% url 'fire_actions:burning_plan_detail' action.burningplan.pk %}" class="btn btn-secondary btn-sm">📄 Ver Plano de Queima</a>{% endif %}
-    <a href="{% url 'fire_actions:list' %}" class="btn btn-secondary btn-sm">← Voltar</a>
+{% if action.status == 'cancelada' %}<div class="msg msg-error"><strong>Ação cancelada.</strong> {{ action.status_reason }}</div>
+{% elif action.status == 'adiada' %}<div class="msg msg-info"><strong>Ação adiada</strong> — nova data a definir. {{ action.status_reason }}</div>
+{% elif action.status == 'realizada' %}<div class="msg msg-ok"><strong>Ação realizada</strong>{% if action.execution_date %} em {{ action.execution_date|date:"d/m/Y" }}{% endif %}.</div>{% endif %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;align-items:start">
+  <div>
+    <div class="card">
+      <div class="card-title">Ação</div>
+      <table class="kv"><tbody>
+        <tr><td>Estado</td><td><strong>{{ action.get_status_display }}</strong></td></tr>
+        <tr><td>Tipo</td><td>{{ action.get_action_type_display }}{% if action.purpose %} — {{ action.get_purpose_display }}{% endif %}{% if action.training %} · <span class="badge badge-gray">ação de formação</span>{% endif %}</td></tr>
+        <tr><td>Data</td><td>{{ action.scheduled_date|date:"l, d/m/Y" }}{% if action.start_time %} às {{ action.start_time|time:"H:i" }}{% endif %}</td></tr>
+        {% if action.alt_date_1 or action.alt_date_2 %}<tr><td>Datas alternativas</td><td>{{ action.alt_date_1|date:"d/m/Y" }}{% if action.alt_date_1 and action.alt_date_2 %}, {% endif %}{{ action.alt_date_2|date:"d/m/Y" }}</td></tr>{% endif %}
+        <tr><td>Técnico responsável</td><td>{% if action.responsible_user %}{{ action.responsible_user.operative.name|default:action.responsible_user.username }}{% if action.responsible_user.operative.credential_number %} (n.º {{ action.responsible_user.operative.credential_number }}){% endif %}{% else %}{{ action.responsible|default:"—" }}{% endif %}</td></tr>
+        <tr><td>Objetivos</td><td>{{ action.objectives_display|default:"—" }}</td></tr>
+        <tr><td>Ponto de encontro</td><td>{{ action.meeting_notes|default:"—" }}{% if action.meeting_point %} · <a href="https://www.google.com/maps?q={{ action.meeting_point.y }},{{ action.meeting_point.x }}" target="_blank">abrir no mapa ↗</a>{% endif %}</td></tr>
+        {% if action.requirements %}<tr><td>O que levar</td><td>{{ action.requirements|linebreaksbr }}</td></tr>{% endif %}
+        <tr><td>Parcelas</td><td>{% for p in action.parcels.all %}<a href="{% url 'parcelas:detail' p.pk %}">{{ p.name }}</a>{% if p.concelho %} ({{ p.concelho }}){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+        {% if action.notes %}<tr><td>Notas</td><td>{{ action.notes|linebreaksbr }}</td></tr>{% endif %}
+        <tr><td>Anunciada por</td><td>{{ action.created_by.username|default:"—" }} · {{ action.created_at|date:"d/m/Y" }}</td></tr>
+      </tbody></table>
+    </div>
+
+    {% if outlooks %}
+    <div class="card">
+      <div class="card-title">Previsão e probabilidade de realização</div>
+      {% for o in outlooks %}
+      <div class="outlook">
+        <strong>{{ o.date|date:"D d/m" }}</strong>
+        <span class="prob prob-{{ o.probability|default:'none' }}">{{ o.probability_label }}</span>
+        {% if o.manual %}<span style="font-size:11.5px;color:var(--dim)"> definida pelo técnico (sugestão: {{ o.suggested_label }})</span>{% endif %}
+        {% if o.blocked %}<span class="badge badge-red">queima não permitida</span>{% endif %}
+        {% if o.fuel %}<div style="font-size:12.5px;margin-top:4px">🌡️ máx. {{ o.fuel.t_max|floatformat:0 }} °C · 💧 HR mín. {{ o.fuel.rh_min|floatformat:0 }}% · 💨 vento máx. {{ o.fuel.wind_max|floatformat:0 }} km/h · 🌧️ {{ o.fuel.rain|default:0|floatformat:1 }} mm · {{ o.fuel.dry_days }} dia(s) sem chuva</div>{% endif %}
+        <ul>{% for r in o.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+      </div>
+      {% endfor %}
+      <p style="font-size:11.5px;color:var(--dim)">Humidade do combustível estimada como na página de Meteorologia (Open-Meteo, 16 dias). Perigo de incêndio rural do IPMA (publicado a 3 dias). Estimativas: não substituem a avaliação do técnico no dia.</p>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-title">Enquadramento legal</div>
+      {% if action.action_type == 'fogo_controlado' %}
+        <table class="kv"><tbody><tr><td>PFC</td><td>{{ action.pfc_reference|default:"—" }}</td></tr></tbody></table>
+      {% else %}
+        <table class="kv"><tbody>
+          <tr><td>Município</td><td>{{ action.get_legal_mode_display|default:"—" }}</td></tr>
+          <tr><td>Referência / data</td><td>{{ action.legal_reference|default:"—" }}{% if action.legal_date %} · {{ action.legal_date|date:"d/m/Y" }}{% endif %}{% if action.legal_document %} · <a href="{{ action.legal_document.url }}" target="_blank">documento</a>{% endif %}</td></tr>
+          {% if action.accompaniment %}<tr><td>Acompanhamento</td><td>{{ action.accompaniment }}</td></tr>{% endif %}
+        </tbody></table>
+      {% endif %}
+      {% if action.legal_missing %}<div class="msg msg-error" style="margin-top:10px">Em falta: {{ action.legal_missing|join:"; " }}.</div>
+      {% else %}<div class="msg msg-ok" style="margin-top:10px">Enquadramento legal completo.</div>{% endif %}
+    </div>
+
+    {% if can_manage and action.is_open %}
+    <div class="card">
+      <div class="card-title">Estado da ação</div>
+      <div style="display:grid;gap:10px">
+        {% if action.status != 'confirmada' %}
+        <form method="post" action="{% url 'fire_actions:status' action.pk %}">{% csrf_token %}
+          <input type="hidden" name="status" value="confirmada">
+          <button class="btn btn-primary btn-sm">✅ Confirmar a ação</button>
+          <span style="font-size:12px;color:var(--dim)"> exige enquadramento legal completo e perigo IPMA abaixo de «muito elevado»</span>
+        </form>{% endif %}
+        <form method="post" action="{% url 'fire_actions:status' action.pk %}" class="inline-form">{% csrf_token %}
+          <input type="hidden" name="status" value="adiada">
+          <input type="date" name="new_date" title="Nova data (opcional)">
+          <input type="text" name="reason" placeholder="Motivo (opcional)">
+          <button class="btn btn-secondary btn-sm">⏸ Adiar</button>
+        </form>
+        <form method="post" action="{% url 'fire_actions:status' action.pk %}" class="inline-form">{% csrf_token %}
+          <input type="hidden" name="status" value="cancelada">
+          <input type="text" name="reason" placeholder="Motivo do cancelamento" required>
+          <button class="btn btn-danger btn-sm">✖ Cancelar</button>
+        </form>
+      </div>
+      <p style="font-size:11.5px;color:var(--dim);margin-top:8px">Os inscritos são avisados por email das alterações.</p>
+    </div>
+    {% elif can_manage and action.status == 'cancelada' %}
+    <form method="post" action="{% url 'fire_actions:status' action.pk %}" style="margin-bottom:16px">{% csrf_token %}
+      <input type="hidden" name="status" value="prevista"><button class="btn btn-secondary btn-sm">↺ Reabrir a ação</button></form>
+    {% endif %}
+
+    {% if can_manage and action.status != 'cancelada' and action.scheduled_date <= today %}
+    <div class="card">
+      <div class="card-title">Comunicações à proteção civil (início e fim da operação)</div>
+      <table class="kv"><tbody>
+        <tr><td>Início comunicado</td><td>{% if action.comm_start_at %}{{ action.comm_start_at|date:"d/m/Y H:i" }} por {{ action.comm_start_by.username }}{% else %}
+          <form method="post" action="{% url 'fire_actions:communication' action.pk %}">{% csrf_token %}<input type="hidden" name="which" value="inicio"><button class="btn btn-primary btn-sm">📞 Registar início comunicado</button></form>{% endif %}</td></tr>
+        <tr><td>Fim comunicado</td><td>{% if action.comm_end_at %}{{ action.comm_end_at|date:"d/m/Y H:i" }} por {{ action.comm_end_by.username }}{% elif action.comm_start_at %}
+          <form method="post" action="{% url 'fire_actions:communication' action.pk %}">{% csrf_token %}<input type="hidden" name="which" value="fim"><button class="btn btn-primary btn-sm">📞 Registar fim comunicado</button></form>{% else %}—{% endif %}</td></tr>
+      </tbody></table>
+      <p style="font-size:11.5px;color:var(--dim);margin-top:6px">Todas as ações de fogo técnico são comunicadas ao comando de emergência e proteção civil (art. 63.º do DL 82/2021) e ao GTF municipal.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card" style="padding:0;overflow:hidden"><div id="map" style="height:320px"></div></div>
+
+    <div class="card">
+      <div class="card-title">Participantes ({{ participations|length }}{% if action.slots %} · {{ action.slots }} vagas{% endif %})</div>
+      {% if action.is_open %}
+      <form method="post" action="{% url 'fire_actions:participate' action.pk %}" class="inline-form" style="margin-bottom:12px">{% csrf_token %}
+        <select name="intent">
+          <option value="vou" {% if my_part.intent == 'vou' %}selected{% endif %}>Vou participar</option>
+          <option value="talvez" {% if my_part.intent == 'talvez' %}selected{% endif %}>Talvez</option>
+          {% if my_part %}<option value="nao" {% if my_part.intent == 'nao' %}selected{% endif %}>Não vou</option>{% endif %}
+        </select>
+        <select name="role">{% for v, l in roles %}<option value="{{ v }}" {% if my_part.role == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        <input type="text" name="note" placeholder="Nota (opcional)" value="{{ my_part.note|default:'' }}">
+        <button class="btn btn-primary btn-sm">{% if my_part %}Atualizar{% else %}🙋 Inscrever-me{% endif %}</button>
+      </form>
+      {% if my_part %}<p style="font-size:12px;color:var(--dim);margin-bottom:10px">A sua inscrição: {{ my_part.get_intent_display }}{% if my_part.confirmed %} · <span class="badge badge-green">confirmada pelo técnico</span>{% elif my_part.confirmed == False %} · <span class="badge badge-red">não confirmada</span>{% endif %}</p>{% endif %}
+      {% endif %}
+      {% if participations %}
+      <table><thead><tr><th>Nome</th><th>Intenção</th><th>Função</th><th>Estado</th>{% if can_manage and action.is_open %}<th></th>{% endif %}</tr></thead><tbody>
+      {% for p in participations %}
+        <tr>
+          <td>{{ p.user.operative.name|default:p.user.username }}{% if p.user.operative.is_tecnico %} <span class="badge badge-gray">técnico</span>{% endif %}{% if p.note %}<br><span style="font-size:11.5px;color:var(--dim)">{{ p.note }}</span>{% endif %}</td>
+          <td>{{ p.get_intent_display }}</td>
+          <td>{{ p.get_role_display|default:"—" }}</td>
+          <td>{% if p.confirmed %}<span class="badge badge-green">confirmado</span>{% elif p.confirmed == False %}<span class="badge badge-red">não confirmado</span>{% else %}<span class="badge badge-gray">por confirmar</span>{% endif %}</td>
+          {% if can_manage and action.is_open %}<td style="white-space:nowrap">
+            <form method="post" action="{% url 'fire_actions:participant_decision' action.pk p.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="decision" value="confirmar"><button class="btn btn-secondary btn-sm" title="Confirmar">✓</button></form>
+            <form method="post" action="{% url 'fire_actions:participant_decision' action.pk p.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="decision" value="recusar"><button class="btn btn-secondary btn-sm" title="Não confirmar">✗</button></form>
+          </td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody></table>
+      {% else %}<p style="color:var(--dim);font-size:13px">Ainda sem inscrições.</p>{% endif %}
+    </div>
   </div>
 </div>
-<div style="max-width:900px">{% change_history action %}</div>
+<div style="margin-top:16px">{% change_history action %}</div>
+{{ map_data|json_script:"map-data" }}
+{% endblock %}
+{% block extra_js %}
+<script>
+const md = JSON.parse(document.getElementById('map-data').textContent);
+const osm = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png{% if carto_api_key %}?key={{ carto_api_key|urlencode }}{% endif %}', {
+  maxZoom: 19, attribution: '© OpenStreetMap © CARTO'
+});
+const sat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 21, subdomains: ['mt0','mt1','mt2','mt3'], attribution: '© Google' });
+const map = L.map('map', { layers: [osm] }).setView([37.2, -8.1], 9);
+L.control.layers({ 'Mapa': osm, 'Satélite': sat }, {}, { position: 'topright' }).addTo(map);
+const group = L.featureGroup().addTo(map);
+md.parcels.forEach(p => L.geoJSON(p.geojson, { style: { color: '#e8541a', weight: 2, fillOpacity: 0.3 } })
+  .bindTooltip(escHtml(p.name)).addTo(group));
+if (md.meeting) L.marker(md.meeting).bindTooltip('Ponto de encontro', { permanent: true }).addTo(group);
+if (group.getLayers().length) map.fitBounds(group.getBounds(), { padding: [30, 30], maxZoom: 15 });
+</script>
 {% endblock %}

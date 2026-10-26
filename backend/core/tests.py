@@ -130,7 +130,7 @@ class AuthTests(TestCase):
         self.assertContains(self.client.get('/manual/'), '← Voltar à aplicação')
 
     def test_pages_require_login(self):
-        for url in ['/', '/calendario/', '/meteorologia/', '/parcelas/', '/preplan/', '/operacionais/']:
+        for url in ['/', '/calendario/', '/meteorologia/', '/parcelas/', '/acoes/', '/operacionais/']:
             self.assertEqual(self.client.get(url).status_code, 302, url)
 
 
