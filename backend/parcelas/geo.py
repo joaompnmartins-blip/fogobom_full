@@ -79,7 +79,8 @@ def overlapping_parcels(geom, exclude_pk=None):
 
 # ── Terrain ──────────────────────────────────────────────────────────────────
 
-TERRAIN_ZOOM = 13          # MapTiler terrain-RGB, ~15 m/pixel at 37°N
+TERRAIN_ZOOM = 13          # MapTiler terrain-RGB v2 (512 px tiles): ~7.6 m/pixel at 37°N
+SLOPE_SCALE_M = 25         # slope over ~25 m (like EU-DEM): general slope, not micro-relief
 MAX_TILES = 9              # a z13 tile is ~3.9 km wide here; larger parcels fall back to Open-Meteo
 ASPECT_NAMES = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 FLAT_SLOPE_PCT = 2.0
@@ -93,8 +94,8 @@ def _tile_xy(lat, lng, z):
     return x, y
 
 
-def _pixel_lnglat(px, py, z):
-    n = 2 ** z * 256
+def _pixel_lnglat(px, py, z, tile_px):
+    n = 2 ** z * tile_px
     lng = px / n * 360 - 180
     lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * py / n))))
     return lng, lat
@@ -118,42 +119,49 @@ def terrain_maptiler(geom):
         raise RuntimeError('MAPTILER_API_KEY não configurada')
     z = TERRAIN_ZOOM
     xmin, ymin, xmax, ymax = geom.extent  # lng/lat
-    tx0, ty0 = (int(v) for v in _tile_xy(ymax, xmin, z))
-    tx1, ty1 = (int(v) for v in _tile_xy(ymin, xmax, z))
+    gx0, gy0 = _tile_xy(ymax, xmin, z)    # fractional tile coordinates of the bbox corners
+    gx1, gy1 = _tile_xy(ymin, xmax, z)
+    tx0, ty0, tx1, ty1 = int(gx0), int(gy0), int(gx1), int(gy1)
     tiles = [(tx, ty) for tx in range(tx0, tx1 + 1) for ty in range(ty0, ty1 + 1)]
     if len(tiles) > MAX_TILES:
         raise RuntimeError('parcela demasiado grande para o cálculo automático do relevo')
 
-    # Mosaic elevations into one grid (plus a 1-pixel margin is implicit at tile edges)
-    w, h = (tx1 - tx0 + 1) * 256, (ty1 - ty0 + 1) * 256
-    elev = [[None] * w for _ in range(h)]
+    images = {}
     for tx, ty in tiles:
         url = f'https://api.maptiler.com/tiles/terrain-rgb-v2/{z}/{tx}/{ty}.png?key={urllib.parse.quote(key)}'
-        data = list(Image.open(io.BytesIO(_fetch(url))).convert('RGB').getdata())
-        ox, oy = (tx - tx0) * 256, (ty - ty0) * 256
-        for j in range(256):
+        images[(tx, ty)] = Image.open(io.BytesIO(_fetch(url))).convert('RGB')
+    # terrain-rgb-v2 serves 512 px tiles; read the size instead of assuming it
+    tp = next(iter(images.values())).size[0]
+
+    # Mosaic elevations into one grid
+    w, h = (tx1 - tx0 + 1) * tp, (ty1 - ty0 + 1) * tp
+    elev = [[None] * w for _ in range(h)]
+    for (tx, ty), img in images.items():
+        data = list(img.getdata())
+        ox, oy = (tx - tx0) * tp, (ty - ty0) * tp
+        for j in range(tp):
             row = elev[oy + j]
-            for i in range(256):
-                r, g, b = data[j * 256 + i]
+            for i in range(tp):
+                r, g, b = data[j * tp + i]
                 row[ox + i] = -10000 + (r * 65536 + g * 256 + b) * 0.1
 
     lat_c = (ymin + ymax) / 2
-    cell = math.cos(math.radians(lat_c)) * 2 * math.pi * 6378137 / (256 * 2 ** z)
+    cell = math.cos(math.radians(lat_c)) * 2 * math.pi * 6378137 / (tp * 2 ** z)
+    # Horn kernel spaced k pixels apart so the slope is measured over ~SLOPE_SCALE_M
+    k = max(1, round(SLOPE_SCALE_M / cell))
     # Only visit pixels inside the parcel's bounding box
-    gx0, gy0 = _tile_xy(ymax, xmin, z)
-    gx1, gy1 = _tile_xy(ymin, xmax, z)
-    i0, i1 = max(int(gx0 * 256) - tx0 * 256, 1), min(int(gx1 * 256) - tx0 * 256 + 1, w - 2)
-    j0, j1 = max(int(gy0 * 256) - ty0 * 256, 1), min(int(gy1 * 256) - ty0 * 256 + 1, h - 2)
+    i0, i1 = max(int(gx0 * tp) - tx0 * tp, k), min(int(gx1 * tp) - tx0 * tp + 1, w - 1 - k)
+    j0, j1 = max(int(gy0 * tp) - ty0 * tp, k), min(int(gy1 * tp) - ty0 * tp + 1, h - 1 - k)
     inside = geom.prepared
+    e = elev
     alts, slopes, sx, sy = [], [], 0.0, 0.0
     for j in range(j0, j1 + 1):
         for i in range(i0, i1 + 1):
-            lng, lat = _pixel_lnglat(tx0 * 256 + i + 0.5, ty0 * 256 + j + 0.5, z)
+            lng, lat = _pixel_lnglat(tx0 * tp + i + 0.5, ty0 * tp + j + 0.5, z, tp)
             if not inside.contains(Point(lng, lat, srid=4326)):
                 continue
-            e = elev
-            dzdx = ((e[j-1][i+1] + 2*e[j][i+1] + e[j+1][i+1]) - (e[j-1][i-1] + 2*e[j][i-1] + e[j+1][i-1])) / (8 * cell)
-            dzdy = ((e[j-1][i-1] + 2*e[j-1][i] + e[j-1][i+1]) - (e[j+1][i-1] + 2*e[j+1][i] + e[j+1][i+1])) / (8 * cell)
+            dzdx = ((e[j-k][i+k] + 2*e[j][i+k] + e[j+k][i+k]) - (e[j-k][i-k] + 2*e[j][i-k] + e[j+k][i-k])) / (8 * k * cell)
+            dzdy = ((e[j-k][i-k] + 2*e[j-k][i] + e[j-k][i+k]) - (e[j+k][i-k] + 2*e[j+k][i] + e[j+k][i+k])) / (8 * k * cell)
             alts.append(e[j][i])
             slopes.append(math.hypot(dzdx, dzdy) * 100)
             # downslope direction (east, north components)
@@ -162,10 +170,10 @@ def terrain_maptiler(geom):
     if not alts:   # very small parcel: use the pixel at the centroid
         c = geom.centroid
         x, y = _tile_xy(c.y, c.x, z)
-        i, j = int(x * 256) - tx0 * 256, int(y * 256) - ty0 * 256
-        i, j = min(max(i, 1), w - 2), min(max(j, 1), h - 2)
+        i, j = int(x * tp) - tx0 * tp, int(y * tp) - ty0 * tp
+        i, j = min(max(i, k), w - 1 - k), min(max(j, k), h - 1 - k)
         alts, slopes = [elev[j][i]], [0.0]
-    return _summary(alts, slopes, sx, sy, 'MapTiler (~15 m)')
+    return _summary(alts, slopes, sx, sy, f'MapTiler (~{cell:.0f} m)')
 
 
 def terrain_open_meteo(geom):

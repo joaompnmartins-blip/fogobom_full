@@ -1076,7 +1076,7 @@ function fmBarColor(fm) { return classifyFM(fm).color; }
 //   elevation (m) = -10000 + (R*65536 + G*256 + B) * 0.1
 
 const MAPTILER_KEY = FIREDPT_CONFIG.maptilerKey;  // from MAPTILER_API_KEY env var
-const TERRAIN_ZOOM = 13;                        // ~10 m/pixel; use 12 (~20 m) to save tiles
+const TERRAIN_ZOOM = 13;                        // ~7.6 m/pixel (512 px tiles); use 12 (~15 m) to save tiles
 const DEM_D = 0.0008333;                        // ~90 m offset, fallback only
 
 // ── Shared Horn (1981) gradient estimator ────────────────────────────────────
@@ -1098,21 +1098,24 @@ function latLngToTile(lat, lng, zoom) {
   return { x, y, n };
 }
 
-function latLngToPixel(lat, lng, zoom) {
+// MapTiler terrain-rgb-v2 serves 512×512 tiles (assuming 256 read the wrong pixel)
+const TERRAIN_TILE_PX = 512;
+
+function latLngToPixel(lat, lng, zoom, tilePx = TERRAIN_TILE_PX) {
   const { x, y, n } = latLngToTile(lat, lng, zoom);
-  const totalX = (lng + 180) / 360 * n * 256;
+  const totalX = (lng + 180) / 360 * n * tilePx;
   const latRad  = lat * Math.PI / 180;
-  const totalY  = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n * 256;
+  const totalY  = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n * tilePx;
   return {
     tileX: x, tileY: y,
-    px: Math.floor(totalX) % 256,
-    py: Math.floor(totalY) % 256,
+    px: Math.floor(totalX) % tilePx,
+    py: Math.floor(totalY) % tilePx,
   };
 }
 
 // Metres per pixel at a given latitude and zoom level
-function metresPerPixel(lat, zoom) {
-  return (Math.cos(lat * Math.PI / 180) * 2 * Math.PI * 6378137) / (256 * Math.pow(2, zoom));
+function metresPerPixel(lat, zoom, tilePx = TERRAIN_TILE_PX) {
+  return (Math.cos(lat * Math.PI / 180) * 2 * Math.PI * 6378137) / (tilePx * Math.pow(2, zoom));
 }
 
 // Load an image via a hidden <img> element (handles CORS via crossOrigin)
@@ -1156,8 +1159,8 @@ async function fetchTerrainMapTiler(lat, lng) {
   // Unique tile coords
   const needed = {};
   tileOffsets.forEach(([dpx, dpy]) => {
-    const tx = tileX + (px + dpx < 0 ? -1 : px + dpx >= 256 ? 1 : 0);
-    const ty = tileY + (py + dpy < 0 ? -1 : py + dpy >= 256 ? 1 : 0);
+    const tx = tileX + (px + dpx < 0 ? -1 : px + dpx >= TERRAIN_TILE_PX ? 1 : 0);
+    const ty = tileY + (py + dpy < 0 ? -1 : py + dpy >= TERRAIN_TILE_PX ? 1 : 0);
     const key = `${tx}_${ty}`;
     if (!needed[key]) needed[key] = { tx, ty };
   });
@@ -1168,7 +1171,8 @@ async function fetchTerrainMapTiler(lat, lng) {
     const url = `https://api.maptiler.com/tiles/terrain-rgb-v2/${zoom}/${tx}/${ty}.png?key=${MAPTILER_KEY}`;
     const img = await loadImage(url);
     const c = document.createElement('canvas');
-    c.width = c.height = 256;
+    c.width = img.naturalWidth || TERRAIN_TILE_PX;
+    c.height = img.naturalHeight || TERRAIN_TILE_PX;
     c.getContext('2d').drawImage(img, 0, 0);
     canvases[`${tx}_${ty}`] = c;
   }));
@@ -1177,10 +1181,10 @@ async function fetchTerrainMapTiler(lat, lng) {
   function elevAt(dpx, dpy) {
     let apx = px + dpx, apy = py + dpy;
     let atx = tileX, aty = tileY;
-    if (apx < 0)   { atx--; apx += 256; }
-    if (apx >= 256){ atx++; apx -= 256; }
-    if (apy < 0)   { aty--; apy += 256; }
-    if (apy >= 256){ aty++; apy -= 256; }
+    if (apx < 0)                { atx--; apx += TERRAIN_TILE_PX; }
+    if (apx >= TERRAIN_TILE_PX) { atx++; apx -= TERRAIN_TILE_PX; }
+    if (apy < 0)                { aty--; apy += TERRAIN_TILE_PX; }
+    if (apy >= TERRAIN_TILE_PX) { aty++; apy -= TERRAIN_TILE_PX; }
     const ctx = canvases[`${atx}_${aty}`];
     if (!ctx) return 0;
     const [r, g, b] = ctx.getContext('2d').getImageData(apx, apy, 1, 1).data;

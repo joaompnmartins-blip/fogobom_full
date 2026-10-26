@@ -317,12 +317,12 @@ class ActionParcelSelectionTests(TestCase):
 class TerrainTests(TestCase):
     """Terrain from a synthetic MapTiler tile: elevation rises 1.5 m per pixel to the east."""
 
-    def tile_png(self, per_px=1.5):
-        img = Image.new('RGB', (256, 256))
+    def tile_png(self, size, per_px=1.5):
+        img = Image.new('RGB', (size, size))
         px = img.load()
-        for i in range(256):
+        for i in range(size):
             v = int(round((100 + i * per_px + 10000) / 0.1))
-            for j in range(256):
+            for j in range(size):
                 px[i, j] = (v >> 16 & 255, v >> 8 & 255, v & 255)
         buf = io.BytesIO()
         img.save(buf, 'PNG')
@@ -331,11 +331,22 @@ class TerrainTests(TestCase):
     @override_settings(MAPTILER_API_KEY='k')
     def test_maptiler_slope_and_aspect(self):
         geom = GEOSGeometry(wkt(-8.02, 37.1, 0.004, 0.003), srid=4326)   # inside a single z13 tile
-        with mock.patch('parcelas.geo._fetch', return_value=self.tile_png()):
+        for size in (256, 512):   # terrain-rgb-v2 serves 512 px tiles; the size is read from the image
+            with mock.patch('parcelas.geo._fetch', return_value=self.tile_png(size)):
+                t = geo.terrain_maptiler(geom)
+            cell = geo.math.cos(geo.math.radians(37.1015)) * 2 * geo.math.pi * 6378137 / (size * 2 ** geo.TERRAIN_ZOOM)
+            self.assertAlmostEqual(t['slope_pct'], 1.5 / cell * 100, delta=0.4, msg=size)
+            self.assertEqual(t['aspect'], 'W', msg=size)   # rises to the east → faces west
+
+    @override_settings(MAPTILER_API_KEY='k')
+    def test_maptiler_altitude_reads_the_right_pixel(self):
+        # Elevation = 100 + 1.5 * column; the parcel sits at a known column of a 512 px tile
+        geom = GEOSGeometry(wkt(-8.02, 37.1, 0.004, 0.003), srid=4326)
+        with mock.patch('parcelas.geo._fetch', return_value=self.tile_png(512)):
             t = geo.terrain_maptiler(geom)
-        cell = geo.math.cos(geo.math.radians(37.1015)) * 2 * geo.math.pi * 6378137 / (256 * 2 ** geo.TERRAIN_ZOOM)
-        self.assertAlmostEqual(t['slope_pct'], 1.5 / cell * 100, delta=0.2)
-        self.assertEqual(t['aspect'], 'W')   # rises to the east → faces west
+        x, _ = geo._tile_xy(37.1015, -8.018, geo.TERRAIN_ZOOM)
+        expected = 100 + 1.5 * (x - int(x)) * 512
+        self.assertAlmostEqual(t['altitude_m'], expected, delta=3)
 
     def test_flat_is_plano(self):
         self.assertEqual(geo._summary([10, 10], [0.5], 0, 0, 'x')['aspect'], 'plano')
