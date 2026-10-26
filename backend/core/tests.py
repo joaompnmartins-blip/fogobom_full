@@ -21,8 +21,9 @@ class AuthTests(TestCase):
         self.staff = User.objects.create_user('staff', password='x', is_staff=True)
 
     def register(self, **overrides):
-        data = {'form_type': 'register', 'reg_username': 'novo', 'reg_email': 'novo@example.com',
-                'reg_password': STRONG_PW, 'reg_confirm': STRONG_PW, **overrides}
+        data = {'form_type': 'register', 'reg_username': 'novo', 'reg_fullname': 'Novo Utilizador',
+                'reg_email': 'novo@example.com', 'reg_password': STRONG_PW, 'reg_confirm': STRONG_PW,
+                **overrides}
         with mock.patch('core.views._send_async') as send:
             response = self.client.post('/login/', data)
         return response, send

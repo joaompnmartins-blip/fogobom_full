@@ -1,0 +1,69 @@
+{% extends 'core/base.html' %}
+{% block title %}O meu perfil{% endblock %}
+{% block page_title %}O meu perfil{% endblock %}
+{% block nav_profile %}active{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start">
+  <div class="card">
+    <div class="card-title">Os meus dados</div>
+    <form method="post">{% csrf_token %}
+      <div class="form-row"><div class="field"><label>Nome completo *</label>
+        <input type="text" name="name" value="{{ op.name|default:'' }}" required></div></div>
+      <div class="form-row cols-2">
+        <div class="field"><label>Telefone</label><input type="text" name="phone" value="{{ op.phone|default:'' }}"></div>
+        <div class="field"><label>NIF</label><input type="text" name="nif" value="{{ op.nif|default:'' }}"></div>
+      </div>
+      <div class="form-row"><div class="field"><label>Credenciação em fogo controlado</label>
+        <select name="credential_type" id="cred-type" onchange="credToggle()">
+          {% for value, label in types %}<option value="{{ value }}" {% if op.credential_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></div></div>
+      <div class="form-row" id="cred-number"><div class="field"><label>N.º de credenciação ICNF</label>
+        <input type="text" name="credential_number" value="{{ op.credential_number|default:'' }}" placeholder="ex.: 547-2026"></div></div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Se alterar o tipo ou o n.º de credenciação de técnico, a credenciação volta a ser validada pelo administrador.</p>
+      <div class="btn-group"><button type="submit" class="btn btn-primary">💾 Guardar</button></div>
+    </form>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-title">Conta</div>
+      <table><tbody>
+        <tr><td style="color:var(--dim);width:40%">Utilizador</td><td>{{ request.user.username }}</td></tr>
+        <tr><td style="color:var(--dim)">Email</td><td>{{ request.user.email }}</td></tr>
+        <tr><td style="color:var(--dim)">Planos de queima em que participou</td><td>{{ participations }}</td></tr>
+      </tbody></table>
+      <div class="btn-group"><a href="{% url 'core:password_change' %}" class="btn btn-secondary btn-sm">🔑 Alterar password</a></div>
+    </div>
+
+    {% if op.credential_type == 'tecnico_fc' %}
+    <div class="card">
+      <div class="card-title">Credenciação de técnico</div>
+      <table><tbody>
+        <tr><td style="color:var(--dim);width:40%">N.º ICNF</td><td>{{ op.credential_number|default:"—" }}</td></tr>
+        <tr><td style="color:var(--dim)">Estado</td><td>
+          {% if op.credential_status == 'validada' %}<span class="badge badge-green">Validada</span>
+          {% elif op.credential_status == 'pendente' %}<span class="badge badge-orange">Por validar</span>
+          {% elif op.credential_status == 'recusada' %}<span class="badge badge-red">Recusada</span>
+          {% else %}—{% endif %}</td></tr>
+        {% if op.credential_status == 'validada' %}
+        <tr><td style="color:var(--dim)">Validade</td><td>{% if op.credential_lifetime %}Vitalícia{% else %}{{ op.credential_valid_until|date:"d/m/Y"|default:"—" }}{% endif %}</td></tr>
+        {% endif %}
+      </tbody></table>
+      {% if op.credential_status == 'recusada' %}<div class="msg msg-error" style="margin-top:10px">Motivo: {{ op.credential_rejection_reason }}. Corrija os dados e guarde para pedir nova validação.</div>{% endif %}
+      {% if op.credential_status == 'pendente' %}<div class="msg msg-info" style="margin-top:10px">O administrador vai confirmar o n.º com a lista oficial do ICNF. Receberá um email com o resultado.</div>{% endif %}
+      {% if op.credential_expired %}<div class="msg msg-error" style="margin-top:10px">A credenciação expirou. Enquanto não for renovada não tem acesso às funções de técnico.</div>
+      {% elif op.credential_expiring %}<div class="msg msg-info" style="margin-top:10px">A credenciação expira em breve. A renovação deve ser pedida ao ICNF nos 2 meses anteriores ao fim da validade.</div>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function credToggle(){
+  document.getElementById('cred-number').style.display =
+    document.getElementById('cred-type').value === 'tecnico_fc' ? 'block' : 'none';
+}
+credToggle();
+</script>
+{% endblock %}

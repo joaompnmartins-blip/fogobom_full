@@ -99,12 +99,14 @@
       <a href="{% url 'core:manual' %}" class="nav-item"><span class="ni">📖</span>Manual</a>
       {% if request.user.is_staff %}
       <div class="nav-sec">Administração</div>
-      <a href="{% url 'core:pending_users' %}" class="nav-item {% block nav_pending %}{% endblock %}"><span class="ni">👤</span>Utilizadores Pendentes</a>
+      <a href="{% url 'core:pending_users' %}" class="nav-item {% block nav_pending %}{% endblock %}"><span class="ni">✅</span>Validações{% if pending_validations %} <span class="badge badge-orange" style="margin-left:auto">{{ pending_validations }}</span>{% endif %}</a>
+      <a href="{% url 'core:icnf_list' %}" class="nav-item"><span class="ni">📋</span>Lista ICNF</a>
       {% endif %}
     </nav>
     <div class="sb-foot">
       {% if request.user.is_authenticated %}
       <div class="un">{{ request.user.username }}</div>
+      <a href="{% url 'core:profile' %}" class="btn-lo">👤 O meu perfil</a><br>
       <a href="{% url 'core:password_change' %}" class="btn-lo">🔑 Alterar password</a>
       <form method="post" action="{% url 'core:logout' %}">{% csrf_token %}
         <button type="submit" class="btn-lo">↩ Terminar sessão</button>

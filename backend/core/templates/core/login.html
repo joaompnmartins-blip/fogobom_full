@@ -21,8 +21,20 @@
     {% if reg_ok %}<div class="msg msg-ok">{{ reg_ok }}</div>{% endif %}
     <form method="post" action="{% url 'core:login' %}">
       {% csrf_token %}<input type="hidden" name="form_type" value="register">
-      <div class="field"><label>Utilizador</label><input type="text" name="reg_username" required></div>
-      <div class="field"><label>Email</label><input type="email" name="reg_email" required></div>
+      <div class="field"><label>Utilizador</label><input type="text" name="reg_username" value="{{ reg_values.username|default:'' }}" autocomplete="username" required></div>
+      <div class="field"><label>Nome completo</label><input type="text" name="reg_fullname" value="{{ reg_values.fullname|default:'' }}" autocomplete="name" required></div>
+      <div class="field"><label>Email</label><input type="email" name="reg_email" value="{{ reg_values.email|default:'' }}" autocomplete="email" required></div>
+      <div class="field"><label>Credenciação em fogo controlado</label>
+        <select name="reg_cred_type" id="reg-cred-type" onchange="credToggle()">
+          <option value="nenhuma" {% if reg_values.cred_type == 'nenhuma' %}selected{% endif %}>Sem credenciação</option>
+          <option value="operacional" {% if reg_values.cred_type == 'operacional' %}selected{% endif %}>Operacional de queima</option>
+          <option value="tecnico_fc" {% if reg_values.cred_type == 'tecnico_fc' %}selected{% endif %}>Técnico credenciado (ICNF)</option>
+        </select>
+      </div>
+      <div class="field" id="reg-cred-number" style="display:none"><label>N.º de credenciação ICNF</label>
+        <input type="text" name="reg_cred_number" value="{{ reg_values.cred_number|default:'' }}" placeholder="ex.: 547-2026">
+        <small style="display:block;margin-top:4px;color:var(--dim);font-size:12px">Será confirmado pelo administrador com a lista oficial do ICNF.</small>
+      </div>
       <div class="field"><label>Password</label><input type="password" name="reg_password" required></div>
       <div class="field"><label>Confirmar Password</label><input type="password" name="reg_confirm" required></div>
       <button type="submit" class="btn-sub">Criar Conta →</button>
@@ -35,6 +47,11 @@ function sw(t){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='login')||(i===1&&t==='reg')));
   document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',(i===0&&t==='login')||(i===1&&t==='reg')));
 }
+function credToggle(){
+  const t = document.getElementById('reg-cred-type').value;
+  document.getElementById('reg-cred-number').style.display = t === 'tecnico_fc' ? 'block' : 'none';
+}
+credToggle();
 {% if reg_error or reg_ok %}sw('reg');{% endif %}
 </script>
 {% endblock %}

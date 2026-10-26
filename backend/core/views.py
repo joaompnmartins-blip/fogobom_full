@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
+from django.db import transaction
 from django.conf import settings
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -117,10 +118,20 @@ def login_view(request):
                 ctx['login_error'] = 'Credenciais inválidas.'
 
         elif form_type == 'register':
-            username = request.POST.get('reg_username', '').strip()
-            email    = request.POST.get('reg_email', '').strip()
-            pw       = request.POST.get('reg_password', '')
-            confirm  = request.POST.get('reg_confirm', '')
+            from operatives.icnf import is_valid_number, normalize_number
+            from operatives.models import Operative
+            username  = request.POST.get('reg_username', '').strip()
+            full_name = ' '.join(request.POST.get('reg_fullname', '').split())
+            email     = request.POST.get('reg_email', '').strip()
+            pw        = request.POST.get('reg_password', '')
+            confirm   = request.POST.get('reg_confirm', '')
+            cred_type = request.POST.get('reg_cred_type', Operative.CRED_NENHUMA)
+            cred_num  = normalize_number(request.POST.get('reg_cred_number', ''))
+            if cred_type not in dict(Operative.CREDENTIAL_TYPES):
+                cred_type = Operative.CRED_NENHUMA
+            is_tecnico = cred_type == Operative.CRED_TECNICO
+            ctx['reg_values'] = {'username': username, 'fullname': full_name, 'email': email,
+                                 'cred_type': cred_type, 'cred_number': cred_num}
 
             try:
                 validate_email(email)
@@ -134,8 +145,13 @@ def login_view(request):
                 except ValidationError as e:
                     pw_errors = e.messages
 
-            if not all([username, email, pw, confirm]):
+            if not all([username, full_name, email, pw, confirm]):
                 ctx['reg_error'] = 'Preencha todos os campos.'
+            elif is_tecnico and not is_valid_number(cred_num):
+                ctx['reg_error'] = 'Indique o n.º de credenciação ICNF no formato número-ano (ex.: 547-2026).'
+            elif is_tecnico and Operative.objects.filter(credential_number=cred_num).exclude(
+                    credential_status=Operative.STATUS_RECUSADA).exists():
+                ctx['reg_error'] = 'Este n.º de credenciação já está associado a outra conta. Contacte o administrador.'
             elif not email_ok:
                 ctx['reg_error'] = 'Email inválido.'
             elif pw != confirm:
@@ -147,12 +163,22 @@ def login_view(request):
             elif User.objects.filter(email__iexact=email).exists():
                 ctx['reg_error'] = 'Email já registado.'
             else:
-                User.objects.create_user(username=username, email=email, password=pw, is_active=False)
+                with transaction.atomic():
+                    user = User.objects.create_user(username=username, email=email, password=pw, is_active=False)
+                    Operative.objects.create(
+                        user=user, name=full_name, email=email, phone='', certification_level='',
+                        credential_type=cred_type,
+                        credential_number=cred_num if is_tecnico else '',
+                        credential_status=Operative.STATUS_PENDENTE if is_tecnico else Operative.STATUS_NA,
+                    )
                 ctx['reg_ok'] = 'Registo submetido! Aguarde aprovação do administrador.'
+                ctx.pop('reg_values')
                 if settings.ADMIN_EMAIL:
+                    cred = f'\nCredenciação declarada: técnico credenciado n.º {cred_num} (por validar).' if is_tecnico else ''
                     _send_async(
                         '[Fogo Bom] Novo utilizador aguarda aprovação',
-                        f'O utilizador "{username}" ({email}) registou-se e aguarda aprovação.\n\nAprove ou recuse em: {request.build_absolute_uri("/utilizadores/pendentes/")}',
+                        f'O utilizador "{username}" — {full_name} ({email}) registou-se e aguarda aprovação.{cred}\n\n'
+                        f'Aprove ou recuse em: {request.build_absolute_uri("/utilizadores/pendentes/")}',
                         [settings.ADMIN_EMAIL],
                     )
 
@@ -180,7 +206,16 @@ def dashboard(request):
 
     recent_plans = BurningPlan.objects.select_related('pre_plan').order_by('-created_at')[:8]
 
+    expiring = []
+    if request.user.is_staff:
+        expiring = [op for op in Operative.objects.filter(credential_status=Operative.STATUS_VALIDADA,
+                                                          credential_lifetime=False,
+                                                          credential_valid_until__isnull=False)
+                    if op.credential_expiring or op.credential_expired]
+
     return render(request, 'core/dashboard.html', {
+        'my_op':               getattr(request.user, 'operative', None),
+        'expiring_credentials': expiring,
         'today':               today,
         'total_parcelas':      FireParcel.objects.count(),
         'total_preplans':      FireAction.objects.filter(status='Pre-Plano').count(),
@@ -207,8 +242,18 @@ def calendario(request):
 
 @staff_required
 def pending_users(request):
-    pending = _pending_users().order_by('date_joined')
-    return render(request, 'core/pending_users.html', {'pending': pending})
+    from operatives.icnf import match
+    from operatives.models import IcnfTechnician, Operative
+    pending = list(_pending_users().select_related('operative').order_by('date_joined'))
+    credentials = list(Operative.objects.filter(credential_status=Operative.STATUS_PENDENTE)
+                       .select_related('user').order_by('created_at'))
+    for op in credentials:
+        op.icnf = match(op.credential_number, op.name)
+    return render(request, 'core/pending_users.html', {
+        'pending':     pending,
+        'credentials': credentials,
+        'icnf_date':   IcnfTechnician.objects.values_list('list_date', flat=True).first(),
+    })
 
 
 @require_POST
@@ -232,7 +277,10 @@ def approve_user(request, user_id):
 def decline_user(request, user_id):
     user = get_object_or_404(_pending_users(), pk=user_id)
     email, username = user.email, user.username
-    user.delete()
+    with transaction.atomic():
+        from operatives.models import Operative
+        Operative.objects.filter(user=user).delete()  # profile created at registration
+        user.delete()
     if email:
         _send_async(
             '[Fogo Bom] Pedido de acesso recusado',

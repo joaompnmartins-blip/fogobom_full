@@ -1,34 +1,29 @@
 {% extends 'core/base.html' %}
-{% block title %}Utilizadores Pendentes{% endblock %}
-{% block page_title %}Utilizadores Pendentes{% endblock %}
+{% block title %}Validações{% endblock %}
+{% block page_title %}Utilizadores e credenciações por validar{% endblock %}
+{% block nav_pending %}active{% endblock %}
+{% block topbar_actions %}<a href="{% url 'core:icnf_list' %}" class="btn btn-secondary btn-sm">📋 Lista ICNF</a>{% endblock %}
 
 {% block content %}
-{% if pending %}
 <div class="card">
-  <div class="card-title">Aguardam Aprovação ({{ pending|length }})</div>
+  <div class="card-title">Contas a aguardar aprovação ({{ pending|length }})</div>
+  {% if pending %}
   <table>
-    <thead>
-      <tr>
-        <th>Utilizador</th>
-        <th>Email</th>
-        <th>Data de Registo</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
+    <thead><tr><th>Utilizador</th><th>Nome</th><th>Email</th><th>Credenciação declarada</th><th>Registo</th><th>Ações</th></tr></thead>
     <tbody>
       {% for u in pending %}
       <tr>
         <td>{{ u.username }}</td>
+        <td>{{ u.operative.name|default:"—" }}</td>
         <td>{{ u.email }}</td>
-        <td>{{ u.date_joined|date:"d/m/Y H:i" }}</td>
+        <td>{% if u.operative %}{{ u.operative.get_credential_type_display }}{% if u.operative.credential_number %} n.º {{ u.operative.credential_number }}{% endif %}{% else %}—{% endif %}</td>
+        <td style="white-space:nowrap">{{ u.date_joined|date:"d/m/Y H:i" }}</td>
         <td>
           <div style="display:flex;gap:8px;">
-            <form method="post" action="{% url 'core:approve_user' u.pk %}">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-primary">Aprovar</button>
+            <form method="post" action="{% url 'core:approve_user' u.pk %}">{% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-primary">Aprovar conta</button>
             </form>
-            <form method="post" action="{% url 'core:decline_user' u.pk %}">
-              {% csrf_token %}
+            <form method="post" action="{% url 'core:decline_user' u.pk %}">{% csrf_token %}
               <button type="submit" class="btn btn-sm btn-danger">Recusar</button>
             </form>
           </div>
@@ -37,8 +32,57 @@
       {% endfor %}
     </tbody>
   </table>
+  <p style="font-size:12px;color:var(--dim);margin-top:8px">Aprovar a conta permite entrar como participante. A credenciação de técnico é validada à parte, abaixo.</p>
+  {% else %}
+  <p style="color:var(--dim);font-size:13px">Sem contas pendentes.</p>
+  {% endif %}
 </div>
-{% else %}
-<div class="msg msg-ok">Sem utilizadores pendentes.</div>
-{% endif %}
+
+<div class="card">
+  <div class="card-title">Credenciações de técnico por validar ({{ credentials|length }})</div>
+  {% if not icnf_date %}
+  <div class="msg msg-info">A lista do ICNF ainda não foi carregada — <a href="{% url 'core:icnf_list' %}">carregar lista</a> para comparar automaticamente.</div>
+  {% else %}
+  <p style="font-size:12px;color:var(--dim);margin-bottom:10px">Comparação com a lista ICNF de {{ icnf_date|date:"d/m/Y" }}.</p>
+  {% endif %}
+  {% if credentials %}
+  <table>
+    <thead><tr><th>Pessoa</th><th>N.º declarado</th><th>Lista ICNF</th><th>Validar</th><th>Recusar</th></tr></thead>
+    <tbody>
+      {% for op in credentials %}
+      <tr>
+        <td>{{ op.name }}<br><span style="font-size:12px;color:var(--dim)">{{ op.user.username|default:"sem conta" }}{% if op.user and not op.user.is_active %} · conta pendente{% endif %}</span></td>
+        <td>{{ op.credential_number }}</td>
+        <td>
+          {% if op.icnf.found %}
+            {% if op.icnf.name_match %}<span class="badge badge-green">✓ N.º e nome coincidem</span>
+            {% else %}<span class="badge badge-orange">⚠ N.º existe, nome diferente</span>{% endif %}
+            <div style="font-size:12px;margin-top:4px">{{ op.icnf.record.text }} · validade:
+              {% if op.icnf.record.lifetime %}vitalícia{% else %}{{ op.icnf.record.valid_until|date:"d/m/Y" }}{% endif %}</div>
+          {% else %}
+            <span class="badge badge-red">✗ N.º não consta da lista</span>
+          {% endif %}
+        </td>
+        <td>
+          <form method="post" action="{% url 'core:credential_review' op.pk %}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">{% csrf_token %}
+            <input type="hidden" name="decision" value="validar">
+            {% if not op.icnf.found %}<input type="date" name="valid_until" title="Validade (opcional)" style="width:auto">{% endif %}
+            <button type="submit" class="btn btn-sm btn-primary">Validar</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="{% url 'core:credential_review' op.pk %}" style="display:flex;gap:6px;align-items:center">{% csrf_token %}
+            <input type="hidden" name="decision" value="recusar">
+            <input type="text" name="reason" placeholder="Motivo" required style="width:160px">
+            <button type="submit" class="btn btn-sm btn-danger">Recusar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--dim);font-size:13px">Sem credenciações por validar.</p>
+  {% endif %}
+</div>
 {% endblock %}

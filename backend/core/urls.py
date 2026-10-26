@@ -1,6 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 from django.views.generic import TemplateView
+from operatives import views as op_views
 from . import views
 
 app_name = 'core'
@@ -22,6 +23,9 @@ urlpatterns = [
     path('calendario/',   views.calendario,   name='calendario'),
     path('meteorologia/',                       views.meteorologia,  name='meteorologia'),
     path('utilizadores/pendentes/',             views.pending_users, name='pending_users'),
+    path('utilizadores/lista-icnf/',            op_views.icnf_list,  name='icnf_list'),
+    path('utilizadores/credenciacao/<int:pk>/', op_views.credential_review, name='credential_review'),
+    path('perfil/',                             op_views.profile,    name='profile'),
     path('utilizadores/<int:user_id>/aprovar/', views.approve_user,  name='approve_user'),
     path('utilizadores/<int:user_id>/recusar/', views.decline_user,  name='decline_user'),
 ]

@@ -7,11 +7,14 @@
 <div class="card">
   <div class="card-title">{{ operatives.count }} Operacional{{ operatives.count|pluralize:"is" }}</div>
   {% if operatives %}
-  <table><thead><tr><th>Nome</th><th>NIF</th><th>Email</th><th>Telefone</th><th>Certificação</th><th>Ações</th></tr></thead>
+  <table><thead><tr><th>Nome</th><th>NIF</th><th>Email</th><th>Telefone</th><th>Credenciação</th><th>Ações</th></tr></thead>
   <tbody>{% for op in operatives %}
   <tr>
     <td>{{ op.name }}</td><td>{{ op.nif|default:"—" }}</td><td>{{ op.email }}</td>
-    <td>{{ op.phone }}</td><td>{{ op.certification_level }}</td>
+    <td>{{ op.phone|default:"—" }}</td>
+    <td>{% if op.credential_type == 'tecnico_fc' %}Técnico {{ op.credential_number }}
+        {% if op.is_tecnico %}<span class="badge badge-green">validada</span>{% elif op.credential_status == 'pendente' %}<span class="badge badge-orange">por validar</span>{% elif op.credential_expired %}<span class="badge badge-red">expirada</span>{% else %}<span class="badge badge-red">{{ op.get_credential_status_display|lower }}</span>{% endif %}
+        {% elif op.credential_type == 'operacional' %}Operacional de queima{% else %}—{% endif %}</td>
     <td>
       <a href="{% url 'operatives:edit' op.pk %}" class="btn btn-secondary btn-sm">✏️</a>
       {% if request.user.is_staff %}<a href="{% url 'operatives:delete' op.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}

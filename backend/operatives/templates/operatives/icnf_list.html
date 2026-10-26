@@ -1,0 +1,44 @@
+{% extends 'core/base.html' %}
+{% block title %}Lista ICNF{% endblock %}
+{% block page_title %}Lista ICNF de técnicos credenciados{% endblock %}
+{% block nav_pending %}active{% endblock %}
+{% block content %}
+<div class="card" style="max-width:720px">
+  <div class="card-title">Atualizar lista</div>
+  <p style="font-size:13px;color:var(--dim);margin-bottom:12px">
+    {% if total %}Lista atual: <strong>{{ total }}</strong> técnicos{% if list_date %}, atualização do ICNF de {{ list_date|date:"d/m/Y" }}{% endif %}.
+    {% else %}Ainda não foi carregada nenhuma lista.{% endif %}
+    Carregue o PDF publicado pelo ICNF (“Técnicos credenciados em fogo controlado”). A lista anterior é substituída e
+    a validade dos técnicos já validados é atualizada automaticamente.
+  </p>
+  <form method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">{% csrf_token %}
+    <input type="file" name="lista" accept=".pdf" required style="color:var(--text)">
+    <button type="submit" class="btn btn-primary btn-sm">⬆ Carregar PDF</button>
+  </form>
+</div>
+
+{% if total %}
+<div class="card">
+  <form method="get" style="display:flex;gap:8px;margin-bottom:12px">
+    <input type="search" name="q" value="{{ q }}" placeholder="Pesquisar n.º, nome ou concelho" style="max-width:320px">
+    <button type="submit" class="btn btn-secondary btn-sm">Pesquisar</button>
+    {% if q %}<a href="{% url 'core:icnf_list' %}" class="btn btn-secondary btn-sm">Limpar</a>{% endif %}
+  </form>
+  <table>
+    <thead><tr><th>N.º ICNF</th><th>Nome e concelho (como na lista)</th><th>Validade</th><th>Pessoa na plataforma</th></tr></thead>
+    <tbody>
+    {% for r, person in rows %}
+      <tr>
+        <td>{{ r.number }}</td>
+        <td>{{ r.text }}</td>
+        <td>{% if r.lifetime %}Vitalícia{% else %}{{ r.valid_until|date:"d/m/Y" }}{% endif %}</td>
+        <td>{{ person|default:"—" }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" style="color:var(--dim)">Sem resultados.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

@@ -3,3 +3,15 @@ from django.conf import settings
 
 def map_keys(request):
     return {'carto_api_key': settings.CARTO_API_KEY}
+
+
+def pending_validations(request):
+    """Badge count for staff: accounts awaiting approval + credentials awaiting validation."""
+    user = getattr(request, 'user', None)
+    if not (user and user.is_authenticated and user.is_staff):
+        return {}
+    from django.contrib.auth.models import User
+    from operatives.models import Operative
+    accounts = User.objects.filter(is_active=False, last_login__isnull=True).count()
+    creds = Operative.objects.filter(credential_status=Operative.STATUS_PENDENTE).count()
+    return {'pending_validations': accounts + creds}

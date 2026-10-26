@@ -3,6 +3,17 @@
 {% block page_title %}Dashboard{% endblock %}
 {% block nav_dash %}active{% endblock %}
 {% block content %}
+{% if my_op.credential_type == 'tecnico_fc' %}
+  {% if my_op.credential_status == 'pendente' %}<div class="msg msg-info">A sua credenciação de técnico (n.º {{ my_op.credential_number }}) aguarda validação do administrador.</div>
+  {% elif my_op.credential_status == 'recusada' %}<div class="msg msg-error">A sua credenciação não foi validada: {{ my_op.credential_rejection_reason }}. <a href="{% url 'core:profile' %}">Corrigir no perfil →</a></div>
+  {% elif my_op.credential_expired %}<div class="msg msg-error">A sua credenciação expirou em {{ my_op.credential_valid_until|date:"d/m/Y" }}. <a href="{% url 'core:profile' %}">Ver perfil →</a></div>
+  {% elif my_op.credential_expiring %}<div class="msg msg-info">A sua credenciação expira a {{ my_op.credential_valid_until|date:"d/m/Y" }} — peça a renovação ao ICNF (prazo: 2 meses antes do fim).</div>{% endif %}
+{% endif %}
+{% if expiring_credentials %}
+<div class="msg msg-info">Credenciações a expirar ou expiradas:
+  {% for op in expiring_credentials %}{{ op.name }} ({{ op.credential_valid_until|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}{% endfor %}.
+</div>
+{% endif %}
 <div class="stats-grid">
   <div class="stat-card"><div class="stat-val c-green">{{ total_parcelas }}</div><div class="stat-label">Parcelas</div></div>
   <div class="stat-card"><div class="stat-val c-orange">{{ total_preplans }}</div><div class="stat-label">Pré-Planos Ativos</div></div>
