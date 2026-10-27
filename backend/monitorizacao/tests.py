@@ -14,7 +14,7 @@ from fire_actions.models import BurningPlan, FireAction, ParcelExecution
 from operatives.models import Operative
 from parcelas.models import FireParcel
 from .document import generate_poq_impacto
-from .models import Assessment, AssessmentPhoto, CriterionValue, ParcelCriterion
+from .models import Assessment, AssessmentPhoto, CriterionValue, ParcelCriterion, VisitWaiver
 from .schedule import add_months, all_visits, expected_visits
 
 MEDIA = tempfile.mkdtemp()
@@ -172,3 +172,37 @@ class AssessmentViewTests(TestCase):
 
     def test_poq_impacto_without_assessments(self):
         self.assertEqual(generate_poq_impacto(self.ex.plan)[:2], b'PK')
+
+    def test_waive_visit(self):
+        url = f'/monitorizacao/dispensar/{self.ex.pk}/?fase=6meses'
+        r = self.client.post(url, {'reason': '  '})
+        self.assertEqual(r.status_code, 200)   # reason is required
+        self.assertFalse(VisitWaiver.objects.exists())
+        r = self.client.post(url, {'reason': 'Queima anterior à plataforma', 'next': '/acoes/'})
+        self.assertRedirects(r, '/acoes/', fetch_redirect_response=False)
+        w = VisitWaiver.objects.get()
+        self.assertEqual((w.phase, w.year, w.waived_by), ('6meses', 0, self.tec))
+        visits = {v['phase']: v for v in expected_visits(self.ex, today=date(2027, 12, 1))}
+        self.assertEqual((visits['6meses']['status'], visits['6meses']['waiver']), ('dispensada', w))
+        self.assertIn('Queima anterior à plataforma',
+                      zipfile.ZipFile(io.BytesIO(generate_poq_impacto(self.ex.plan))).read('word/document.xml')
+                      .decode())
+        # Unsafe redirect targets are ignored
+        r = self.client.post(url, {'reason': 'Outro motivo', 'next': 'https://evil.example/'})
+        self.assertRedirects(r, '/monitorizacao/', fetch_redirect_response=False)
+        self.assertEqual(VisitWaiver.objects.get().reason, 'Outro motivo')
+        # Undo
+        self.client.post(url, {'undo': '1'})
+        self.assertFalse(VisitWaiver.objects.exists())
+
+    def test_recording_the_visit_removes_the_waiver_and_done_visits_cannot_be_waived(self):
+        VisitWaiver.objects.create(execution=self.ex, phase='imediata', reason='x')
+        self.client.post(f'/monitorizacao/nova/{self.ex.pk}/?fase=imediata', {'date': '2026-10-05'})
+        self.assertFalse(VisitWaiver.objects.exists())
+        self.client.post(f'/monitorizacao/dispensar/{self.ex.pk}/?fase=imediata', {'reason': 'y'})
+        self.assertFalse(VisitWaiver.objects.exists())
+
+    def test_only_managers_waive(self):
+        self.client.force_login(self.user)
+        self.client.post(f'/monitorizacao/dispensar/{self.ex.pk}/?fase=imediata', {'reason': 'y'})
+        self.assertFalse(VisitWaiver.objects.exists())

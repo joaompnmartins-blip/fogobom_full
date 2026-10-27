@@ -1,6 +1,6 @@
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
-from .models import Assessment, AssessmentPhoto, CriterionValue, ParcelCriterion
+from .models import Assessment, AssessmentPhoto, CriterionValue, ParcelCriterion, VisitWaiver
 
 
 class CriterionValueInline(admin.TabularInline):
@@ -24,3 +24,9 @@ class AssessmentAdmin(SimpleHistoryAdmin):
 class ParcelCriterionAdmin(admin.ModelAdmin):
     list_display = ['name', 'parcel', 'unit', 'active']
     list_filter = ['active']
+
+
+@admin.register(VisitWaiver)
+class VisitWaiverAdmin(SimpleHistoryAdmin):
+    list_display = ['execution', 'phase', 'year', 'waived_by', 'created_at']
+    list_filter = ['phase']

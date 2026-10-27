@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}
+{% block title %}Dispensar visita — {{ ex.parcel.name }}{% endblock %}
+{% block page_title %}Dispensar visita — {{ ex.parcel.name }}{% endblock %}
+{% block nav_mon %}active{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px">
+  <div class="card-title">{{ label }}</div>
+  <p style="font-size:13px;margin-bottom:12px">Queima de <a href="{% url 'fire_actions:burning_plan_detail' ex.plan_id %}">{{ action.name }}</a>
+    em {{ ex.date|date:"d/m/Y" }}{% if visit.due %} · visita prevista para {{ visit.due|date:"d/m/Y" }} (prazo {{ visit.deadline|date:"d/m/Y" }}){% endif %}.</p>
+  {% if waiver %}<div class="msg msg-info">Dispensada por {{ waiver.waived_by.operative.name|default:waiver.waived_by.username|default:"—" }}
+    em {{ waiver.created_at|date:"d/m/Y" }}. Pode alterar o motivo ou anular a dispensa.</div>{% endif %}
+  <form method="post">{% csrf_token %}<input type="hidden" name="next" value="{{ next }}">
+    <div class="field"><label>Motivo *</label>
+      <textarea name="reason" rows="4" required placeholder="Ex.: queima anterior à utilização da plataforma; parcela inacessível; visita não realizada no prazo…">{{ reason }}</textarea></div>
+    <p style="color:var(--dim);font-size:11.5px;margin:6px 0 12px">A visita deixa de contar como pendente ou em atraso. O motivo fica registado e aparece no POQ-Impacto.
+      Se mais tarde a visita for registada, a dispensa é anulada automaticamente.</p>
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">{% if waiver %}💾 Guardar motivo{% else %}🚫 Dispensar visita{% endif %}</button>
+      {% if waiver %}<button type="submit" name="undo" value="1" formnovalidate class="btn btn-secondary">↩️ Anular dispensa</button>{% endif %}
+      <a href="{{ next|default:'/monitorizacao/' }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -163,3 +163,30 @@ class AssessmentPhoto(models.Model):
 
     class Meta:
         ordering = ['id']
+
+
+class VisitWaiver(models.Model):
+    """A scheduled visit that will not be done (e.g. the burn predates the platform), with the reason."""
+    execution = models.ForeignKey(ParcelExecution, on_delete=models.CASCADE, related_name='waivers')
+    phase     = models.CharField('fase', max_length=10, choices=Assessment.PHASES)
+    year      = models.PositiveSmallIntegerField('ano de monitorização', default=0)
+    reason    = models.TextField('motivo')
+    waived_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='visit_waivers', verbose_name='dispensada por')
+    created_at = models.DateTimeField('dispensada em', auto_now_add=True)
+    history   = HistoricalRecords()
+
+    class Meta:
+        ordering = ['execution', 'phase', 'year']
+        unique_together = [('execution', 'phase', 'year')]
+        verbose_name = 'Visita dispensada'
+        verbose_name_plural = 'Visitas dispensadas'
+
+    def __str__(self):
+        return f'{self.execution.parcel} — {self.label} (dispensada)'
+
+    @property
+    def label(self):
+        if self.phase == Assessment.PHASE_ANUAL:
+            return f'Monitorização — ano {self.year}'
+        return self.get_phase_display()

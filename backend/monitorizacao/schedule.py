@@ -12,7 +12,8 @@ IMMEDIATE_DAYS = 30      # 1.ª fase: within a month of the burn
 WINDOW_DAYS = 60         # 6 months / annual visits: up to two months after the due date
 UPCOMING_DAYS = 60       # "próximas" in the monitoring list
 
-STATUS_LABELS = {'feita': 'Realizada', 'atrasada': 'Em atraso', 'em_curso': 'A realizar', 'futura': 'Prevista'}
+STATUS_LABELS = {'feita': 'Realizada', 'dispensada': 'Dispensada', 'atrasada': 'Em atraso', 'em_curso': 'A realizar',
+                 'futura': 'Prevista'}
 
 
 def add_months(d, months):
@@ -21,12 +22,14 @@ def add_months(d, months):
     return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
 
 
-def _visit(ex, phase, year, due, deadline, done, today):
+def _visit(ex, phase, year, due, deadline, done, today, waived=None):
     a = done.get((phase, year))
-    status = 'feita' if a else 'atrasada' if today > deadline else 'em_curso' if today >= due else 'futura'
+    w = None if a else (waived or {}).get((phase, year))
+    status = 'feita' if a else 'dispensada' if w else 'atrasada' if today > deadline else \
+        'em_curso' if today >= due else 'futura'
     label = f'Monitorização — ano {year}' if phase == Assessment.PHASE_ANUAL else dict(Assessment.PHASES)[phase]
     return {'execution': ex, 'phase': phase, 'year': year, 'due': due, 'deadline': deadline, 'assessment': a,
-            'status': status, 'status_label': STATUS_LABELS[status], 'label': label}
+            'waiver': w, 'status': status, 'status_label': STATUS_LABELS[status], 'label': label}
 
 
 def next_burn(ex):
@@ -51,17 +54,20 @@ def expected_visits(ex, today=None, until=None, continuation=None):
         return []
     until = next_burn(ex) if until is None else until or None
     done = {(a.phase, a.year): a for a in ex.assessments.all()}
+    waived = {(w.phase, w.year): w for w in ex.waivers.all()}
     visits = [_visit(ex, Assessment.PHASE_IMEDIATA, 0, ex.date, ex.date + timedelta(days=IMMEDIATE_DAYS), done,
-                     today)]
+                     today, waived)]
     due = add_months(ex.date, 6)
     if not until or due < until:
-        visits.append(_visit(ex, Assessment.PHASE_6M, 0, due, due + timedelta(days=WINDOW_DAYS), done, today))
+        visits.append(_visit(ex, Assessment.PHASE_6M, 0, due, due + timedelta(days=WINDOW_DAYS), done, today,
+                             waived))
     year = 1
     while True:
         due = add_months(ex.date, 12 * year)
         if until and due >= until:
             break
-        visits.append(_visit(ex, Assessment.PHASE_ANUAL, year, due, due + timedelta(days=WINDOW_DAYS), done, today))
+        visits.append(_visit(ex, Assessment.PHASE_ANUAL, year, due, due + timedelta(days=WINDOW_DAYS), done, today,
+                             waived))
         if due > today:
             break
         year += 1
@@ -75,10 +81,10 @@ def expected_visits(ex, today=None, until=None, continuation=None):
 
 
 def all_visits(today=None):
-    """Expected visits of every execution (two queries: executions and assessments)."""
+    """Expected visits of every execution (three queries: executions, assessments and waivers)."""
     today = today or timezone.localdate()
     executions = list(ParcelExecution.objects.select_related('parcel', 'plan__pre_plan')
-                      .prefetch_related('assessments').order_by('parcel_id', 'date'))
+                      .prefetch_related('assessments', 'waivers').order_by('parcel_id', 'date'))
     out = []
     for ex in executions:
         same_parcel = [e for e in executions if e.parcel_id == ex.parcel_id]

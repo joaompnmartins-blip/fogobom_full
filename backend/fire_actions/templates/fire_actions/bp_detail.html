@@ -72,7 +72,9 @@
       <td>{{ r.ex.parcel.name }}<br><span style="font-size:11.5px;color:var(--dim)">queima {{ r.ex.date|date:"d/m/Y" }}</span></td>
       <td><div style="display:flex;flex-wrap:wrap;gap:6px">{% for v in r.visits %}
         {% if v.assessment %}<a href="{% url 'monitorizacao:detail' v.assessment.pk %}" class="btn btn-secondary btn-sm">{{ v.label }} · {{ v.assessment.date|date:"d/m/Y" }} ✔</a>
+        {% elif v.waiver %}{% if can_manage %}<a href="{% url 'monitorizacao:waive' r.ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}&next={{ request.path|urlencode }}" class="btn btn-secondary btn-sm" title="{{ v.waiver.reason }}">{{ v.label }} · dispensada</a>{% else %}<span style="font-size:12px" title="{{ v.waiver.reason }}">{{ v.label }}: dispensada</span>{% endif %}
         {% elif can_manage %}<a href="{% url 'monitorizacao:create' r.ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}" class="btn btn-sm {% if v.status == 'atrasada' or v.status == 'em_curso' %}btn-primary{% else %}btn-secondary{% endif %}" title="Prevista {{ v.due|date:'d/m/Y' }} · prazo {{ v.deadline|date:'d/m/Y' }}">+ {{ v.label }} ({% include "monitorizacao/_status.html" %})</a>
+        <a href="{% url 'monitorizacao:waive' r.ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}&next={{ request.path|urlencode }}" class="btn btn-secondary btn-sm" title="Dispensar {{ v.label|lower }}, indicando o motivo">🚫</a>
         {% else %}<span style="font-size:12px">{{ v.label }}: {% include "monitorizacao/_status.html" %}</span>{% endif %}
       {% endfor %}</div></td></tr>{% endif %}{% endfor %}</tbody>
   </table></div>
