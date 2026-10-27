@@ -474,7 +474,23 @@ def burning_plan_detail(request, pk):
         'can_manage': can_manage(request.user, action),
         'add_form': NewParcelExecutionForm(plan=plan, initial={'date': plan.execution_date}),
         'burn_period': _burn_period(executions or [plan]),
+        'today': timezone.localdate(),
+        'icnf_rows': _icnf_rows(plan, executions),
     })
+
+
+def _icnf_rows(plan, executions):
+    from registos.deadlines import INCIDENT_DAYS, icnf_window_after
+    last = max((ex.date for ex in executions), default=plan.execution_date)
+    first = min((ex.date for ex in executions), default=plan.execution_date)
+    if plan.incident:
+        due = (plan.incident_date or first) + timedelta(days=INCIDENT_DAYS)
+        rule = f'Fuga do fogo: no prazo de 15 dias, até {due:%d/%m/%Y}.'
+    else:
+        start, due = icnf_window_after(last)
+        rule = f'Com a base de dados, na 1.ª quinzena de {start:%m/%Y} (até {due:%d/%m/%Y}).'
+    return [('poq', 'POQ-Execução', plan.poq_sent_on, rule),
+            ('impacto', 'POQ-Impacto', plan.impact_sent_on, f'Até 31/07/{first.year + 1}.')]
 
 
 def _burn_period(items):

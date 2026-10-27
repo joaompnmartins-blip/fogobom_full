@@ -71,6 +71,8 @@
       <li><a href="#planos">Execuções (POQ)</a></li>
       <li><a href="#relatorio">POQ-Execução (Word)</a></li>
       <li><a href="#monitorizacao">Impacto e monitorização</a></li>
+      <li><a href="#prazos">Prazos e alertas</a></li>
+      <li><a href="#livro">Livro de campo e base de dados ICNF</a></li>
       <li><a href="#calendario">Calendário</a></li>
       <li><a href="#meteorologia">Meteorologia</a></li>
       <li><a href="#faq">Perguntas frequentes</a></li>
@@ -150,9 +152,11 @@
         <tr><td>📋 Ações</td><td>Todas as ações (fogo controlado e queimadas), com filtro por estado</td></tr>
         <tr><td>🗂️ Planos (PFC)</td><td>Planos de Fogo Controlado: parcelas, prescrição, aprovação e custos</td></tr>
         <tr><td>📄 Execuções (POQ)</td><td>Registo da execução de cada queima, por parcela e dia, e POQ-Execução em Word</td></tr>
+        <tr><td>⏰ Prazos</td><td>Prazos de envio ao ICNF, monitorização, renovação da credenciação e validade dos PFC</td></tr>
         <tr><td>🌱 Monitorização</td><td>Visitas de avaliação do impacto e de monitorização das parcelas queimadas (POQ-Impacto)</td></tr>
         <tr><td>📅 Calendário</td><td>Vista mensal das queimas planeadas e executadas</td></tr>
         <tr><td>👷 Operacionais</td><td>Pessoas que participam nas queimas</td></tr>
+        <tr><td>📒 Livro de campo</td><td>O seu registo de participação nas queimas, horas para a renovação e base de dados ICNF (Excel)</td></tr>
         <tr><td>🌤️ Meteorologia</td><td>Previsão da humidade do combustível e recomendação para fogo controlado</td></tr>
       </table>
       <p>Nas listas, os botões de cada linha têm este significado:
@@ -483,9 +487,51 @@
         fotografias. Em anexo seguem os dados de solo e regeneração de todas as visitas, os critérios próprios das parcelas e as fotografias.</p>
     </section>
 
+    <section id="prazos">
+      <h2>11. Prazos e alertas</h2>
+      <p>Em <span class="ui">⏰ Prazos</span> estão os prazos que dependem de si (<em>Os meus</em>) ou de todos, com o estado
+        (em atraso, urgente, a aproximar-se). O número a vermelho no menu indica os seus prazos em atraso.</p>
+      <table>
+        <tr><th>Obrigação</th><th>Prazo</th></tr>
+        <tr><td>Envio do POQ-Execução e do ficheiro da base de dados ao ICNF</td><td>1.ª quinzena de fevereiro, abril, junho ou dezembro
+          — a primeira janela depois da queima (art. 7.º e 14.º do Regulamento do Fogo Técnico)</td></tr>
+        <tr><td>POQ com fuga do fogo que originou um incêndio</td><td>15 dias após a ocorrência</td></tr>
+        <tr><td>Envio do POQ-Impacto</td><td>31 de julho do ano seguinte à queima</td></tr>
+        <tr><td>Visitas de monitorização</td><td>Ver a secção <a href="#monitorizacao">Impacto e monitorização</a></td></tr>
+        <tr><td>Renovação da credenciação</td><td>Pedida ao ICNF nos 2 meses anteriores ao fim da validade</td></tr>
+        <tr><td>Fim da validade de um PFC aprovado</td><td>Aviso 90 dias antes</td></tr>
+      </table>
+      <p>Depois de enviar um POQ ao ICNF, registe-o na página da execução, no quadro <em>Envio ao ICNF</em>
+        (<span class="ui">Registar envio</span>, com a data). O prazo desaparece da lista.</p>
+      <p>O responsável recebe <strong>um email por dia, no máximo</strong>, com os prazos a 15 dias, a 3 dias e os que passaram.
+        Pode desligar estes avisos em <span class="ui">👤 O meu perfil</span> → <em>Avisos por email</em>.</p>
+    </section>
+
+    <section id="livro">
+      <h2>12. Livro de campo e base de dados ICNF</h2>
+      <p>O <span class="ui">📒 Livro de campo</span> é preenchido automaticamente a partir das execuções: cada participação
+        numa queima com a data, o horário e as horas, o local, o tipo de ação, a função, a área e a validação.
+        Mostra também as <strong>horas para a renovação</strong> da credenciação: 150 h para técnicos e 100 h para operacionais,
+        nos 5 anos da credenciação.</p>
+      <ul>
+        <li>Indique o <strong>n.º do seu livro de campo</strong> em <span class="ui">👤 O meu perfil</span>.</li>
+        <li>Na execução de cada parcela, na tabela da equipa, pode acertar as <strong>horas</strong> de cada pessoa (em branco usa
+          a duração da execução) e a <strong>folha</strong> do livro em papel.</li>
+        <li><strong>Validação das ações dos técnicos</strong>: na execução, secção <em>Validação da ação</em>, indique quem validou
+          (proprietário, representante, proponente do PFC ou ICNF), o nome (opcional) e a data.</li>
+        <li><strong>Validação dos operacionais</strong>: o técnico responsável carrega em
+          <span class="ui">✔ Validar a participação dos operacionais</span>, no fim da página da execução.</li>
+      </ul>
+      <h3>Base de dados ICNF (Excel)</h3>
+      <p>No seu livro de campo, carregue em <span class="ui">📥 Base de dados ICNF (Excel)</span>, para todos os anos ou para o ano
+        escolhido. O ficheiro segue o modelo oficial <em>BD_FOGO-CONTROLADO</em>: a folha das ações de fogo controlado e a folha dos
+        seus PFC. É o ficheiro a enviar com os POQ na 1.ª quinzena de fevereiro, abril, junho e dezembro.
+        Só o próprio técnico e os administradores o podem descarregar.</p>
+    </section>
+
     <!-- 9 ─────────────────────────────────────────────────────────── -->
     <section id="calendario">
-      <h2>11. Calendário</h2>
+      <h2>13. Calendário</h2>
       <p>Mostra as ações na respetiva <strong>data prevista</strong>, com a cor do estado:
         <span class="dot" style="background:#e8541a"></span>prevista ·
         <span class="dot" style="background:#2e9e4f"></span>confirmada ·
@@ -497,7 +543,7 @@
 
     <!-- 10 ────────────────────────────────────────────────────────── -->
     <section id="meteorologia">
-      <h2>12. Meteorologia</h2>
+      <h2>14. Meteorologia</h2>
       <p>Ferramenta de apoio à decisão que estima a <strong>humidade do combustível fino morto (HC)</strong>
         para os próximos 5 dias, no período diurno (08h–18h), a partir da previsão meteorológica.</p>
 
@@ -549,7 +595,7 @@
 
     <!-- 11 ────────────────────────────────────────────────────────── -->
     <section id="faq">
-      <h2>13. Perguntas frequentes</h2>
+      <h2>15. Perguntas frequentes</h2>
 
       <h3>Não encontro o botão para eliminar um registo.</h3>
       <p>Eliminar parcelas, operacionais, ações ou execuções está reservado aos administradores.

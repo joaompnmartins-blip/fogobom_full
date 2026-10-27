@@ -6,6 +6,7 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
 from django.db import connection
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from PIL import Image
@@ -182,12 +183,14 @@ class ListTests(TestCase):
             plan = BurningPlan.objects.create(pre_plan=a, execution_date=d)
             for parcel in parcels:
                 ParcelExecution.objects.create(plan=plan, parcel=parcel, date=d)
+        cache.clear()   # menu badges are cached: measure both requests from a cold cache
         with CaptureQueriesContext(connection) as q2:
             r = self.client.get('/parcelas/')
         self.assertEqual({p.name: str(p.last_burn) for p in r.context['parcelas']},
                          {'P1': '2026-03-12', 'P2': '2026-01-11'})
         for i in range(5):
             FireParcel.objects.create(name=f'X{i}', geometry=wkt(-8.3, 37.3 + i / 100, .001, .001))
+        cache.clear()
         with CaptureQueriesContext(connection) as q7:
             self.client.get('/parcelas/')
         self.assertEqual(len(q2), len(q7))  # no per-parcel queries

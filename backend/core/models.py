@@ -8,6 +8,7 @@ class UserPreferences(models.Model):
     email_new_actions    = models.BooleanField('novas ações anunciadas', default=True)
     email_action_updates = models.BooleanField('alterações às ações em que estou inscrito', default=True)
     email_reminders      = models.BooleanField('lembrete na véspera das ações', default=True)
+    email_deadlines      = models.BooleanField('prazos (envio ao ICNF, monitorização, credenciação)', default=True)
 
     class Meta:
         verbose_name = 'Preferências de utilizador'

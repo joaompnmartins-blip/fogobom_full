@@ -1,0 +1,60 @@
+{% extends "core/base.html" %}
+{% block title %}Livro de campo — {{ op.name }}{% endblock %}
+{% block page_title %}Livro de campo — {{ op.name }}{% endblock %}
+{% block nav_fb %}active{% endblock %}
+{% block topbar_actions %}
+  {% if can_export %}<a href="{% url 'registos:fieldbook_xlsx' op.pk %}{% if year %}?ano={{ year }}{% endif %}" class="btn btn-primary btn-sm">📥 Base de dados ICNF (Excel{% if year %} {{ year }}{% endif %})</a>{% endif %}
+  <button onclick="window.print()" class="btn btn-secondary btn-sm">🖨️ Imprimir</button>
+{% endblock %}
+{% block extra_head %}<style>
+  .num { text-align:right; white-space:nowrap }
+  table.fb td, table.fb th { font-size:12px; padding:5px 6px; vertical-align:top }
+  .bar { height:8px; background:var(--bg3); border-radius:4px; overflow:hidden; margin-top:6px }
+  .bar span { display:block; height:100%; background:#4caf50 }
+  @media print { .sidebar, .topbar-actions, .btn, .no-print { display:none !important } }
+</style>{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start">
+  <div class="card">
+    <div class="card-title">Identificação</div>
+    <table><tbody>
+      <tr><td style="color:var(--dim);width:45%">Credenciação</td><td>{{ op.get_credential_type_display }}{% if op.credential_number %} n.º {{ op.credential_number }}{% endif %}</td></tr>
+      <tr><td style="color:var(--dim)">Livro de campo n.º</td><td>{{ op.field_book_number|default:"—" }}</td></tr>
+      <tr><td style="color:var(--dim)">Validade</td><td>{% if op.credential_lifetime %}Vitalícia{% else %}{{ op.credential_valid_until|date:"d/m/Y"|default:"—" }}{% endif %}</td></tr>
+    </tbody></table>
+  </div>
+  {% if summary.required %}<div class="card">
+    <div class="card-title">Horas para a renovação ({{ summary.start|date:"d/m/Y" }} – {{ summary.end|date:"d/m/Y" }})</div>
+    <p style="font-size:13px"><strong>{{ summary.validated }} h validadas</strong> de {{ summary.required }} h · {{ summary.total }} h registadas
+      {% if summary.as_responsible is not None %}· {{ summary.as_responsible }} h como responsável de queima{% endif %}</p>
+    <div class="bar"><span style="width:{{ summary.pct }}%"></span></div>
+    {% if summary.missing_hours %}<p style="font-size:11.5px;color:#e57373;margin-top:6px">{{ summary.missing_hours }} participação(ões) sem horas: preencha o horário da execução ou as horas da pessoa.</p>{% endif %}
+    <p style="font-size:11.5px;color:var(--dim);margin-top:6px">{% if op.credential_type == 'tecnico_fc' %}Ações validadas pelo proprietário, representante, proponente do PFC ou ICNF (art. 7.º n.º 4).{% else %}Participações validadas pelo técnico responsável (art. 27.º n.º 2).{% endif %}</p>
+  </div>{% endif %}
+</div>
+<div class="card">
+  <div class="card-title">Registo de participação em ações de fogo{% if year %} — {{ year }}{% endif %} ({{ rows|length }} · {{ total_hours }} h)</div>
+  <div class="btn-group no-print" style="margin-bottom:10px">
+    <a href="?" class="btn btn-sm {% if not year %}btn-primary{% else %}btn-secondary{% endif %}">Todos</a>
+    {% for y in years %}<a href="?ano={{ y }}" class="btn btn-sm {% if year == y %}btn-primary{% else %}btn-secondary{% endif %}">{{ y }}</a>{% endfor %}
+  </div>
+  {% if rows %}<div style="overflow-x:auto"><table class="fb">
+    <thead><tr><th>Folha</th><th>Data</th><th>Horário</th><th class="num">Horas</th><th>Local</th><th>Ação</th><th>Formação</th><th>Função</th><th class="num">Área (ha)</th><th>Validação</th><th>Outros elementos / notas</th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td>{{ r.page|default:"—" }}</td>
+      <td style="white-space:nowrap"><a href="{% url 'fire_actions:execution_edit' r.execution.pk %}">{{ r.date|date:"d/m/Y" }}</a></td>
+      <td style="white-space:nowrap">{{ r.start|time:"H:i"|default:"?" }}–{{ r.end|time:"H:i"|default:"?" }}</td>
+      <td class="num">{% if r.hours is not None %}{{ r.hours|floatformat:"-1" }}{% else %}<span style="color:#e57373">—</span>{% endif %}</td>
+      <td>{{ r.freguesia|default:r.execution.parcel.name }}<br><span style="color:var(--dim)">{{ r.concelho }}{% if r.distrito %}, {{ r.distrito }}{% endif %}</span></td>
+      <td><a href="{% url 'fire_actions:burning_plan_detail' r.execution.plan_id %}">{{ r.action.name }}</a><br><span style="color:var(--dim)">{{ r.type }}{% if r.objectives %} · {{ r.objectives }}{% endif %}</span></td>
+      <td>{{ r.formation }}</td>
+      <td>{{ r.function|default:"—" }}</td>
+      <td class="num">{{ r.area|floatformat:"-2"|default:"—" }}</td>
+      <td>{% if r.validated %}<span class="badge badge-green">✔</span> {{ r.validation_role }}{% if r.validation_name %}<br><span style="color:var(--dim)">{{ r.validation_name }}</span>{% endif %}{% else %}<span class="badge badge-orange">por validar</span>{% endif %}</td>
+      <td style="max-width:320px">{{ r.other }}{% if r.other and r.notes %}<br>{% endif %}<span style="color:var(--dim)">{{ r.notes }}</span></td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}<p style="color:var(--dim);font-size:13px">Sem participações registadas.</p>{% endif %}
+  <p style="font-size:11.5px;color:var(--dim);margin-top:8px" class="no-print">O livro de campo é preenchido a partir das execuções (POQ): equipa, função, horário e validação.
+    As horas são as da execução, salvo se forem indicadas outras para a pessoa. A folha do livro em papel e as horas acertam-se na execução, na tabela da equipa.</p>
+</div>
+{% endblock %}

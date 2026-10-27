@@ -23,9 +23,10 @@ class ProfileForm(forms.ModelForm):
     """A user's own data. Credential changes go back to 'Por validar'."""
     class Meta:
         model  = Operative
-        fields = ['name', 'phone', 'nif', 'credential_type', 'credential_number']
+        fields = ['name', 'phone', 'nif', 'credential_type', 'credential_number', 'field_book_number']
         labels = {'name': 'Nome completo', 'phone': 'Telefone', 'nif': 'NIF',
-                  'credential_type': 'Tipo de credenciação', 'credential_number': 'N.º de credenciação ICNF'}
+                  'credential_type': 'Tipo de credenciação', 'credential_number': 'N.º de credenciação ICNF',
+                  'field_book_number': 'N.º do livro de campo'}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

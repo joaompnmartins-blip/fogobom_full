@@ -24,7 +24,7 @@
 <nav class="sections">
   <a href="#equipa">Equipa e meios</a><a href="#meteo">Meteorologia</a><a href="#combustivel">Combustível</a>
   <a href="#faixas">Faixas</a><a href="#operacao">Operação e problemas</a><a href="#resultados">Efeitos e eficácia</a>
-  <a href="#custos">Custos</a><a href="#fotos">Fotografias</a>
+  <a href="#custos">Custos</a><a href="#validacao">Validação</a><a href="#fotos">Fotografias</a>
 </nav>
 <form method="post" enctype="multipart/form-data">{% csrf_token %}
 {{ members.management_form }}{{ readings.management_form }}{{ strips.management_form }}{{ costs.management_form }}
@@ -43,10 +43,14 @@
     <div class="field"><label>Capacidade VFCI (l)</label>{{ form.vfci_capacity_l }}</div>
   </div>
   <p class="card-title" style="margin-top:14px">Técnicos e operacionais envolvidos</p>
-  <table class="fs"><thead><tr><th>Nome</th><th>Função</th><th>Remover</th></tr></thead><tbody>
-  {% for f in members %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.operative }}</td><td>{{ f.function }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+  <table class="fs"><thead><tr><th>Nome</th><th>Função</th><th>Horas</th><th>Folha do livro</th><th>Validada (operacionais)</th><th>Remover</th></tr></thead><tbody>
+  {% for f in members %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.operative }}</td><td>{{ f.function }}</td>
+    <td style="max-width:80px">{{ f.hours }}</td><td style="max-width:80px">{{ f.book_page }}</td>
+    <td style="font-size:12px">{% if f.instance.validated_by_id %}✔ {{ f.instance.validated_by.operative.name|default:f.instance.validated_by.username }}{% elif f.instance.pk %}<span style="color:var(--dim)">—</span>{% endif %}</td>
+    <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
   </tbody></table>
-  <p class="hint">Os participantes confirmados na ação já estão incluídos. O n.º de credenciação vem do perfil de cada pessoa. Guarde para obter mais linhas.</p>
+  <p class="hint">Os participantes confirmados na ação já estão incluídos. O n.º de credenciação vem do perfil de cada pessoa. Guarde para obter mais linhas.
+    Horas: deixe em branco para usar a duração da execução{% if ex.duration_hours %} ({{ ex.duration_hours|floatformat:"-2" }} h){% endif %}. Estes dados alimentam o livro de campo de cada pessoa.</p>
 </div>
 
 <div class="card" id="meteo">
@@ -117,6 +121,17 @@
   <p class="hint">Total real: <strong>{{ ex.cost_total|eur }}</strong>{% if estimate %} · estimativa CAOF para esta parcela: <strong>{{ estimate.total|eur }}</strong> ({{ estimate.jornas_ha|floatformat:1 }} jornas/ha; apoio ICNF {{ estimate.support|eur }}){% endif %}. Pessoal: n.º homens × horas (incluindo transporte, tempos mortos e refeições).</p>
 </div>
 
+<div class="card" id="validacao">
+  <div class="card-title">Validação da ação (livro de campo, art. 7.º n.º 4)</div>
+  <div class="fgrid">
+    <div class="field"><label>Quem valida</label>{{ form.validator_role }}</div>
+    <div class="field"><label>Nome (opcional)</label>{{ form.validator_name }}</div>
+    <div class="field"><label>Data</label>{{ form.validated_on }}</div>
+  </div>
+  <p class="hint">A ação registada no livro de campo dos técnicos é validada pelo proprietário (ou representante), pelo proponente do PFC ou pelo ICNF.
+    A participação dos operacionais é validada pelo técnico responsável, com o botão abaixo do formulário.</p>
+</div>
+
 <div class="card" id="fotos">
   <div class="card-title">Fotografias</div>
   {% if ex_photos %}<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">{% for ph in ex_photos %}
@@ -134,6 +149,8 @@
   <a href="{% url 'fire_actions:burning_plan_detail' plan.pk %}" class="btn btn-secondary">Cancelar</a>
 </div>
 </form>
+{% if user_is_tecnico %}<form method="post" action="{% url 'registos:validate_team' ex.pk %}" style="margin-top:10px">{% csrf_token %}
+  <button class="btn btn-secondary btn-sm" title="Guarde primeiro as alterações à equipa">✔ Validar a participação dos operacionais (art. 27.º)</button></form>{% endif %}
 <form method="post" action="{% url 'fire_actions:execution_delete' ex.pk %}" style="margin-top:10px" onsubmit="return confirm('Eliminar esta execução de parcela?')">{% csrf_token %}
   <button class="btn btn-danger btn-sm">🗑️ Eliminar esta execução de parcela</button></form>
 {% endblock %}

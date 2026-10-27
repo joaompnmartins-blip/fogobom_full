@@ -105,12 +105,12 @@ def profile(request):
     return render(request, 'operatives/profile.html', {
         'op': op,
         'types': Operative.CREDENTIAL_TYPES,
-        'participations': op.burning_plans.count() if op.pk else 0,
+        'participations': op.execution_roles.count() if op.pk else 0,
         'prefs': [(f, prefs._meta.get_field(f).verbose_name, getattr(prefs, f)) for f in PREF_FIELDS],
     })
 
 
-PREF_FIELDS = ['email_new_actions', 'email_action_updates', 'email_reminders']
+PREF_FIELDS = ['email_new_actions', 'email_action_updates', 'email_reminders', 'email_deadlines']
 
 
 @require_POST

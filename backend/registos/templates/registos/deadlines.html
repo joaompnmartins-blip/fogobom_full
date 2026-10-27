@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+{% block title %}Prazos{% endblock %}
+{% block page_title %}Prazos e alertas{% endblock %}
+{% block nav_dl %}active{% endblock %}
+{% block content %}
+<div class="btn-group" style="margin-bottom:10px">
+  <a href="?ver=meus{% if kind %}&tipo={{ kind }}{% endif %}" class="btn btn-sm {% if scope == 'meus' %}btn-primary{% else %}btn-secondary{% endif %}">Os meus ({{ n_mine }})</a>
+  <a href="?ver=todos{% if kind %}&tipo={{ kind }}{% endif %}" class="btn btn-sm {% if scope == 'todos' %}btn-primary{% else %}btn-secondary{% endif %}">Todos ({{ n_all }})</a>
+</div>
+<div class="btn-group" style="margin-bottom:14px">
+  <a href="?ver={{ scope }}" class="btn btn-sm {% if not kind %}btn-primary{% else %}btn-secondary{% endif %}">Todos os tipos</a>
+  {% for code, label in kinds %}<a href="?ver={{ scope }}&tipo={{ code }}" class="btn btn-sm {% if kind == code %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>{% endfor %}
+</div>
+<div class="card">
+  <div class="card-title">{{ items|length }} prazo{{ items|length|pluralize }}{% if overdue %} · <span style="color:#e57373">{{ overdue }} em atraso</span>{% endif %}</div>
+  {% if items %}<div style="overflow-x:auto"><table>
+    <thead><tr><th>Prazo</th><th>Estado</th><th>Obrigação</th><th>Assunto</th><th>Notas</th></tr></thead>
+    <tbody>{% for i in items %}<tr>
+      <td style="white-space:nowrap">{{ i.due|date:"d/m/Y" }}</td>
+      <td>{% if i.status == 'atrasado' %}<span class="badge badge-red">Em atraso ({{ i.overdue_days }} d)</span>
+          {% elif i.status == 'urgente' %}<span class="badge badge-orange">{% if i.days == 0 %}Hoje{% else %}Faltam {{ i.days }} d{% endif %}</span>
+          {% else %}<span class="badge badge-gray">Faltam {{ i.days }} d</span>{% endif %}</td>
+      <td>{{ i.kind_label }}</td>
+      <td><a href="{{ i.url }}">{{ i.title }}</a></td>
+      <td style="font-size:12px;color:var(--dim)">{{ i.detail }}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}<p style="color:var(--dim);font-size:13px">Sem prazos nos próximos 4 meses.</p>{% endif %}
+</div>
+<div class="card" style="font-size:12.5px;color:var(--dim)">
+  <div class="card-title">De onde vêm os prazos (Regulamento do Fogo Técnico, 2014)</div>
+  <ul style="padding-left:18px;line-height:1.6">
+    <li>POQ-Execução e ficheiro da base de dados: enviados ao ICNF na 1.ª quinzena de fevereiro, abril, junho e dezembro (art. 7.º n.º 3 e art. 14.º n.º 3) — o prazo é a janela seguinte à queima.</li>
+    <li>Fuga do fogo que originou um incêndio: POQ enviado no prazo máximo de 15 dias (art. 14.º n.º 5).</li>
+    <li>POQ-Impacto: até 31 de julho do ano seguinte à queima (art. 14.º n.º 4).</li>
+    <li>Renovação da credenciação: pedida nos 2 meses anteriores ao fim da validade, com 150 h (técnico) ou 100 h (operacional) registadas no livro de campo (art. 8.º e 27.º).</li>
+    <li>Monitorização: avaliação imediata (30 dias), 2.ª fase aos 6 meses e visitas anuais.</li>
+  </ul>
+  <p>Registe o envio de cada POQ na página da execução. Quem é responsável recebe um email 15 dias antes, 3 dias antes e se o prazo passar.</p>
+</div>
+{% endblock %}

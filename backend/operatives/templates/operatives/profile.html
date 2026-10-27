@@ -19,6 +19,8 @@
         </select></div></div>
       <div class="form-row" id="cred-number"><div class="field"><label>N.º de credenciação ICNF</label>
         <input type="text" name="credential_number" value="{{ op.credential_number|default:'' }}" placeholder="ex.: 547-2026"></div></div>
+      <div class="form-row"><div class="field"><label>N.º do livro de campo (ICNF)</label>
+        <input type="text" name="field_book_number" value="{{ op.field_book_number|default:'' }}" maxlength="20"></div></div>
       <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Se alterar o tipo ou o n.º de credenciação de técnico, a credenciação volta a ser validada pelo administrador.</p>
       <div class="card-title" style="margin-top:8px">Avisos por email</div>
       {% for name, label, value in prefs %}
@@ -35,9 +37,9 @@
       <table><tbody>
         <tr><td style="color:var(--dim);width:40%">Utilizador</td><td>{{ request.user.username }}</td></tr>
         <tr><td style="color:var(--dim)">Email</td><td>{{ request.user.email }}</td></tr>
-        <tr><td style="color:var(--dim)">Planos de queima em que participou</td><td>{{ participations }}</td></tr>
+        <tr><td style="color:var(--dim)">Queimas em que participou</td><td>{{ participations }}</td></tr>
       </tbody></table>
-      <div class="btn-group"><a href="{% url 'core:password_change' %}" class="btn btn-secondary btn-sm">🔑 Alterar password</a></div>
+      <div class="btn-group">{% if op.pk %}<a href="{% url 'registos:fieldbook' op.pk %}" class="btn btn-secondary btn-sm">📒 O meu livro de campo</a>{% endif %}<a href="{% url 'core:password_change' %}" class="btn btn-secondary btn-sm">🔑 Alterar password</a></div>
     </div>
 
     {% if op.credential_type == 'tecnico_fc' %}
