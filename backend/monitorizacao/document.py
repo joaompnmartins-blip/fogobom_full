@@ -42,7 +42,7 @@ def _grouped_table(doc, groups, header, rows, size=8):
 def generate_poq_impacto(plan):
     action = plan.pre_plan
     executions = [ex for ex in plan.executions.select_related('parcel').prefetch_related(
-        'assessments__criterion_values__criterion', 'assessments__photos').order_by('date', 'parcel__name')]
+        'assessments__criterion_values__criterion', 'assessments__photos', 'waivers').order_by('date', 'parcel__name')]
     # Later days of the same parcel are monitored with the first day
     first = {}
     for ex in executions:
@@ -166,6 +166,12 @@ def generate_poq_impacto(plan):
         notes = [(idp(ex), a) for ex, a in visits if a.soil_notes]
         for pid, a in notes:
             _p(doc, f'{pid} — {a.label}: {a.soil_notes}', size=8.5, color=DIM)
+
+    waivers = [(ex, w) for ex in executions for w in ex.waivers.all()]
+    if waivers:
+        _heading(doc, 'Visitas dispensadas')
+        _table(doc, ['ID_PARC', 'Visita', 'Dispensada em', 'Motivo'],
+               [[idp(ex), w.label, w.created_at.strftime('%d/%m/%Y'), w.reason] for ex, w in waivers])
 
     # ── Fotografias ──
     if photos:

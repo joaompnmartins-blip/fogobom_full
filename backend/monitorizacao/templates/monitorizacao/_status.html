@@ -1,1 +1,1 @@
-<span class="badge {% if v.status == 'feita' %}badge-green{% elif v.status == 'atrasada' %}badge-red{% elif v.status == 'em_curso' %}badge-orange{% else %}badge-gray{% endif %}">{{ v.status_label }}</span>
+<span class="badge {% if v.status == 'feita' %}badge-green{% elif v.status == 'atrasada' %}badge-red{% elif v.status == 'em_curso' %}badge-orange{% else %}badge-gray{% endif %}"{% if v.waiver %} title="{{ v.waiver.reason }}"{% endif %}>{{ v.status_label }}</span>

@@ -6,6 +6,7 @@ app_name = 'monitorizacao'
 urlpatterns = [
     path('',                                 views.monitoring_list,   name='list'),
     path('nova/<int:ex_pk>/',                views.assessment_create, name='create'),
+    path('dispensar/<int:ex_pk>/',          views.visit_waive,       name='waive'),
     path('<int:pk>/',                        views.assessment_detail, name='detail'),
     path('<int:pk>/editar/',                 views.assessment_edit,   name='edit'),
     path('<int:pk>/eliminar/',               views.assessment_delete, name='delete'),

@@ -461,7 +461,7 @@ def burning_plan_detail(request, pk):
     plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan', 'pre_plan__pfc'), pk=pk)
     from monitorizacao.schedule import expected_visits
     executions = list(plan.executions.select_related('parcel').prefetch_related(
-        'members__operative', 'readings', 'cost_lines', 'assessments'))
+        'members__operative', 'readings', 'cost_lines', 'assessments', 'waivers'))
     rows = []
     for ex in executions:
         est = _caof_estimate(ex)

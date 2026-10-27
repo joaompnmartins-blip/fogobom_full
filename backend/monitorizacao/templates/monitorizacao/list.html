@@ -8,6 +8,7 @@
   <a href="?estado=atrasada" class="btn btn-sm {% if estado == 'atrasada' %}btn-primary{% else %}btn-secondary{% endif %}">Em atraso ({{ counts.atrasada }})</a>
   <a href="?estado=futura" class="btn btn-sm {% if estado == 'futura' %}btn-primary{% else %}btn-secondary{% endif %}">Previstas ({{ counts.futura }})</a>
   <a href="?estado=feita" class="btn btn-sm {% if estado == 'feita' %}btn-primary{% else %}btn-secondary{% endif %}">Realizadas ({{ counts.feita }})</a>
+  <a href="?estado=dispensada" class="btn btn-sm {% if estado == 'dispensada' %}btn-primary{% else %}btn-secondary{% endif %}">Dispensadas ({{ counts.dispensada }})</a>
   <a href="?estado=todas" class="btn btn-sm {% if estado == 'todas' %}btn-primary{% else %}btn-secondary{% endif %}">Todas</a>
 </div>
 <div class="card">
@@ -22,13 +23,16 @@
       <td>{{ v.label }}</td>
       <td>{{ v.due|date:"d/m/Y" }}</td>
       <td>{{ v.deadline|date:"d/m/Y" }}</td>
-      <td>{% include "monitorizacao/_status.html" %}</td>
+      <td>{% include "monitorizacao/_status.html" %}{% if v.waiver %}<div style="font-size:11.5px;color:var(--dim);max-width:260px">{{ v.waiver.reason|truncatechars:90 }}</div>{% endif %}</td>
       <td style="white-space:nowrap">{% if v.assessment %}<a href="{% url 'monitorizacao:detail' v.assessment.pk %}" class="btn btn-secondary btn-sm">👁️ Ver</a>
-        {% else %}<a href="{% url 'monitorizacao:create' ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}" class="btn btn-primary btn-sm">+ Registar</a>{% endif %}</td>
+        {% elif v.waiver %}<a href="{% url 'monitorizacao:waive' ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}&next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm">✏️ Dispensa</a>
+        {% else %}<a href="{% url 'monitorizacao:create' ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}" class="btn btn-primary btn-sm">+ Registar</a>
+          <a href="{% url 'monitorizacao:waive' ex.pk %}?fase={{ v.phase }}&ano={{ v.year }}&next={{ request.get_full_path|urlencode }}" class="btn btn-secondary btn-sm" title="Dispensar esta visita, indicando o motivo">🚫 Dispensar</a>{% endif %}</td>
     </tr>{% endwith %}{% endfor %}</tbody>
   </table></div>
   {% else %}<p style="color:var(--dim);font-size:13px">Nada a mostrar.</p>{% endif %}
   <p style="font-size:11.5px;color:var(--dim);margin-top:8px">Avaliação imediata (1.ª fase) até 30 dias após a queima; 2.ª fase aos 6 meses;
-    depois uma visita por ano, enquanto a parcela não voltar a ser queimada. As visitas aos 6 meses e anuais têm 60 dias de margem.</p>
+    depois uma visita por ano, enquanto a parcela não voltar a ser queimada. As visitas aos 6 meses e anuais têm 60 dias de margem.
+    Uma visita que não vai ser feita pode ser dispensada, com o motivo.</p>
 </div>
 {% endblock %}
