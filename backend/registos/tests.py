@@ -83,6 +83,9 @@ class FieldbookTests(Base):
         self.assertContains(r, '4,5 h validadas')
         self.assertRedirects(self.client.get('/livro-de-campo/'), f'/livro-de-campo/{self.op.pk}/',
                              fetch_redirect_response=False)
+        self.client.force_login(User.objects.create_user('semperfil', password='x'))   # no operative profile yet
+        self.assertRedirects(self.client.get('/livro-de-campo/'), '/perfil/', fetch_redirect_response=False)
+        self.client.force_login(self.user)
         r = self.client.get(f'/livro-de-campo/{self.op.pk}/icnf.xlsx?ano=2026')
         self.assertEqual(r.status_code, 200)
         with warnings.catch_warnings():

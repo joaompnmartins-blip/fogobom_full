@@ -37,7 +37,7 @@ def my_fieldbook(request):
     op = getattr(request.user, 'operative', None)
     if op is None:
         messages.info(request, 'Complete primeiro o seu perfil.')
-        return redirect('operatives:profile')
+        return redirect('core:profile')
     return redirect('registos:fieldbook', op_pk=op.pk)
 
 
