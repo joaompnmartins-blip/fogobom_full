@@ -35,6 +35,22 @@
 </div>
 
 <div class="card">
+  <div class="card-title">Envio ao ICNF</div>
+  <table class="kv"><tbody>
+  {% for which, label, sent, rule in icnf_rows %}
+    <tr><td>{{ label }}<br><span style="font-size:11.5px">{{ rule }}</span></td><td>
+      {% if sent %}<span class="badge badge-green">Enviado em {{ sent|date:"d/m/Y" }}</span>
+        {% if can_manage %}<form method="post" action="{% url 'registos:mark_sent' bp.pk %}" style="display:inline">{% csrf_token %}<input type="hidden" name="which" value="{{ which }}"><button name="clear" value="1" class="btn btn-secondary btn-sm" onclick="return confirm('Anular o registo de envio?')">Anular</button></form>{% endif %}
+      {% else %}<span class="badge badge-orange">Por enviar</span>
+        {% if can_manage %}<form method="post" action="{% url 'registos:mark_sent' bp.pk %}" class="inline-form" style="margin-top:6px">{% csrf_token %}<input type="hidden" name="which" value="{{ which }}">
+          <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"><button class="btn btn-secondary btn-sm">Registar envio</button></form>{% endif %}
+      {% endif %}</td></tr>
+  {% endfor %}
+  </tbody></table>
+  <p style="font-size:11.5px;color:var(--dim);margin-top:6px">Os prazos e alertas estão em <a href="{% url 'registos:deadlines' %}">⏰ Prazos</a>. O ficheiro da base de dados (Excel) exporta-se no <a href="{% url 'registos:my_fieldbook' %}">livro de campo</a> do técnico.</p>
+</div>
+
+<div class="card">
   <div class="card-title">Execução por parcela e data</div>
   {% if rows %}
   <div style="overflow-x:auto"><table>

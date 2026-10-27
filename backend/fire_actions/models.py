@@ -233,6 +233,10 @@ class BurningPlan(models.Model):
     incident_area_ha     = models.FloatField('área afetada (ha)', null=True, blank=True)
     incident_damages     = models.TextField('possíveis prejuízos', blank=True, default='')
 
+    # Submission to ICNF (Regulamento, art. 14.º n.os 3 a 5)
+    poq_sent_on    = models.DateField('POQ-Execução enviado ao ICNF em', null=True, blank=True)
+    impact_sent_on = models.DateField('POQ-Impacto enviado ao ICNF em', null=True, blank=True)
+
     created_at      = models.DateTimeField(auto_now_add=True)
     history         = HistoricalRecords(m2m_fields=[operatives])
 
@@ -318,6 +322,14 @@ class ParcelExecution(models.Model):
                                                          blank=True)
     rating_why        = models.TextField('porquê?', blank=True, default='')
 
+    # Validation of the action for the livro de campo (Regulamento, art. 7.º n.º 4)
+    VALIDATOR_ROLES = [('proprietario', 'Proprietário'), ('representante', 'Representante do proprietário'),
+                       ('proponente', 'Proponente do PFC'), ('icnf', 'ICNF')]
+    validator_role = models.CharField('quem valida a ação', max_length=15, choices=VALIDATOR_ROLES, blank=True,
+                                      default='')
+    validator_name = models.CharField('nome de quem valida', max_length=120, blank=True, default='')
+    validated_on   = models.DateField('data da validação', null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     history    = HistoricalRecords()
 
@@ -361,10 +373,21 @@ class ExecutionMember(models.Model):
     operative = models.ForeignKey(Operative, on_delete=models.PROTECT, related_name='execution_roles',
                                   verbose_name='técnico / operacional')
     function  = models.CharField('função', max_length=20, choices=FUNCTIONS, blank=True, default='')
+    # Livro de campo
+    hours     = models.FloatField('horas', null=True, blank=True)   # empty: duration of the execution
+    book_page = models.CharField('folha do livro de campo', max_length=10, blank=True, default='')
+    validated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name='validated_participations',
+                                     verbose_name='validada pelo técnico')
+    validated_at = models.DateTimeField('validada em', null=True, blank=True)
 
     class Meta:
         unique_together = [('execution', 'operative')]
         ordering = ['id']
+
+    @property
+    def effective_hours(self):
+        return self.hours if self.hours is not None else self.execution.duration_hours
 
 
 class WeatherReading(models.Model):

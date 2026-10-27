@@ -45,6 +45,7 @@ class Operative(models.Model):
     credential_number   = models.CharField('n.º de credenciação ICNF', max_length=20, blank=True, default='')
     credential_lifetime = models.BooleanField('credenciação vitalícia', default=False)
     credential_valid_until = models.DateField('validade da credenciação', null=True, blank=True)
+    field_book_number   = models.CharField('n.º do livro de campo', max_length=20, blank=True, default='')
     credential_status   = models.CharField('estado da credenciação', max_length=10,
                                            choices=CREDENTIAL_STATUS, default=STATUS_NA)
     credential_reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,

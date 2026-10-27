@@ -147,6 +147,7 @@ class ParcelExecutionForm(forms.ModelForm):
         model = ParcelExecution
         exclude = ['plan', 'parcel', 'date', 'created_at']
         widgets = {'start_time': TIME, 'end_time': TIME,
+                   'validated_on': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
                    **{f: forms.Textarea(attrs={'rows': 2}) for f in (
                        'ignition_techniques', 'operation_notes', 'problems_description', 'rating_why')}}
 
@@ -163,6 +164,8 @@ class ParcelExecutionForm(forms.ModelForm):
         s, e = data.get('start_time'), data.get('end_time')
         if s and e and e <= s:
             self.add_error('end_time', 'O fim tem de ser depois do início.')
+        if data.get('validated_on') and not data.get('validator_role'):
+            self.add_error('validator_role', 'Indique quem validou a ação.')
         for f in ('eff_veg_area_pct', 'eff_crowns_pct', 'eff_litter_area_pct', 'eff_litter_reduction_pct'):
             v = data.get(f)
             if v is not None and not 0 <= v <= 100:
@@ -187,7 +190,8 @@ class NewParcelExecutionForm(forms.Form):
         return data
 
 
-MemberFormSet = forms.inlineformset_factory(ParcelExecution, ExecutionMember, fields=['operative', 'function'],
+MemberFormSet = forms.inlineformset_factory(ParcelExecution, ExecutionMember,
+                                           fields=['operative', 'function', 'hours', 'book_page'],
                                            extra=2, can_delete=True)
 ReadingFormSet = forms.inlineformset_factory(
     ParcelExecution, WeatherReading,

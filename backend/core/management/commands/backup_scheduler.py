@@ -2,7 +2,8 @@
 Long-running loop for daily tasks, started in the background by the
 container's start command:
   - backup (database every day, media on Sundays), if BACKUP_S3_* is set;
-  - reminders for tomorrow's burning actions.
+  - reminders for tomorrow's burning actions;
+  - deadline alerts (ICNF submissions, monitoring visits, credential renewal, PFC validity).
 """
 import os
 import time
@@ -37,10 +38,18 @@ def run_daily_tasks(target, stdout=None, stderr=None):
     except Exception as exc:
         if stderr:
             stderr.write(f'Lembretes: {exc}')
+    try:
+        from registos.alerts import send_deadline_alerts
+        n = send_deadline_alerts(target.date(), settings.SITE_URL)
+        if stdout:
+            stdout.write(f'Alertas de prazos enviados: {n}')
+    except Exception as exc:
+        if stderr:
+            stderr.write(f'Alertas de prazos: {exc}')
 
 
 class Command(BaseCommand):
-    help = 'Run daily tasks: backups (if configured) and action reminders.'
+    help = 'Run daily tasks: backups (if configured), action reminders and deadline alerts.'
 
     def handle(self, *args, **opts):
         hour = int(os.environ.get('BACKUP_HOUR', '3'))

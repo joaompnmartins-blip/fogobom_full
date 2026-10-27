@@ -12,6 +12,7 @@ urlpatterns = [
     path('acoes/',        include('fire_actions.urls', namespace='fire_actions')),
     path('pfc/',          include('pfc.urls',          namespace='pfc')),
     path('monitorizacao/', include('monitorizacao.urls', namespace='monitorizacao')),
+    path('',              include('registos.urls',     namespace='registos')),
     # Old URLs (/preplan/...) keep working
     re_path(r'^preplan/(?P<rest>.*)$', lambda request, rest: redirect(f'/acoes/{rest}', permanent=True)),
 ]
