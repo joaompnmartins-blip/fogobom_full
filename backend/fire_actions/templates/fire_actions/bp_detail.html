@@ -6,6 +6,7 @@
 {% block topbar_actions %}
   <a href="{% url 'fire_actions:burning_plan_report' bp.pk %}" class="btn btn-primary btn-sm">📥 POQ-Execução (Word)</a>
   <a href="{% url 'monitorizacao:poq_impacto' bp.pk %}" class="btn btn-primary btn-sm">📥 POQ-Impacto (Word)</a>
+  <a href="{% url 'analise:gis_plan' bp.pk 'shp' %}" class="btn btn-secondary btn-sm" title="Cartografia das parcelas tratadas em Shapefile (PT-TM06), para anexar ao POQ">🧭 Shapefile</a>
   {% if can_manage %}<a href="{% url 'fire_actions:burning_plan_edit' bp.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
 {% endblock %}
 {% block extra_head %}

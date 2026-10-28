@@ -5,6 +5,7 @@
 {% block nav_pfc %}active{% endblock %}
 {% block topbar_actions %}
   <a href="{% url 'pfc:docx' pfc.pk %}" class="btn btn-primary btn-sm">📥 Documento Word</a>
+  <a href="{% url 'analise:gis_pfc' pfc.pk 'shp' %}" class="btn btn-secondary btn-sm" title="Parcelas do PFC em Shapefile (PT-TM06)">🧭 Shapefile</a>
   {% if can_edit %}<a href="{% url 'pfc:edit' pfc.pk %}" class="btn btn-secondary btn-sm">✏️ Editar</a>{% endif %}
 {% endblock %}
 {% block extra_head %}

@@ -100,6 +100,8 @@
       <a href="{% url 'operatives:list' %}" class="nav-item {% block nav_op %}{% endblock %}"><span class="ni">👷</span>Operacionais</a>
       <a href="{% url 'registos:my_fieldbook' %}" class="nav-item {% block nav_fb %}{% endblock %}"><span class="ni">📒</span>Livro de campo</a>
       <div class="nav-sec">Ferramentas</div>
+      <a href="{% url 'analise:stats' %}" class="nav-item {% block nav_stats %}{% endblock %}"><span class="ni">📈</span>Estatísticas</a>
+      <a href="{% url 'analise:gis' %}" class="nav-item {% block nav_gis %}{% endblock %}"><span class="ni">🧭</span>Exportar GIS</a>
       <a href="{% url 'core:meteorologia' %}" class="nav-item {% block nav_met %}{% endblock %}"><span class="ni">🌤️</span>Meteorologia</a>
       <a href="{% url 'core:manual' %}" class="nav-item"><span class="ni">📖</span>Manual</a>
       {% if request.user.is_staff %}
