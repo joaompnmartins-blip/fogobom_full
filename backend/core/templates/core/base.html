@@ -129,7 +129,7 @@
       <span class="topbar-title">{% block page_title %}{% endblock %}</span>
       <div class="topbar-right">{% block topbar_actions %}{% endblock %}</div>
     </div>
-    <div class="content">
+    <div class="content {% block content_class %}{% endblock %}">
       {% if messages %}{% for m in messages %}
         <div class="msg {% if m.tags == 'error' %}msg-error{% elif m.tags == 'success' %}msg-ok{% else %}msg-info{% endif %}">{{ m }}</div>
       {% endfor %}{% endif %}

@@ -1278,7 +1278,7 @@ function renderTerrain({ altitude, slope, aspect, source }) {
         <span class="tsub">${Math.round(aspect)}°</span>
       </div>
     </div>
-    <div style="margin-top:6px;font-size:0.48rem;letter-spacing:1px;color:${sourceColor};text-transform:uppercase;">
+    <div style="margin-top:6px;font-size:0.62rem;letter-spacing:1px;color:${sourceColor};text-transform:uppercase;">
       ▲ DEM: ${sourceLabel}
     </div>`;
 }
@@ -1570,7 +1570,7 @@ function renderCards(data, terrain = null) {
                     : `${dryDays} dias sem chuva`;
 
     const wetBadge  = wetDay
-      ? `<span style="font-size:0.55rem;letter-spacing:1px;color:#22d3ee;margin-left:6px">💧 CHUVA HOJE</span>`
+      ? `<span style="font-size:0.72rem;letter-spacing:1px;color:#22d3ee;margin-left:6px">💧 CHUVA HOJE</span>`
       : '';
 
     const dryWarning_html = dryWarning
@@ -1581,7 +1581,7 @@ function renderCards(data, terrain = null) {
             background: rgba(34,211,238,0.07);
             border: 1px solid rgba(34,211,238,0.3);
             border-radius: 3px;
-            font-size: 0.55rem;
+            font-size:0.72rem;
             letter-spacing: 1px;
             color: #22d3ee;
           ">⚠ ${dryWarning}</div>`
@@ -1592,7 +1592,7 @@ function renderCards(data, terrain = null) {
         <div class="day-header">
           <span class="day-date">${dateStr}</span>
           <span class="class-badge class-${cls}">${label}</span>
-          <span style="font-size:0.5rem;color:var(--muted);letter-spacing:1px;margin-left:auto;padding-right:4px">📈 ver gráfico</span>
+          <span style="font-size:0.65rem;color:var(--muted);letter-spacing:1px;margin-left:auto;padding-right:4px">📈 ver gráfico</span>
           ${wetBadge}
         </div>
         <div class="day-body">
@@ -1626,7 +1626,7 @@ function renderCards(data, terrain = null) {
             <span class="mlabel">Dias secos anteriores</span>
             <div style="margin-top:4px;display:flex;align-items:center;gap:8px;">
               <div>${dryDots}</div>
-              <span style="font-size:0.65rem;font-weight:700;color:${dryColor};letter-spacing:0.5px">${dryLabel}</span>
+              <span style="font-size:0.85rem;font-weight:700;color:${dryColor};letter-spacing:0.5px">${dryLabel}</span>
             </div>
           </div>
           ${dryWarning_html}
@@ -1685,8 +1685,8 @@ map.on('click', async (e) => {
       if (marker) map.removeLayer(marker);
       marker = L.circleMarker([lat, lng], {
         radius: 8,
-        color: '#f5d84a',
-        fillColor: '#f5d84a',
+        color: '#e8541a',
+        fillColor: '#e8541a',
         fillOpacity: 0.3,
         weight: 2
       }).addTo(map);
@@ -2231,7 +2231,7 @@ function renderParcelsPreview() {
   let html = `
     <div class="parcel-overview-header">
       <span>${parcels.length} parcela${parcels.length !== 1 ? 's' : ''} carregada${parcels.length !== 1 ? 's' : ''}</span>
-      ${hasResults ? `<span style="color:#4ade80;font-size:0.5rem;letter-spacing:1px">✓ PREVISÃO DISPONÍVEL</span>` : ''}
+      ${hasResults ? `<span style="color:#4ade80;font-size:0.65rem;letter-spacing:1px">✓ PREVISÃO DISPONÍVEL</span>` : ''}
     </div>`;
 
   if (!hasResults) {
@@ -2270,7 +2270,7 @@ function renderParcelsPreview() {
 
 function showPreviewError(msg) {
   document.getElementById('parcelsPreviewArea').innerHTML =
-    `<div style="padding:10px;color:var(--c-muito-seco);font-size:0.6rem;letter-spacing:1px">${msg}</div>`;
+    `<div style="padding:10px;color:var(--c-muito-seco);font-size:0.78rem;letter-spacing:1px">${msg}</div>`;
 }
 
 function escHtml(s) {
@@ -2402,8 +2402,8 @@ function renderParcelMarkers() {
     m.bindTooltip(`
       <div class="parcel-popup">
         <strong>${escHtml(p.name)}</strong><br>
-        <span style="font-size:0.5rem;color:var(--muted)">${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</span><br>
-        ${days.length ? `<table style="margin-top:5px;font-size:0.55rem">${tooltipLines}</table>` : '<span style="color:var(--muted)">sem previsão</span>'}
+        <span style="font-size:0.65rem;color:var(--muted)">${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</span><br>
+        ${days.length ? `<table style="margin-top:5px;font-size:0.72rem">${tooltipLines}</table>` : '<span style="color:var(--muted)">sem previsão</span>'}
       </div>`, { sticky: false, direction: 'right', className: 'leaflet-tooltip' });
 
     // Click → load full sidebar with terrain
@@ -2471,7 +2471,7 @@ async function loadParcelDetail(p) {
     document.getElementById('sidebarContent').innerHTML =
       `<div style="padding:6px 0 10px">
          <button onclick="showParcelsOverviewInSidebar()" style="
-           font-family:'Space Mono',monospace;font-size:0.52rem;letter-spacing:1.5px;
+           font-family:var(--fb);font-size:0.68rem;letter-spacing:1px;
            text-transform:uppercase;padding:4px 10px;border-radius:2px;
            border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">
            ← Todas as Parcelas
@@ -2503,14 +2503,14 @@ function showParcelsOverviewInSidebar() {
   if (!hasResults) {
     document.getElementById('sidebarContent').innerHTML = `
       <div style="padding:12px 0">
-        <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:12px">
+        <div style="font-size:0.78rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:12px">
           ${parcels.length} parcelas carregadas.<br>
           Clique em <strong style="color:var(--accent)">⚡ Carregar Previsão</strong> no modal para obter dados.
         </div>
         <button onclick="openParcelsModal()" style="
-          font-family:'Space Mono',monospace;font-size:0.55rem;letter-spacing:1.5px;
+          font-family:var(--fb);font-size:0.72rem;letter-spacing:1px;
           text-transform:uppercase;padding:7px 14px;border-radius:2px;
-          background:var(--accent);color:#000;border:none;cursor:pointer;">
+          background:var(--accent);color:var(--on-accent);border:none;cursor:pointer;">
           📍 Abrir Painel Parcelas
         </button>
       </div>`;
@@ -2524,7 +2524,7 @@ function showParcelsOverviewInSidebar() {
       <div class="parcel-overview-header">
         <span>Previsão HC por Parcela (08–18h)</span>
         <button onclick="openParcelsModal()" style="
-          font-family:'Space Mono',monospace;font-size:0.48rem;letter-spacing:1px;
+          font-family:var(--fb);font-size:0.62rem;letter-spacing:1px;
           text-transform:uppercase;padding:3px 8px;border-radius:2px;
           background:transparent;color:var(--muted);border:1px solid var(--border);cursor:pointer;">
           ⬇ CSV
@@ -2551,7 +2551,7 @@ function showParcelsOverviewInSidebar() {
   });
 
   html += `</tbody></table>
-    <div style="margin-top:10px;font-size:0.5rem;color:var(--muted);letter-spacing:1px;line-height:1.6">
+    <div style="margin-top:10px;font-size:0.65rem;color:var(--muted);letter-spacing:1px;line-height:1.6">
       Clique numa linha para ver previsão detalhada c/ terreno.<br>
       Classificação baseada em HC calculada · Sem correcção de terreno nesta tabela.
     </div>
