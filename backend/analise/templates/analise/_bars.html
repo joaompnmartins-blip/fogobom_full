@@ -1,0 +1,7 @@
+{% if rows %}<div class="bars" role="list">{% for r in rows %}
+  <div class="bar-row" role="listitem" title="{{ r.label }}: {{ r.display }}">
+    <span class="bar-label">{{ r.label }}</span>
+    <span class="bar-track"><span class="bar-fill" style="width:{{ r.pct }}%"></span></span>
+    <span class="bar-value">{{ r.display }}</span>
+  </div>{% endfor %}</div>
+{% else %}<p class="empty">Sem dados.</p>{% endif %}

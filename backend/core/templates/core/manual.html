@@ -73,6 +73,7 @@
       <li><a href="#monitorizacao">Impacto e monitorização</a></li>
       <li><a href="#prazos">Prazos e alertas</a></li>
       <li><a href="#livro">Livro de campo e base de dados ICNF</a></li>
+      <li><a href="#estatisticas">Estatísticas e exportação GIS</a></li>
       <li><a href="#calendario">Calendário</a></li>
       <li><a href="#meteorologia">Meteorologia</a></li>
       <li><a href="#faq">Perguntas frequentes</a></li>
@@ -82,11 +83,12 @@
   <main>
     <h1>Manual de Utilizador</h1>
     <p class="lead">Guia de utilização da plataforma Fogo Bom Algarve para gestão de fogo controlado:
-      registo de parcelas, planeamento das queimas, registo da execução e consulta da meteorologia.</p>
+      proposta e avaliação de parcelas, Planos de Fogo Controlado, anúncio e execução das queimas, documentos do ICNF
+      (POQ-Execução, POQ-Impacto, base de dados), monitorização, prazos, livro de campo, estatísticas e meteorologia.</p>
 
     <p>O trabalho na plataforma segue normalmente esta sequência:</p>
     <div class="flow">
-      <span>🗺️ Parcela</span><b>→</b><span>📢 Ação</span><b>→</b><span>📄 Execução</span><b>→</b><span>📥 POQ-Execução</span><b>→</b><span>🌱 Monitorização</span>
+      <span>🗺️ Parcela</span><b>→</b><span>📢 Ação</span><b>→</b><span>📄 Execução</span><b>→</b><span>📥 POQ-Execução</span><b>→</b><span>🌱 Monitorização</span><b>→</b><span>📥 POQ-Impacto</span>
     </div>
 
     <!-- 1 ─────────────────────────────────────────────────────────── -->
@@ -146,7 +148,7 @@
       <p>O menu lateral, à esquerda, dá acesso a todas as áreas:</p>
       <table>
         <tr><th>Menu</th><th>Para quê</th></tr>
-        <tr><td>📊 Dashboard</td><td>Resumo geral, próximas queimas e planos recentes</td></tr>
+        <tr><td>📊 Dashboard</td><td>Resumo geral, próximas queimas e execuções recentes</td></tr>
         <tr><td>🗺️ Parcelas</td><td>Áreas de intervenção, com mapa</td></tr>
         <tr><td>📢 Próximas ações</td><td>Ações anunciadas: probabilidade de realização e inscrições</td></tr>
         <tr><td>📋 Ações</td><td>Todas as ações (fogo controlado e queimadas), com filtro por estado</td></tr>
@@ -157,12 +159,16 @@
         <tr><td>📅 Calendário</td><td>Vista mensal das queimas planeadas e executadas</td></tr>
         <tr><td>👷 Operacionais</td><td>Pessoas que participam nas queimas</td></tr>
         <tr><td>📒 Livro de campo</td><td>O seu registo de participação nas queimas, horas para a renovação e base de dados ICNF (Excel)</td></tr>
+        <tr><td>📈 Estatísticas</td><td>Área tratada, ações, pessoas e horas, custos, eficácia, problemas e monitorização, por ano</td></tr>
+        <tr><td>🧭 Exportar GIS</td><td>Parcelas e áreas tratadas em GeoJSON, KML, Shapefile ou GeoPackage</td></tr>
         <tr><td>🌤️ Meteorologia</td><td>Previsão da humidade do combustível e recomendação para fogo controlado</td></tr>
       </table>
       <p>Nas listas, os botões de cada linha têm este significado:
         <span class="ui">👁️</span> ver detalhe · <span class="ui">✏️</span> editar ·
         <span class="ui">📥 POQ</span> descarregar o POQ-Execução em Word.
         O botão principal de cada página (por exemplo <span class="ui">+ Nova Parcela</span>) está no canto superior direito.</p>
+      <p>Os números a vermelho no menu indicam o que está em atraso: <span class="ui">⏰ Prazos</span> (os seus prazos) e
+        <span class="ui">🌱 Monitorização</span> (visitas, para técnicos e administradores).</p>
       <div class="note">A plataforma foi pensada para utilização em computador. Este manual está sempre
         disponível na página de entrada e no menu lateral (<span class="ui">📖 Manual</span>).</div>
     </section>
@@ -529,9 +535,33 @@
         Só o próprio técnico e os administradores o podem descarregar.</p>
     </section>
 
+    <section id="estatisticas">
+      <h2>13. Estatísticas e exportação GIS</h2>
+      <h3>Estatísticas</h3>
+      <p>Em <span class="ui">📈 Estatísticas</span> vê, para todos os anos ou para o ano escolhido: hectares tratados, ações
+        realizadas, dias de queima, pessoas e horas, fugas do fogo e custos (reais e estimativa CAOF); a área por concelho e por
+        formação; as ações por tipo e por estado; a eficácia; os problemas operacionais; as visitas de monitorização; as parcelas
+        por estado e as condições meteorológicas observadas nas queimas.</p>
+      <p><span class="ui">📥 Dados das execuções (CSV)</span> descarrega uma linha por execução de parcela, para análise numa
+        folha de cálculo (abre diretamente no Excel).</p>
+      <h3>Exportar cartografia</h3>
+      <p>Em <span class="ui">🧭 Exportar GIS</span> escolha o que exportar e o formato:</p>
+      <table>
+        <tr><th>Conjunto</th><th>Conteúdo</th></tr>
+        <tr><td>Parcelas</td><td>Todas ou filtradas por estado, tipologia e concelho, com a data da última queima</td></tr>
+        <tr><td>Áreas tratadas</td><td>Uma geometria por parcela e dia de queima, de todos os anos ou de um ano</td></tr>
+        <tr><td>Cartografia de uma execução</td><td>As parcelas tratadas de um POQ-Execução, a anexar ao envio ao ICNF
+          (também no botão <span class="ui">🧭 Shapefile</span> da página da execução)</td></tr>
+        <tr><td>Parcelas de um PFC</td><td>Com o n.º da parcela no PFC, a época e o objetivo (também na página do PFC)</td></tr>
+      </table>
+      <p>Formatos: <strong>GeoJSON</strong> e <strong>KML</strong> (Google Earth) em WGS84; <strong>Shapefile</strong> (zip) e
+        <strong>GeoPackage</strong> em PT-TM06/ETRS89, o sistema usado pelo ICNF e pelos programas de SIG (QGIS, ArcGIS).
+        Os dados de contacto das parcelas nunca são exportados.</p>
+    </section>
+
     <!-- 9 ─────────────────────────────────────────────────────────── -->
     <section id="calendario">
-      <h2>13. Calendário</h2>
+      <h2>14. Calendário</h2>
       <p>Mostra as ações na respetiva <strong>data prevista</strong>, com a cor do estado:
         <span class="dot" style="background:#e8541a"></span>prevista ·
         <span class="dot" style="background:#2e9e4f"></span>confirmada ·
@@ -543,7 +573,7 @@
 
     <!-- 10 ────────────────────────────────────────────────────────── -->
     <section id="meteorologia">
-      <h2>14. Meteorologia</h2>
+      <h2>15. Meteorologia</h2>
       <p>Ferramenta de apoio à decisão que estima a <strong>humidade do combustível fino morto (HC)</strong>
         para os próximos 5 dias, no período diurno (08h–18h), a partir da previsão meteorológica.</p>
 
@@ -595,7 +625,7 @@
 
     <!-- 11 ────────────────────────────────────────────────────────── -->
     <section id="faq">
-      <h2>15. Perguntas frequentes</h2>
+      <h2>16. Perguntas frequentes</h2>
 
       <h3>Não encontro o botão para eliminar um registo.</h3>
       <p>Eliminar parcelas, operacionais, ações ou execuções está reservado aos administradores.
