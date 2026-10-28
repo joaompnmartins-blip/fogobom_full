@@ -10,7 +10,7 @@
   .num { text-align:right; white-space:nowrap }
   table.fb td, table.fb th { font-size:12px; padding:5px 6px; vertical-align:top }
   .bar { height:8px; background:var(--bg3); border-radius:4px; overflow:hidden; margin-top:6px }
-  .bar span { display:block; height:100%; background:#4caf50 }
+  .bar span { display:block; height:100%; background:var(--progress) }
   @media print { .sidebar, .topbar-actions, .btn, .no-print { display:none !important } }
 </style>{% endblock %}
 {% block content %}
@@ -28,7 +28,7 @@
     <p style="font-size:13px"><strong>{{ summary.validated }} h validadas</strong> de {{ summary.required }} h · {{ summary.total }} h registadas
       {% if summary.as_responsible is not None %}· {{ summary.as_responsible }} h como responsável de queima{% endif %}</p>
     <div class="bar"><span style="width:{{ summary.pct }}%"></span></div>
-    {% if summary.missing_hours %}<p style="font-size:11.5px;color:#e57373;margin-top:6px">{{ summary.missing_hours }} participação(ões) sem horas: preencha o horário da execução ou as horas da pessoa.</p>{% endif %}
+    {% if summary.missing_hours %}<p style="font-size:11.5px;color:var(--err-fg);margin-top:6px">{{ summary.missing_hours }} participação(ões) sem horas: preencha o horário da execução ou as horas da pessoa.</p>{% endif %}
     <p style="font-size:11.5px;color:var(--dim);margin-top:6px">{% if op.credential_type == 'tecnico_fc' %}Só contam as ações validadas pelo proprietário, representante, proponente do PFC ou ICNF, com o nome de quem validou (art. 7.º n.º 4).{% else %}Participações validadas pelo técnico responsável (art. 27.º n.º 2).{% endif %}</p>
   </div>{% endif %}
 </div>
@@ -44,7 +44,7 @@
       <td>{{ r.page|default:"—" }}</td>
       <td style="white-space:nowrap"><a href="{% url 'fire_actions:execution_edit' r.execution.pk %}">{{ r.date|date:"d/m/Y" }}</a></td>
       <td style="white-space:nowrap">{{ r.start|time:"H:i"|default:"?" }}–{{ r.end|time:"H:i"|default:"?" }}</td>
-      <td class="num">{% if r.hours is not None %}{{ r.hours|floatformat:"-1" }}{% else %}<span style="color:#e57373">—</span>{% endif %}</td>
+      <td class="num">{% if r.hours is not None %}{{ r.hours|floatformat:"-1" }}{% else %}<span style="color:var(--err-fg)">—</span>{% endif %}</td>
       <td>{{ r.freguesia|default:r.execution.parcel.name }}<br><span style="color:var(--dim)">{{ r.concelho }}{% if r.distrito %}, {{ r.distrito }}{% endif %}</span></td>
       <td><a href="{% url 'fire_actions:burning_plan_detail' r.execution.plan_id %}">{{ r.action.name }}</a><br><span style="color:var(--dim)">{{ r.type }}{% if r.objectives %} · {{ r.objectives }}{% endif %}</span></td>
       <td>{{ r.formation }}</td>

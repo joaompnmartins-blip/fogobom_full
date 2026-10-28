@@ -2656,16 +2656,16 @@ function openDayModal(encodedData, dateStr, cls) {
   const yStep = 5;
   for (let v = Math.ceil(fmMin / yStep) * yStep; v <= fmMax; v += yStep) {
     const y = yS(v);
-    gridSVG += `<line x1="${PAD.left}" y1="${y}" x2="${PAD.left + iW}" y2="${y}" stroke="#3d5045" stroke-width="0.5" stroke-dasharray="3 3"/>`;
-    gridSVG += `<text x="${PAD.left - 5}" y="${y + 4}" text-anchor="end" font-size="9" fill="#9ab5a2">${v}%</text>`;
+    gridSVG += `<line x1="${PAD.left}" y1="${y}" x2="${PAD.left + iW}" y2="${y}" style="stroke:var(--border)" stroke-width="0.5" stroke-dasharray="3 3"/>`;
+    gridSVG += `<text x="${PAD.left - 5}" y="${y + 4}" text-anchor="end" font-size="9" style="fill:var(--muted)">${v}%</text>`;
   }
 
   // X axis labels (every hour)
   let xLabelsSVG = '';
   hours.forEach((h, i) => {
     const x = xS(i);
-    xLabelsSVG += `<text x="${x}" y="${PAD.top + iH + 14}" text-anchor="middle" font-size="9" fill="#9ab5a2">${h}h</text>`;
-    xLabelsSVG += `<line x1="${x}" y1="${PAD.top + iH}" x2="${x}" y2="${PAD.top + iH + 4}" stroke="#3d5045" stroke-width="0.8"/>`;
+    xLabelsSVG += `<text x="${x}" y="${PAD.top + iH + 14}" text-anchor="middle" font-size="9" style="fill:var(--muted)">${h}h</text>`;
+    xLabelsSVG += `<line x1="${x}" y1="${PAD.top + iH}" x2="${x}" y2="${PAD.top + iH + 4}" style="stroke:var(--border)" stroke-width="0.8"/>`;
   });
 
   // Filled area under curve
@@ -2688,7 +2688,7 @@ function openDayModal(encodedData, dateStr, cls) {
   fmcByHour.forEach((v, i) => {
     const cx = xS(i), cy = yS(v);
     const c = classifyFM(v).color;
-    dotsSVG += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${c}" stroke="#1a1f1c" stroke-width="1.2"/>`;
+    dotsSVG += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${c}" style="stroke:var(--panel)" stroke-width="1.2"/>`;
     // value label above dot (alternate up/down if crowded)
     const labelY = cy > PAD.top + 20 ? cy - 7 : cy + 14;
     dotsSVG += `<text x="${cx}" y="${labelY}" text-anchor="middle" font-size="8.5" fill="${c}" font-weight="bold">${v.toFixed(1)}</text>`;
@@ -2699,8 +2699,8 @@ function openDayModal(encodedData, dateStr, cls) {
       ${bandsSVG}
       ${gridSVG}
       <!-- axes -->
-      <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${PAD.top + iH}" stroke="#3d5045" stroke-width="1"/>
-      <line x1="${PAD.left}" y1="${PAD.top + iH}" x2="${PAD.left + iW}" y2="${PAD.top + iH}" stroke="#3d5045" stroke-width="1"/>
+      <line x1="${PAD.left}" y1="${PAD.top}" x2="${PAD.left}" y2="${PAD.top + iH}" style="stroke:var(--border)" stroke-width="1"/>
+      <line x1="${PAD.left}" y1="${PAD.top + iH}" x2="${PAD.left + iW}" y2="${PAD.top + iH}" style="stroke:var(--border)" stroke-width="1"/>
       <!-- filled area -->
       <path d="${areaPath}" fill="rgba(245,216,74,0.05)"/>
       <!-- coloured segments -->
@@ -2710,8 +2710,8 @@ function openDayModal(encodedData, dateStr, cls) {
       <!-- dots + values -->
       ${dotsSVG}
       <!-- axis title -->
-      <text x="${PAD.left + iW / 2}" y="${H - 2}" text-anchor="middle" font-size="8.5" fill="#9ab5a2" letter-spacing="1">HORA</text>
-      <text x="11" y="${PAD.top + iH / 2}" text-anchor="middle" font-size="8.5" fill="#9ab5a2" letter-spacing="1"
+      <text x="${PAD.left + iW / 2}" y="${H - 2}" text-anchor="middle" font-size="8.5" style="fill:var(--muted)" letter-spacing="1">HORA</text>
+      <text x="11" y="${PAD.top + iH / 2}" text-anchor="middle" font-size="8.5" style="fill:var(--muted)" letter-spacing="1"
         transform="rotate(-90, 11, ${PAD.top + iH / 2})">HC %</text>
     </svg>`;
 

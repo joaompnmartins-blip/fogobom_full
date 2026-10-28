@@ -12,7 +12,7 @@
   {% for code, label in kinds %}<a href="?ver={{ scope }}&tipo={{ code }}" class="btn btn-sm {% if kind == code %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>{% endfor %}
 </div>
 <div class="card">
-  <div class="card-title">{{ items|length }} prazo{{ items|length|pluralize }}{% if overdue %} · <span style="color:#e57373">{{ overdue }} em atraso</span>{% endif %}</div>
+  <div class="card-title">{{ items|length }} prazo{{ items|length|pluralize }}{% if overdue %} · <span style="color:var(--err-fg)">{{ overdue }} em atraso</span>{% endif %}</div>
   {% if items %}<div style="overflow-x:auto"><table>
     <thead><tr><th>Prazo</th><th>Estado</th><th>Obrigação</th><th>Assunto</th><th>Notas</th></tr></thead>
     <tbody>{% for i in items %}<tr>
