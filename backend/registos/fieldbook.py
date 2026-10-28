@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from fire_actions.models import ExecutionMember
+from fire_actions.models import ExecutionMember, ParcelExecution
 from operatives.models import Operative
 from parcelas.models import Freguesia
 
@@ -12,8 +12,8 @@ from parcelas.models import Freguesia
 ICNF_FUNCTIONS = {'coordenacao': 'Responsável de queima', 'responsavel_linha': 'Chefe de Ignição',
                   'ignicao': 'Pinga-lume', 'vigilancia': 'Vigia', 'seguranca': 'Chefe de segurança',
                   'apoio': 'Apoio', 'formacao': 'Em formação', 'todas': 'Todas as funções'}
-ICNF_VALIDATOR = {'proprietario': 'Proprietário', 'representante': 'Representante de proprietário',
-                  'proponente': 'Proponente do Plano', 'icnf': 'ICNF'}
+# Who validates the action (Regulamento, art. 7.º n.º 4) — same wording in the app and in the Excel list
+ICNF_VALIDATOR = dict(ParcelExecution.VALIDATOR_ROLES)
 ICNF_FORMATION = {'mato': 'Mato', 'pov': 'Pov', 'res': 'Res'}
 RENEWAL_HOURS = {Operative.CRED_TECNICO: 150, Operative.CRED_OPERACIONAL: 100}
 CREDENTIAL_YEARS = 5
@@ -63,8 +63,9 @@ def entries(operative, year=None):
             'Fuga do fogo' if ex.plan.incident else ''] if t)
         if operative.credential_type == Operative.CRED_TECNICO:
             # técnico: the action is validated by the owner, the PFC proponent or ICNF (art. 7.º n.º 4)
+            # the ICNF counts the hours only with the name of who validated
             validation_role = ICNF_VALIDATOR.get(ex.validator_role, '')
-            validation_name, validated = ex.validator_name, bool(ex.validator_role)
+            validation_name, validated = ex.validator_name, bool(ex.validator_role and ex.validator_name.strip())
         else:
             # operacional: validated by the supervising technician (art. 27.º n.º 2)
             vop = getattr(m.validated_by, 'operative', None) if m.validated_by_id else None
@@ -85,6 +86,7 @@ def entries(operative, year=None):
             'function': ICNF_FUNCTIONS.get(m.function, ''), 'area': ex.area_treated_ha,
             'hours': m.effective_hours,
             'validation_role': validation_role, 'validation_name': validation_name, 'validated': validated,
+            'missing_name': bool(validation_role) and not validated,
             'other': '; '.join(t for t in [
                 f'Responsável de queima: {resp.name} ({resp.credential_number})' if resp else '', pfc_ref] if t),
             'notes': notes,

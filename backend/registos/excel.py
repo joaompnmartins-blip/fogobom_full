@@ -5,7 +5,9 @@ import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from fire_actions.models import FireAction
 from pfc.models import PFC
+from .fieldbook import ICNF_FORMATION, ICNF_FUNCTIONS, ICNF_VALIDATOR
 
 TEMPLATE = Path(__file__).resolve().parent / 'data' / 'BD_FOGO-CONTROLADO.xlsx'
 FIRST_ROW = 5
@@ -16,6 +18,38 @@ def _td(t):
     return timedelta(hours=t.hour, minutes=t.minute) if t else None
 
 
+# Dropdown lists, kept on the template's "Folha3" sheet. The template's own lists are outdated (AFN, CPE…)
+# and its dropdowns use an Excel extension that openpyxl drops, so both are rewritten here from the app's values.
+LISTS = [   # (Folha3 column, header, values, register columns that use it)
+    ('A', 'Funções', list(dict.fromkeys(ICNF_FUNCTIONS.values())), 'M'),
+    ('B', 'Responsável que valida', list(ICNF_VALIDATOR.values()), 'O'),
+    ('C', 'Objetivos', [label for _, label in FireAction.OBJECTIVES]
+     + [label for _, label in FireAction.QUEIMADA_PURPOSE], 'J'),
+    ('D', 'Ação de fogo', ['Plano Fogo Controlado', 'Queimada Autor.', 'Formação'], 'F'),
+    ('E', 'Formações vegetais', list(ICNF_FORMATION.values()), 'K'),
+]
+
+
+def _set_lists(wb, ws):
+    from openpyxl.worksheet.datavalidation import DataValidation, DataValidationList
+    lists = wb['Folha3']
+    for row in lists.iter_rows(min_row=1, max_row=max(lists.max_row, 30), max_col=8):
+        for cell in row:
+            cell.value = None
+    for col in ('IL', 'IN', 'IP', 'IR', 'IV'):   # the template's old lists, now unused
+        for r in range(1, 11):
+            ws[f'{col}{r}'].value = None
+    ws.data_validations = DataValidationList()
+    for col, header, values, target in LISTS:
+        lists[f'{col}1'] = header
+        for i, v in enumerate(values, start=2):
+            lists[f'{col}{i}'] = v
+        dv = DataValidation(type='list', formula1=f'Folha3!${col}$2:${col}${len(values) + 1}', allow_blank=True,
+                            showErrorMessage=False)
+        dv.add(f'{target}{FIRST_ROW}:{target}{LAST_TEMPLATE_ROW}')
+        ws.add_data_validation(dv)
+
+
 def generate_icnf_xlsx(operative, rows, today=None):
     import openpyxl
     with warnings.catch_warnings():   # the template has an Excel extension openpyxl does not read
@@ -24,6 +58,7 @@ def generate_icnf_xlsx(operative, rows, today=None):
     ws = wb['Acções de fogo Controlado']
     ws['B1'] = operative.credential_number
     ws['B2'] = operative.name
+    _set_lists(wb, ws)
 
     # Clear the template placeholders ("…", 0, example note)
     for r in range(FIRST_ROW, LAST_TEMPLATE_ROW + 1):

@@ -73,6 +73,12 @@ class FieldbookTests(Base):
         self.assertEqual((w['validated'], w['validation_role'], w['validation_name']),
                          (True, 'Técnico credenciado', 'Técnico tec'))
         self.assertEqual(hours_summary(self.worker)['required'], 100)
+        # Without the name of who validated, the action does not count as validated (ICNF)
+        self.ex.validator_name = ''
+        self.ex.save()
+        [e] = entries(self.op)
+        self.assertEqual((e['validated'], e['missing_name']), (False, True))
+        self.assertEqual(hours_summary(self.op, today=date(2026, 6, 1))['validated'], 0)
 
     @override_settings(SECURE_SSL_REDIRECT=False)
     def test_pages_and_excel(self):
@@ -100,11 +106,23 @@ class FieldbookTests(Base):
                          (date(2026, 1, 20), timedelta(hours=9), 'Mato', 'Responsável de queima', 2.5,
                           'Proprietário', 'J. Silva'))
         self.assertIsNone(ws['F6'].value)   # template placeholders cleared
-        # Other users cannot export someone else's database
+        # Dropdown lists rewritten from the app's values (the template's AFN/CPE items are gone)
+        lists = wb['Folha3']
+        self.assertEqual([lists[f'B{r}'].value for r in range(1, 6)],
+                         ['Responsável que valida', 'Proprietário', 'Representante do proprietário',
+                          'Proponente do PFC', 'ICNF'])
+        targets = {str(dv.sqref): dv.formula1 for dv in ws.data_validations.dataValidation}
+        self.assertEqual(targets['O5:O998'], 'Folha3!$B$2:$B$5')
+        self.assertIn('M5:M998', targets)
+        self.assertNotIn('AFN', ' '.join(str(c.value) for row in lists.iter_rows() for c in row if c.value))
+        # The livro de campo is private: nobody else (not even staff) can see or export it
         other, _ = make_tecnico('outro', '10-2021')
-        self.client.force_login(other)
-        r = self.client.get(f'/livro-de-campo/{self.op.pk}/icnf.xlsx')
-        self.assertEqual(r.status_code, 302)
+        staff = User.objects.create_user('chefe', password='x', is_staff=True)
+        for u in (other, staff):
+            self.client.force_login(u)
+            for url in (f'/livro-de-campo/{self.op.pk}/', f'/livro-de-campo/{self.op.pk}/icnf.xlsx'):
+                r = self.client.get(url)
+                self.assertRedirects(r, '/livro-de-campo/', fetch_redirect_response=False)
 
     @override_settings(SECURE_SSL_REDIRECT=False)
     def test_validate_team(self):
@@ -142,6 +160,14 @@ class DeadlineTests(Base):
         self.plan.poq_sent_on = date(2026, 2, 1)
         self.plan.save()
         self.assertEqual(self.kinds(date(2026, 2, 5)), set())   # POQ-Impacto is beyond the 4-month horizon
+
+    @override_settings(SECURE_SSL_REDIRECT=False)
+    def test_credential_deadline_is_private(self):
+        owner, _ = make_tecnico('renova', '11-2022', valid_until=timezone.localdate() + timedelta(days=20))
+        self.client.force_login(self.user)
+        self.assertNotContains(self.client.get('/prazos/?ver=todos'), 'Técnico renova')
+        self.client.force_login(owner)
+        self.assertContains(self.client.get('/prazos/?ver=meus'), 'Técnico renova')
 
     def test_credential_and_pfc_deadlines(self):
         _, op = make_tecnico('renova', '11-2022', valid_until=date(2026, 3, 31))

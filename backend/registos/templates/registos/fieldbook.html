@@ -29,7 +29,7 @@
       {% if summary.as_responsible is not None %}· {{ summary.as_responsible }} h como responsável de queima{% endif %}</p>
     <div class="bar"><span style="width:{{ summary.pct }}%"></span></div>
     {% if summary.missing_hours %}<p style="font-size:11.5px;color:#e57373;margin-top:6px">{{ summary.missing_hours }} participação(ões) sem horas: preencha o horário da execução ou as horas da pessoa.</p>{% endif %}
-    <p style="font-size:11.5px;color:var(--dim);margin-top:6px">{% if op.credential_type == 'tecnico_fc' %}Ações validadas pelo proprietário, representante, proponente do PFC ou ICNF (art. 7.º n.º 4).{% else %}Participações validadas pelo técnico responsável (art. 27.º n.º 2).{% endif %}</p>
+    <p style="font-size:11.5px;color:var(--dim);margin-top:6px">{% if op.credential_type == 'tecnico_fc' %}Só contam as ações validadas pelo proprietário, representante, proponente do PFC ou ICNF, com o nome de quem validou (art. 7.º n.º 4).{% else %}Participações validadas pelo técnico responsável (art. 27.º n.º 2).{% endif %}</p>
   </div>{% endif %}
 </div>
 <div class="card">
@@ -50,7 +50,7 @@
       <td>{{ r.formation }}</td>
       <td>{{ r.function|default:"—" }}</td>
       <td class="num">{{ r.area|floatformat:"-2"|default:"—" }}</td>
-      <td>{% if r.validated %}<span class="badge badge-green">✔</span> {{ r.validation_role }}{% if r.validation_name %}<br><span style="color:var(--dim)">{{ r.validation_name }}</span>{% endif %}{% else %}<span class="badge badge-orange">por validar</span>{% endif %}</td>
+      <td>{% if r.validated %}<span class="badge badge-green">✔</span> {{ r.validation_role }}{% if r.validation_name %}<br><span style="color:var(--dim)">{{ r.validation_name }}</span>{% endif %}{% elif r.missing_name %}<span class="badge badge-orange">falta o nome</span> {{ r.validation_role }}<br><a href="{% url 'fire_actions:execution_edit' r.execution.pk %}#validacao" style="font-size:11.5px">indicar o nome</a>{% else %}<span class="badge badge-orange">por validar</span>{% endif %}</td>
       <td style="max-width:320px">{{ r.other }}{% if r.other and r.notes %}<br>{% endif %}<span style="color:var(--dim)">{{ r.notes }}</span></td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}<p style="color:var(--dim);font-size:13px">Sem participações registadas.</p>{% endif %}
