@@ -1,0 +1,29 @@
+/* Colour tokens for the light theme (default) and the dark theme (html[data-theme="dark"]).
+   Every page uses these variables instead of literal colours. */
+:root {
+  color-scheme: light;
+  --bg: #f3f5f2; --bg2: #ffffff; --bg3: #eef2ed; --border: #d5ddd6;
+  --text: #1f2b23; --dim: #5d6e62; --heading: #122018;
+  --accent: #c4440f; --accent-hover: #a83a0c; --accent2: #a35f00; --on-accent: #ffffff;
+  --green: #2e7d46; --green-dim: #e2f0e6; --danger: #b3261e;
+  --nav-active-bg: #e2f0e6; --nav-active-fg: #122018;
+  --ok-bg: #e2f0e6; --ok-fg: #1e6b3a; --warn-bg: #fcefd9; --warn-fg: #8a4b00;
+  --err-bg: #fbe4e1; --err-fg: #a1261b; --info-bg: #e6effa; --info-fg: #1d4f8a; --info-line: #4a90e2;
+  --overlay-bg: rgba(255,255,255,.94); --overlay-fg: #1f2b23; --overlay-dim: #5d6e62; --overlay-border: rgba(0,0,0,.14);
+  --bar: #e09b2d; --bar-hover: #c47f12; --progress: #2e7d46;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1410; --bg2: #161c18; --bg3: #1d2620; --border: #2a3830;
+  --text: #c8d8cc; --dim: #7a9080; --heading: #ffffff;
+  --accent: #e8541a; --accent-hover: #d04010; --accent2: #f5a623; --on-accent: #ffffff;
+  --green: #3a8c50; --green-dim: #1e4a2a; --danger: #c0392b;
+  --nav-active-bg: #1e4a2a; --nav-active-fg: #ffffff;
+  --ok-bg: #1e4a2a; --ok-fg: #6fcf97; --warn-bg: #3a2010; --warn-fg: #f5a623;
+  --err-bg: #3a1010; --err-fg: #e57373; --info-bg: #1a2a3a; --info-fg: #90caf9; --info-line: #4a90e2;
+  --overlay-bg: rgba(20,20,20,.85); --overlay-fg: #eeeeee; --overlay-dim: #aaaaaa; --overlay-border: rgba(255,255,255,.12);
+  --bar: #f5a623; --bar-hover: #ffc65c; --progress: #4caf50;
+}
+.theme-toggle { background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--dim);
+  cursor: pointer; font-family: inherit; font-size: 12px; padding: 4px 8px }
+.theme-toggle:hover { color: var(--text); border-color: var(--accent) }

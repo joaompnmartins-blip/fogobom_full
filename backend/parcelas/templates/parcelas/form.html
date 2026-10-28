@@ -14,20 +14,20 @@
 <style>
   #import-btn {
     position: absolute; top: 10px; left: 50px; z-index: 1000;
-    background: rgba(20,20,20,.85); backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.15); border-radius: 5px;
-    color: #eee; font-size: 12px; padding: 5px 10px; cursor: pointer;
+    background: var(--overlay-bg); backdrop-filter: blur(6px);
+    border: 1px solid var(--overlay-border); border-radius: 5px;
+    color: var(--overlay-fg); font-size: 12px; padding: 5px 10px; cursor: pointer;
     display: flex; align-items: center; gap: 6px; transition: background .15s;
   }
-  #import-btn:hover { background: rgba(40,40,40,.95); }
+  #import-btn:hover { background: var(--bg3); }
   #import-file { display: none; }
   .map-legend {
-    background: rgba(20,20,20,.85); backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.12); border-radius: 6px;
-    padding: 10px 14px; font-size: 12px; color: #eee; min-width: 160px; line-height: 1.8;
+    background: var(--overlay-bg); backdrop-filter: blur(6px);
+    border: 1px solid var(--overlay-border); border-radius: 6px;
+    padding: 10px 14px; font-size: 12px; color: var(--overlay-fg); min-width: 160px; line-height: 1.8;
   }
-  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #aaa; margin-bottom: 6px; }
-  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid rgba(255,255,255,.3); }
+  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--overlay-dim); margin-bottom: 6px; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid var(--overlay-border); }
   #location-box td:first-child { color: var(--dim); width: 40%; }
 </style>
 {% endblock %}
@@ -194,15 +194,15 @@ function previewLocation(geometry) {
   })
     .then(r => r.json())
     .then(d => {
-      if (d.error) { box.innerHTML = `<span style="color:#e57373">${escHtml(d.error)}</span>`; return; }
+      if (d.error) { box.innerHTML = `<span style="color:var(--err-fg)">${escHtml(d.error)}</span>`; return; }
       document.getElementById('loc-area').textContent = `${d.area_ha} ha`;
       const loc = d.location || {};
       document.getElementById('loc-concelho').textContent = loc.concelho || '— (fora de Portugal continental?)';
       document.getElementById('loc-freguesia').textContent = loc.freguesia || '—';
       document.getElementById('loc-distrito').textContent = loc.distrito || '—';
       box.innerHTML = d.overlaps.length
-        ? '<span style="color:#e57373">⚠ Sobrepõe-se a: ' + d.overlaps.map(o => `${escHtml(o.name)} (${o.ha} ha)`).join(', ') + '</span>'
-        : '<span style="color:#6fcf97">✓ Sem sobreposição com parcelas existentes</span>';
+        ? '<span style="color:var(--err-fg)">⚠ Sobrepõe-se a: ' + d.overlaps.map(o => `${escHtml(o.name)} (${o.ha} ha)`).join(', ') + '</span>'
+        : '<span style="color:var(--ok-fg)">✓ Sem sobreposição com parcelas existentes</span>';
     })
     .catch(() => { box.textContent = 'Não foi possível calcular a localização agora; será calculada ao gravar.'; });
 }

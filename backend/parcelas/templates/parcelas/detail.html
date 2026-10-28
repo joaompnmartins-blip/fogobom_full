@@ -20,10 +20,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{% static 'core/parcel_status.js' %}"></script>
 <style>
-  .map-legend { background: rgba(20,20,20,.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.12);
-    border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #eee; min-width: 160px; line-height: 1.8; }
-  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #aaa; margin-bottom: 6px; }
-  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid rgba(255,255,255,.3); }
+  .map-legend { background: var(--overlay-bg); backdrop-filter: blur(6px); border: 1px solid var(--overlay-border);
+    border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--overlay-fg); min-width: 160px; line-height: 1.8; }
+  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--overlay-dim); margin-bottom: 6px; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid var(--overlay-border); }
   .kv td:first-child { color: var(--dim); width: 42% }
   .photos { display:flex; flex-wrap:wrap; gap:8px }
   .photos img { height:80px; border-radius:4px; object-fit:cover }

@@ -1,15 +1,34 @@
+  /* Light theme by default; dark when <html data-theme="dark"> (see theme.js).
+     --accent fills buttons (with black text); --accent-text is the accent used for text and outlines. */
   :root {
-    --bg: #1a1f1c;
-    --panel: #232b27;
-    --border: #3d5045;
-    --accent: #f5d84a;
-    --text: #eef4f0;
-    --muted: #9ab5a2;
+    color-scheme: light;
+    --bg: #f3f5f2;
+    --panel: #ffffff;
+    --panel2: #f6f8f5;
+    --border: #cbd6cd;
+    --accent: #f5c518;
+    --accent-text: #7a5d00;
+    --text: #1f2b23;
+    --muted: #56685b;
+    --hover: rgba(0,0,0,0.04);
     --c-muito-seco:   #ef4444;
     --c-seco:         #fb923c;
     --c-otimo:        #4ade80;
     --c-humido:       #22d3ee;
     --c-muito-humido: #094289;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1a1f1c;
+    --panel: #232b27;
+    --panel2: #1e2621;
+    --border: #3d5045;
+    --accent: #f5d84a;
+    --accent-text: #f5d84a;
+    --text: #eef4f0;
+    --muted: #9ab5a2;
+    --hover: rgba(255,255,255,0.05);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,7 +58,7 @@
     font-family: 'Bebas Neue', sans-serif;
     font-size: 2rem;
     letter-spacing: 4px;
-    color: var(--accent);
+    color: var(--accent-text);
   }
 
   header .subtitle {
@@ -119,7 +138,7 @@
   .layer-btn.active {
     background: var(--accent);
     color: #000;
-    border-color: var(--accent);
+    border-color: var(--accent-text);
   }
 
   .layer-btn:hover:not(.active) {
@@ -140,7 +159,7 @@
   .sidebar-header {
     padding: 16px;
     border-bottom: 1px solid var(--border);
-    background: #1e2621;
+    background: var(--panel2);
   }
 
   .sidebar-header .label {
@@ -176,10 +195,10 @@
     align-items: center;
     gap: 4px;
     padding: 4px 8px;
-    background: rgba(255,255,255,0.05);
+    background: var(--hover);
     border: 1px solid var(--border);
     border-radius: 3px;
-    color: var(--accent);
+    color: var(--accent-text);
     text-decoration: none;
     transition: all 0.2s;
     letter-spacing: 0.5px;
@@ -188,7 +207,7 @@
 
   .external-link:hover {
     background: rgba(245,216,74,0.15);
-    border-color: var(--accent);
+    border-color: var(--accent-text);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
@@ -283,8 +302,8 @@
 
   .location-chip.nut3 {
     background: rgba(245,216,74,0.15);
-    color: var(--accent);
-    border: 1px solid var(--accent);
+    color: var(--accent-text);
+    border: 1px solid var(--accent-text);
   }
 
   /* Fire Risk Styles */
@@ -332,7 +351,7 @@
 
   .location-chip.subregiao {
     background: rgba(245,216,74,0.10);
-    color: var(--accent);
+    color: var(--accent-text);
     border: 1px solid rgba(245,216,74,0.45);
   }
 
@@ -368,7 +387,7 @@
   .terrain-metric .tval {
     font-size: 0.82rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--accent-text);
     letter-spacing: 0.5px;
   }
 
@@ -420,7 +439,7 @@
   }
 
   .day-card {
-    background: #1e2621;
+    background: var(--panel2);
     border: 1px solid var(--border);
     border-radius: 4px;
     margin-bottom: 10px;
@@ -607,7 +626,7 @@
   .info-block {
     margin-top: 12px;
     padding: 10px 12px;
-    background: #1e2621;
+    background: var(--panel2);
     border: 1px solid var(--border);
     border-radius: 4px;
     font-size: 0.6rem;
@@ -618,7 +637,7 @@
     opacity: 0;
   }
 
-  .info-block strong { color: var(--accent); }
+  .info-block strong { color: var(--accent-text); }
 
   .loading {
     display: flex;
@@ -634,7 +653,7 @@
     width: 30px;
     height: 30px;
     border: 2px solid var(--border);
-    border-top-color: var(--accent);
+    border-top-color: var(--accent-text);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -751,7 +770,7 @@
   .day-btn.active {
     background: var(--accent);
     color: #000;
-    border-color: var(--accent);
+    border-color: var(--accent-text);
   }
 
   .day-btn:hover:not(.active) {
@@ -795,9 +814,9 @@
     text-transform: uppercase;
     padding: 6px 10px;
     border-radius: 4px;
-    border: 1px solid var(--accent);
+    border: 1px solid var(--accent-text);
     background: transparent;
-    color: var(--accent);
+    color: var(--accent-text);
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
@@ -829,7 +848,7 @@
     white-space: nowrap;
   }
   .parcels-btn:hover { background: var(--border); color: var(--text); }
-  .parcels-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .parcels-btn.active { background: var(--accent); color: #000; border-color: var(--accent-text); }
   .parcels-btn:disabled { opacity: 0.45; cursor: wait; }
 
   /* Modal overlay */
@@ -865,7 +884,7 @@
     font-family: 'Bebas Neue', sans-serif;
     font-size: 1.3rem;
     letter-spacing: 3px;
-    color: var(--accent);
+    color: var(--accent-text);
     flex: 1;
   }
   .modal-close {
@@ -891,7 +910,7 @@
     transition: border-color 0.2s;
     margin-bottom: 14px;
   }
-  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent-text); }
   .upload-zone p { font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; line-height: 1.8; }
   .upload-zone .uz-icon { font-size: 2rem; margin-bottom: 6px; }
   #parcelFileInput { display: none; }
@@ -902,14 +921,14 @@
     letter-spacing: 1px;
     line-height: 1.8;
     padding: 10px 12px;
-    background: #1e2621;
+    background: var(--panel2);
     border-radius: 3px;
     margin-bottom: 14px;
     border-left: 3px solid var(--border);
   }
   .upload-hint code {
     background: rgba(245,216,74,0.12);
-    color: var(--accent);
+    color: var(--accent-text);
     padding: 1px 4px;
     border-radius: 2px;
     font-size: 0.6rem;
@@ -945,7 +964,7 @@
     gap: 8px;
     padding: 12px 18px;
     border-top: 1px solid var(--border);
-    background: #1e2621;
+    background: var(--panel2);
   }
   .modal-actions button {
     font-family: 'Space Mono', monospace;
@@ -1058,14 +1077,14 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #1e2621;
+    background: var(--panel2);
   }
 
   #dayModalTitle {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 1.2rem;
     letter-spacing: 3px;
-    color: var(--accent);
+    color: var(--accent-text);
     flex: 1;
   }
 
@@ -1115,7 +1134,7 @@
     cursor: pointer;
     transition: border-color 0.15s;
   }
-  .day-card-clickable:hover { border-color: var(--accent); }
+  .day-card-clickable:hover { border-color: var(--accent-text); }
   .fm-chip.SECO         { background: #fb923c; }
   .fm-chip.MUITO_SECO   { background: #ef4444; color: #fff; }
   .fm-chip.WET          { background: #22d3ee; color: #fff; font-size: 0.45rem; }
@@ -1137,7 +1156,7 @@
     font-size: 0.65rem;
     line-height: 1.6;
   }
-  .parcel-popup strong { color: var(--accent); }
+  .parcel-popup strong { color: var(--accent-text); }
 
   .error-msg {
     padding: 16px;

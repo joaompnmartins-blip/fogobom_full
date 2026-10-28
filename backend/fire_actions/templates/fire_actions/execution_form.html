@@ -15,7 +15,7 @@
   table.fs td, table.fs th { padding:4px 5px; vertical-align:top }
   table.fs input, table.fs select { width:100%; min-width:60px; background:var(--bg3); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:5px 6px }
   table.fs input[type=checkbox] { width:auto; min-width:0 }
-  .bad { background:#3a1010 }
+  .bad { background:var(--err-bg) }
   nav.sections { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px }
   nav.sections a { font-size:12px; padding:4px 10px; border:1px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text) }
 </style>
@@ -55,7 +55,7 @@
 
 <div class="card" id="meteo">
   <div class="card-title">Meteorologia e comportamento do fogo</div>
-  <p class="hint" style="margin-bottom:8px">Registe no início e no fim da queima e sempre que uma alteração meteorológica mude o comportamento do fogo.{% if issues %} <strong style="color:#e57373">Linhas a vermelho estão fora da prescrição do PFC.</strong>{% endif %}</p>
+  <p class="hint" style="margin-bottom:8px">Registe no início e no fim da queima e sempre que uma alteração meteorológica mude o comportamento do fogo.{% if issues %} <strong style="color:var(--err-fg)">Linhas a vermelho estão fora da prescrição do PFC.</strong>{% endif %}</p>
   <div style="overflow-x:auto"><table class="fs"><thead><tr><th>Hora</th><th>Temp. °C</th><th>HR %</th><th>Estado do tempo</th><th>Vento Bft</th><th>Vento km/h</th><th>Direção</th><th>Condução</th><th>Outra condução</th><th>Chama (m)</th><th>Ângulo °</th><th>Propagação m/min</th><th>✖</th></tr></thead><tbody>
   {% for f in readings %}<tr {% if f.issue_text %}class="bad" title="Fora da prescrição: {{ f.issue_text }}"{% endif %}>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
     <td>{{ f.time }}</td><td>{{ f.temp }}</td><td>{{ f.rh }}</td><td>{{ f.weather }}</td><td>{{ f.wind_bft }}</td><td>{{ f.wind_kmh }}</td><td>{{ f.wind_dir }}</td><td>{{ f.conduct }}</td><td>{{ f.conduct_other }}</td><td>{{ f.flame_length_m }}</td><td>{{ f.flame_angle }}</td><td>{{ f.spread_m_min }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}

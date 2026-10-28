@@ -7,11 +7,11 @@
 <style>
   .ann { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px }
   .ann .card { margin:0; display:flex; flex-direction:column; gap:8px }
-  .ann h3 { font-family:var(--fh); font-size:20px; color:#fff; margin:0 }
+  .ann h3 { font-family:var(--fh); font-size:20px; color:var(--heading); margin:0 }
   .meta { font-size:13px; color:var(--dim) }
   .prob { display:inline-block; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600 }
-  .prob-alta { background:#1e4a2a; color:#6fcf97 } .prob-media { background:#3a2e10; color:#f5c242 }
-  .prob-baixa { background:#3a1010; color:#e57373 } .prob-none { background:var(--bg3); color:var(--dim) }
+  .prob-alta { background:var(--ok-bg); color:var(--ok-fg) } .prob-media { background:var(--warn-bg); color:var(--warn-fg) }
+  .prob-baixa { background:var(--err-bg); color:var(--err-fg) } .prob-none { background:var(--bg3); color:var(--dim) }
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center }
 </style>
 {% endblock %}

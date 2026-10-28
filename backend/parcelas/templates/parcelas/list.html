@@ -11,10 +11,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="{% static 'core/parcel_status.js' %}"></script>
 <style>
-  .map-legend { background: rgba(20,20,20,.85); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.12);
-    border-radius: 6px; padding: 10px 14px; font-size: 12px; color: #eee; min-width: 160px; line-height: 1.8; }
-  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #aaa; margin-bottom: 6px; }
-  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid rgba(255,255,255,.3); }
+  .map-legend { background: var(--overlay-bg); backdrop-filter: blur(6px); border: 1px solid var(--overlay-border);
+    border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--overlay-fg); min-width: 160px; line-height: 1.8; }
+  .map-legend .legend-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--overlay-dim); margin-bottom: 6px; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; border: 1.5px solid var(--overlay-border); }
   .status-chip { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border:1px solid var(--border);
     border-radius:14px; font-size:12px; color:var(--text); text-decoration:none; background:var(--bg2) }
   .status-chip.on { border-color: var(--accent); background: var(--bg3) }
@@ -109,11 +109,11 @@ fetch("{% url 'parcelas:geojson' %}")
         const pk = match ? match[1] : null;
         layer.bindPopup(`
           <strong style="font-size:13px">${escHtml(p.name)}</strong><br>
-          <span style="color:#aaa;font-size:11px">${escHtml(p.concelho || '—')}</span><br>
+          <span style="color:#5d6e62;font-size:11px">${escHtml(p.concelho || '—')}</span><br>
           <table style="font-size:12px;margin-top:4px;border-collapse:collapse">
-            <tr><td style="color:#aaa;padding-right:8px">Estado</td><td>${escHtml(parcelStatusLabel(p.status))}</td></tr>
-            <tr><td style="color:#aaa;padding-right:8px">Área</td><td>${p.area_ha ? escHtml(p.area_ha) + ' ha' : '—'}</td></tr>
-            <tr><td style="color:#aaa;padding-right:8px">Tipologia</td><td>${escHtml(vegMap[p.vegetation_type] || '—')}</td></tr>
+            <tr><td style="color:#5d6e62;padding-right:8px">Estado</td><td>${escHtml(parcelStatusLabel(p.status))}</td></tr>
+            <tr><td style="color:#5d6e62;padding-right:8px">Área</td><td>${p.area_ha ? escHtml(p.area_ha) + ' ha' : '—'}</td></tr>
+            <tr><td style="color:#5d6e62;padding-right:8px">Tipologia</td><td>${escHtml(vegMap[p.vegetation_type] || '—')}</td></tr>
           </table>
           ${pk ? `<div style="margin-top:8px"><a href="/parcelas/${pk}/" style="font-size:12px;padding:3px 8px;background:#e8541a;color:#fff;border-radius:4px;text-decoration:none">🔍 Detalhes</a></div>` : ''}
         `, { minWidth: 200 });
