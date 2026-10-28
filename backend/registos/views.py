@@ -19,6 +19,8 @@ from .fieldbook import entries, hours_summary
 @login_required
 def deadlines_page(request):
     items = all_deadlines()
+    # A person's credential renewal is private (it links to their livro de campo)
+    items = [i for i in items if i['kind'] != 'credenciacao' or request.user.pk in i['users']]
     mine = [i for i in items if request.user.pk in i['users']]
     scope = request.GET.get('ver', 'meus' if mine or not request.user.is_staff else 'todos')
     shown = mine if scope == 'meus' else items
@@ -48,27 +50,36 @@ def _year(request):
         return None
 
 
+def _own_operative(request, op_pk):
+    """The livro de campo is private: only its owner can see it (or export it)."""
+    op = get_object_or_404(Operative, pk=op_pk)
+    if op.user_id != request.user.pk:
+        messages.error(request, 'O livro de campo só pode ser consultado pelo próprio.')
+        return None
+    return op
+
+
 @login_required
 def fieldbook(request, op_pk):
-    op = get_object_or_404(Operative, pk=op_pk)
+    op = _own_operative(request, op_pk)
+    if op is None:
+        return redirect('registos:my_fieldbook')
     all_rows = entries(op)
     year = _year(request)
     rows = [r for r in all_rows if r['date'].year == year] if year else all_rows
     return render(request, 'registos/fieldbook.html', {
         'op': op, 'rows': rows, 'year': year, 'summary': hours_summary(op, all_rows),
         'years': sorted({r['date'].year for r in all_rows}, reverse=True),
-        'can_export': op.credential_type == Operative.CRED_TECNICO and (
-            request.user.is_staff or op.user_id == request.user.pk),
+        'can_export': op.credential_type == Operative.CRED_TECNICO,
         'total_hours': round(sum(r['hours'] or 0 for r in rows), 1),
     })
 
 
 @login_required
 def fieldbook_xlsx(request, op_pk):
-    op = get_object_or_404(Operative, pk=op_pk)
-    if not (request.user.is_staff or op.user_id == request.user.pk):
-        messages.error(request, 'Só o próprio técnico ou um administrador podem exportar a base de dados.')
-        return redirect('registos:fieldbook', op_pk=op.pk)
+    op = _own_operative(request, op_pk)
+    if op is None:
+        return redirect('registos:my_fieldbook')
     year = _year(request)
     content = generate_icnf_xlsx(op, entries(op, year))
     response = HttpResponse(content,
