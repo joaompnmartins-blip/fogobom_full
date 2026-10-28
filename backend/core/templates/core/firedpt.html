@@ -1,41 +1,29 @@
+{% extends "core/base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meteorologia · FiredPT</title>
+{% block title %}Meteorologia{% endblock %}
+{% block page_title %}Meteorologia — humidade do combustível{% endblock %}
+{% block nav_met %}active{% endblock %}
+{% block content_class %}fd-content{% endblock %}
+{% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'core/theme.css' %}">
 <link rel="stylesheet" href="{% static 'core/firedpt.css' %}">
-<script src="{% static 'core/theme.js' %}"></script>
-</head>
-<body>
-{{ parcelas|json_script:"parcelas-data" }}
-
-<header>
-  <a href="{% url 'core:dashboard' %}" class="back-btn">← Dashboard</a>
-  <button type="button" class="theme-toggle">🌙 Tema escuro</button>
-  <div class="cache-stats" id="cacheStats" title="Cache hits vs total requests">
-    Cache: —
-  </div>
-  <button class="parcels-btn" id="parcelsBtn" onclick="openParcelsModal()" title="Carregar parcelas de fogo controlado">
-    📍 Parcelas
-  </button>
+{% endblock %}
+{% block topbar_actions %}
   <div class="legend-bar">
-    <div class="legend-item"><div class="legend-dot" style="background:var(--c-muito-humido)"></div>Muito Húmido</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-muito-humido)"></div>Muito húmido</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--c-humido)"></div>Húmido</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--c-otimo)"></div>Ótimo</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--c-seco)"></div>Seco</div>
-    <div class="legend-item"><div class="legend-dot" style="background:var(--c-muito-seco)"></div>Muito Seco</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--c-muito-seco)"></div>Muito seco</div>
   </div>
-</header>
-
-<div class="main">
+  <div class="cache-stats" id="cacheStats" title="Pedidos servidos da cache / total">Cache: —</div>
+  <button class="btn btn-secondary btn-sm" id="parcelsBtn" onclick="openParcelsModal()" title="Carregar parcelas de fogo controlado">📍 Parcelas</button>
+{% endblock %}
+{% block content %}
+{{ parcelas|json_script:"parcelas-data" }}
+<div class="fd-main">
   <div id="map">
     <div class="layer-switcher">
       <button class="layer-btn active" id="btnOSM" onclick="switchLayer('osm')">OSM</button>
@@ -57,7 +45,7 @@
       </button>
     </div>
   </div>
-  <div class="sidebar">
+  <aside class="fd-side">
     <div class="sidebar-header">
       <div class="label">Localização Seleccionada</div>
       <div class="location-name" id="locName">— Nenhuma localização seleccionada —</div>
@@ -72,7 +60,7 @@
         <p>Clique em qualquer ponto<br>do mapa para obter a<br>previsão de humidade<br>do combustível a 5 dias</p>
       </div>
     </div>
-  </div>
+  </aside>
 </div>
 
 <!-- ── Parcels Modal ──────────────────────────────────────────────────────── -->
@@ -103,24 +91,22 @@
       <div id="parcelsPreviewArea"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-primary" id="btnLoadParcels" onclick="loadParcelsForecast()" disabled>
+      <button class="btn btn-primary btn-sm" id="btnLoadParcels" onclick="loadParcelsForecast()" disabled>
         ⚡ Carregar Previsão
       </button>
-      <button class="btn-secondary" id="btnExportCSV" onclick="exportParcelsCSV()" disabled>
+      <button class="btn btn-secondary btn-sm" id="btnExportCSV" onclick="exportParcelsCSV()" disabled>
         ⬇ Exportar CSV
       </button>
-      <button class="btn-danger" id="btnClearParcels" onclick="clearParcels()" disabled>
+      <button class="btn btn-danger btn-sm" id="btnClearParcels" onclick="clearParcels()" disabled>
         ✕ Limpar Parcelas
       </button>
-      <button class="btn-secondary" style="margin-left:auto" onclick="closeParcelsModal()">
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="closeParcelsModal()">
         Fechar
       </button>
     </div>
   </div>
 </div>
 
-{{ firedpt_config|json_script:"firedpt-config" }}
-<script src="{% static 'core/firedpt.js' %}"></script>
 
 <!-- Day Modal — Hourly HC Chart -->
 <div id="dayModalOverlay" onclick="if(event.target===this)closeDayModal()">
@@ -142,5 +128,8 @@
     </div>
   </div>
 </div>
-</body>
-</html>
+{% endblock %}
+{% block extra_js %}
+{{ firedpt_config|json_script:"firedpt-config" }}
+<script src="{% static 'core/firedpt.js' %}"></script>
+{% endblock %}

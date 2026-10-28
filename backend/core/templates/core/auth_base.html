@@ -13,7 +13,8 @@
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;display:grid;grid-template-columns:1fr 420px}
     .left{background:linear-gradient(135deg,rgba(232,84,26,.12) 0%,transparent 60%),var(--bg);display:flex;flex-direction:column;justify-content:flex-end;padding:48px;position:relative;overflow:hidden}
-    .left::before{content:'🔥';position:absolute;top:-20px;left:-20px;font-size:320px;opacity:.04;line-height:1;pointer-events:none}
+    .left::before{content:'🔥';position:absolute;top:8px;left:8px;font-size:320px;opacity:.2;line-height:1;pointer-events:none}
+    :root[data-theme="dark"] .left::before{opacity:.14}
     .left h1{font-family:var(--fh);font-size:64px;font-weight:800;line-height:.95;color:var(--heading);letter-spacing:-1px}
     .left h1 span{color:var(--accent)}
     .left p{margin-top:16px;font-size:15px;color:var(--dim);max-width:360px;line-height:1.6}
