@@ -252,7 +252,9 @@ class EvaluationTests(TestCase):
         self.assertEqual((ev.altitude_m, ev.slope_pct, ev.aspect, ev.evaluator), (120, 14.5, 'SW', self.tec))
         self.parcel.refresh_from_db()
         self.assertEqual(self.parcel.status, 'em_avaliacao')
-        self.assertContains(self.client.get(f'/parcelas/avaliacao/{ev.pk}/'), 'Classificação da dificuldade')
+        page = self.client.get(f'/parcelas/avaliacao/{ev.pk}/')
+        self.assertNotContains(page, 'Classificação da dificuldade')   # moved to the execution (POQ)
+        self.assertContains(page, 'data-add-row="veg"')
 
     def test_draft_then_conclude(self):
         self.start()
@@ -272,18 +274,15 @@ class EvaluationTests(TestCase):
         self.assertEqual(r.status_code, 200)   # conditions required for this decision
 
         r, send = self.submit(ev, 'conclude', visit_date='2026-10-20', decision='apta_condicionantes',
-                              justification='Bom acesso', conditions='Abrir faixa a sul',
-                              **{f: '3' for f, _, _ in ParcelEvaluation.DIFFICULTY_ELEMENTS})
+                              justification='Bom acesso', conditions='Abrir faixa a sul')
         self.assertRedirects(r, f'/parcelas/{self.parcel.pk}/', fetch_redirect_response=False)
         self.parcel.refresh_from_db()
         ev.refresh_from_db()
         self.assertEqual(self.parcel.status, 'apta_condicionantes')
         self.assertTrue(ev.is_complete)
-        self.assertEqual((ev.difficulty_total, ev.difficulty_class), (45, 'Normal'))
         self.assertEqual(send.call_args.args[2], ['prop@example.com'])
         page = self.client.get(f'/parcelas/{self.parcel.pk}/')
         self.assertContains(page, 'Abrir faixa a sul')
-        self.assertContains(page, 'Normal (45 pontos)')
 
     def test_cancel_returns_to_proposal(self):
         self.start()

@@ -86,7 +86,6 @@
       {% if last_eval.conditions %}<tr><td>Condicionantes</td><td>{{ last_eval.conditions|linebreaksbr }}</td></tr>{% endif %}
       <tr><td>Tipo recomendado</td><td>{{ last_eval.get_recommended_type_display|default:"—" }}{% if last_eval.queimada_purpose %} — {{ last_eval.get_queimada_purpose_display }}{% endif %}</td></tr>
       <tr><td>Objetivos</td><td>{{ last_eval.objectives_display|default:"—" }}</td></tr>
-      <tr><td>Dificuldade</td><td>{% if last_eval.difficulty_total is not None %}{{ last_eval.difficulty_class }} ({{ last_eval.difficulty_total }} pontos){% else %}—{% endif %}</td></tr>
     </tbody></table>
     <table class="kv"><tbody>
       <tr><td>Altitude / declive / exposição</td><td>{{ last_eval.altitude_m|default:"—" }} m · {{ last_eval.slope_pct|default:"—" }} % · {{ last_eval.get_aspect_display|default:"—" }}</td></tr>

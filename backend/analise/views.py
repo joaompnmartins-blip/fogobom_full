@@ -41,7 +41,7 @@ def executions_csv(request):
     response.write('﻿')   # Excel opens UTF-8 correctly with a BOM
     w = csv.writer(response, delimiter=';')
     w.writerow(['data', 'acao', 'tipo', 'formacao_acao', 'pfc', 'parcela', 'concelho', 'freguesia', 'formacao',
-                'area_tratada_ha', 'inicio', 'fim', 'duracao_h', 'n_pessoas', 'horas_pessoa', 'n_homens', 'vfci',
+                'area_tratada_ha', 'inicio', 'fim', 'duracao_h', 'n_pessoas', 'horas_pessoa', 'n_operacionais', 'vfci',
                 'vlci', 'leituras_meteo', 'temp_min', 'temp_max', 'hr_min', 'hr_max', 'vento_max_kmh',
                 'problemas', 'eficacia_objetivos', 'eficacia_combustivel', 'fuga_do_fogo', 'custo_real_eur'])
 

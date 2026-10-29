@@ -7,15 +7,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   .eval-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px 14px }
-  .field ul { list-style:none; display:flex; flex-wrap:wrap; gap:4px 14px; padding:0 }
-  .field ul label { display:flex; gap:6px; align-items:center; text-transform:none; letter-spacing:0; font-size:13px; color:var(--text); font-weight:400 }
-  .field ul input { width:auto }
   .field .err { color:var(--err-fg); font-size:12px; margin-top:3px }
   .field .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
   table.veg input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:6px 8px }
   table.veg input[type=checkbox] { width:auto }
-  .diff td, .diff th { padding:6px 8px }
-  .diff select { width:auto }
 </style>
 {% endblock %}
 {% block content %}
@@ -52,31 +47,24 @@
       <div class="card-title">Vegetação (inventário)</div>
       {{ formset.management_form }}
       <table class="veg">
-        <thead><tr><th>Espécie</th><th>Coberto (%)</th><th>Altura (m)</th><th>Idade (anos)</th><th>Remover</th></tr></thead>
-        <tbody>
+        <thead><tr><th>Espécie</th><th>Coberto (%)</th><th>Altura (m)</th><th>Idade (anos)</th><th></th></tr></thead>
+        <tbody data-formset="veg">
         {% for vf in formset %}
-          <tr>{% for hidden in vf.hidden_fields %}{{ hidden }}{% endfor %}
+          <tr class="fs-row" data-saved="{% if vf.instance.pk %}1{% endif %}">{% for hidden in vf.hidden_fields %}{{ hidden }}{% endfor %}
             <td>{{ vf.species }}</td><td>{{ vf.cover_pct }}</td><td>{{ vf.height_m }}</td><td>{{ vf.age_years }}</td>
-            <td style="text-align:center">{% if vf.instance.pk %}{{ vf.DELETE }}{% endif %}</td></tr>
+            <td style="text-align:center"><span class="fs-del">{{ vf.DELETE }}</span><button type="button" class="fs-remove" title="Remover linha">✖</button></td></tr>
         {% endfor %}
         </tbody>
       </table>
-      <p style="font-size:12px;color:var(--dim);margin-top:6px">Guarde para obter mais linhas em branco.</p>
+      <template id="veg-empty"><tr class="fs-row">{% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+        <td>{{ formset.empty_form.species }}</td><td>{{ formset.empty_form.cover_pct }}</td><td>{{ formset.empty_form.height_m }}</td><td>{{ formset.empty_form.age_years }}</td>
+        <td style="text-align:center"><button type="button" class="fs-remove" title="Remover linha">✖</button></td></tr></template>
+      <button type="button" class="btn btn-secondary btn-sm fs-add" data-add-row="veg">+ Acrescentar espécie</button>
     </div>
   </div>
 
   <div>
     <div class="card" style="padding:0;overflow:hidden"><div id="map" style="height:300px"></div></div>
-
-    <div class="card">
-      <div class="card-title">Classificação da dificuldade</div>
-      <table class="diff">
-        <thead><tr><th>Elemento (ponderação)</th><th>Valor (1 fácil – 5 difícil)</th></tr></thead>
-        <tbody>{% for f in difficulty_fields %}<tr><td>{{ f.label }}</td><td>{{ f }}</td></tr>{% endfor %}</tbody>
-      </table>
-      <p style="margin-top:8px;font-size:13px">Total: <strong id="diff-total">—</strong> · <span id="diff-class">preencha os 8 elementos</span></p>
-      <p style="font-size:11.5px;color:var(--dim)">Fácil &lt; 35 · Normal 35–54 · Difícil ≥ 55</p>
-    </div>
 
     <div class="card">
       <div class="card-title">Fotografias da visita</div>
@@ -116,19 +104,5 @@ L.control.layers({ 'Satélite': sat, 'Mapa': osm }, {}, { position: 'topright' }
 const g = L.geoJSON({{ geom_json|safe }}, { style: { color: '#e8541a', weight: 2.5, fillOpacity: 0.2 } }).addTo(map);
 map.fitBounds(g.getBounds(), { padding: [20, 20] });
 
-// Live difficulty total (weights from the POQ annex)
-const WEIGHTS = { diff_escape: 1, diff_risk: 3, diff_fuels: 2, diff_environment: 2, diff_smoke: 1, diff_ignition: 2, diff_team: 1, diff_objectives: 3 };
-function updateDifficulty() {
-  let total = 0, complete = true;
-  for (const [name, w] of Object.entries(WEIGHTS)) {
-    const v = parseInt(document.querySelector(`[name=${name}]`).value);
-    if (isNaN(v)) complete = false; else total += v * w;
-  }
-  document.getElementById('diff-total').textContent = complete ? total : '—';
-  document.getElementById('diff-class').textContent = !complete ? 'preencha os 8 elementos'
-    : total < 35 ? 'Fácil / simples' : total < 55 ? 'Normal' : 'Difícil / complexa';
-}
-Object.keys(WEIGHTS).forEach(n => document.querySelector(`[name=${n}]`).addEventListener('change', updateDifficulty));
-updateDifficulty();
 </script>
 {% endblock %}

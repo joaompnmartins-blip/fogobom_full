@@ -15,6 +15,7 @@
   </script>
   <link rel="stylesheet" href="{% static 'core/theme.css' %}">
   <script src="{% static 'core/theme.js' %}"></script>
+  <script src="{% static 'core/formset.js' %}"></script>
   <style>
     :root{--fh:'Barlow Condensed',sans-serif;--fb:'Barlow',sans-serif;--r:4px;--sw:220px}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -96,11 +97,11 @@
       <a href="{% url 'pfc:list' %}" class="nav-item {% block nav_pfc %}{% endblock %}"><span class="ni">🗂️</span>Planos (PFC)</a>
       <a href="{% url 'fire_actions:burning_plan_list' %}" class="nav-item {% block nav_bp %}{% endblock %}"><span class="ni">📄</span>Execuções (POQ)</a>
       <a href="{% url 'monitorizacao:list' %}" class="nav-item {% block nav_mon %}{% endblock %}"><span class="ni">🌱</span>Monitorização{% if monitoring_overdue %} <span class="badge badge-red" style="margin-left:auto">{{ monitoring_overdue }}</span>{% endif %}</a>
-      <a href="{% url 'registos:deadlines' %}" class="nav-item {% block nav_dl %}{% endblock %}"><span class="ni">⏰</span>Prazos{% if deadlines_overdue %} <span class="badge badge-red" style="margin-left:auto">{{ deadlines_overdue }}</span>{% endif %}</a>
+      {% if user_has_credential %}<a href="{% url 'registos:deadlines' %}" class="nav-item {% block nav_dl %}{% endblock %}"><span class="ni">⏰</span>Prazos{% if deadlines_overdue %} <span class="badge badge-red" style="margin-left:auto">{{ deadlines_overdue }}</span>{% endif %}</a>{% endif %}
       <a href="{% url 'core:calendario' %}" class="nav-item {% block nav_cal %}{% endblock %}"><span class="ni">📅</span>Calendário</a>
       <div class="nav-sec">Recursos</div>
       <a href="{% url 'operatives:list' %}" class="nav-item {% block nav_op %}{% endblock %}"><span class="ni">👷</span>Operacionais</a>
-      <a href="{% url 'registos:my_fieldbook' %}" class="nav-item {% block nav_fb %}{% endblock %}"><span class="ni">📒</span>Livro de campo</a>
+      {% if user_has_credential %}<a href="{% url 'registos:my_fieldbook' %}" class="nav-item {% block nav_fb %}{% endblock %}"><span class="ni">📒</span>Livro de campo</a>{% endif %}
       <div class="nav-sec">Ferramentas</div>
       <a href="{% url 'analise:stats' %}" class="nav-item {% block nav_stats %}{% endblock %}"><span class="ni">📈</span>Estatísticas</a>
       <a href="{% url 'analise:gis' %}" class="nav-item {% block nav_gis %}{% endblock %}"><span class="ni">🧭</span>Exportar GIS</a>

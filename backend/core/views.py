@@ -165,12 +165,13 @@ def login_view(request):
             else:
                 with transaction.atomic():
                     user = User.objects.create_user(username=username, email=email, password=pw, is_active=False)
-                    Operative.objects.create(
-                        user=user, name=full_name, email=email, phone='', certification_level='',
-                        credential_type=cred_type,
-                        credential_number=cred_num if is_tecnico else '',
-                        credential_status=Operative.STATUS_PENDENTE if is_tecnico else Operative.STATUS_NA,
-                    )
+                    # A record created for this person before they had an account is reused, not duplicated
+                    op = Operative.objects.filter(user__isnull=True, email__iexact=email).order_by('created_at').first() \
+                        or Operative(phone='', certification_level='')
+                    op.user, op.name, op.email, op.credential_type = user, full_name, email, cred_type
+                    op.credential_number = cred_num if is_tecnico else ''
+                    op.credential_status = Operative.STATUS_PENDENTE if is_tecnico else Operative.STATUS_NA
+                    op.save()
                 ctx['reg_ok'] = 'Registo submetido! Aguarde aprovação do administrador.'
                 ctx.pop('reg_values')
                 if settings.ADMIN_EMAIL:

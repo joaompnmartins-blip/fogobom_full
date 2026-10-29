@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from core.decorators import staff_required
+from core.decorators import staff_required, tecnico_area
 from core.forms import clean_photos, form_errors_to_messages
 from fire_actions.models import BurningPlan, ParcelExecution
 from fire_actions.views import can_manage
@@ -23,7 +23,7 @@ from .schedule import UPCOMING_DAYS, all_visits, expected_visits
 logger = logging.getLogger(__name__)
 
 
-@login_required
+@tecnico_area('monitorizacao')
 def monitoring_list(request):
     today = timezone.localdate()
     visits = all_visits(today)
@@ -112,7 +112,7 @@ def _managed_execution(request, ex_pk):
     return ex, ex
 
 
-@login_required
+@tecnico_area('monitorizacao')
 def assessment_create(request, ex_pk):
     ex, any_ex = _managed_execution(request, ex_pk)
     if ex is None:
@@ -145,7 +145,7 @@ def _safe_next(request, value):
     return value if ok else ''
 
 
-@login_required
+@tecnico_area('monitorizacao')
 def visit_waive(request, ex_pk):
     ex, any_ex = _managed_execution(request, ex_pk)
     if ex is None:
@@ -180,7 +180,7 @@ def visit_waive(request, ex_pk):
     })
 
 
-@login_required
+@tecnico_area('monitorizacao')
 def assessment_edit(request, pk):
     a = get_object_or_404(Assessment.objects.select_related('execution__plan__pre_plan', 'execution__parcel'), pk=pk)
     ex = a.execution
@@ -196,7 +196,7 @@ def assessment_edit(request, pk):
     return _render_form(request, form, ex, a)
 
 
-@login_required
+@tecnico_area('monitorizacao')
 def assessment_detail(request, pk):
     a = get_object_or_404(Assessment.objects.select_related('execution__plan__pre_plan', 'execution__parcel',
                                                             'observer'), pk=pk)
@@ -244,7 +244,7 @@ def assessment_delete(request, pk):
     return render(request, 'fire_actions/confirm_delete.html', {'obj': a, 'tipo': 'Avaliação'})
 
 
-@login_required
+@tecnico_area('monitorizacao')
 def criteria_edit(request, parcel_pk):
     parcel = get_object_or_404(FireParcel, pk=parcel_pk)
     if not (request.user.is_staff or is_tecnico(request.user)):
@@ -274,7 +274,7 @@ def criteria_edit(request, parcel_pk):
     return render(request, 'monitorizacao/criteria.html', {'parcela': parcel, 'formset': formset})
 
 
-@login_required
+@tecnico_area('monitorizacao')
 def poq_impacto(request, plan_pk):
     plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan', 'pre_plan__pfc'), pk=plan_pk)
     try:

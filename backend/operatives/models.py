@@ -84,6 +84,25 @@ class Operative(models.Model):
                 and not self.credential_expired)
 
 
+
+def link_unclaimed_operative(user):
+    """Attach to `user` an operative record created before they had an account (same email), if any."""
+    if getattr(user, 'operative', None) is not None or not user.email:
+        return None
+    op = Operative.objects.filter(user__isnull=True, email__iexact=user.email).order_by('created_at').first()
+    if op:
+        op.user = user
+        op.save(update_fields=['user'])
+        user.operative = op
+    return op
+
+
+def has_credential(user):
+    """Técnico credenciado or operacional de queima (they have deadlines and a livro de campo)."""
+    op = getattr(user, 'operative', None) if user and user.is_authenticated else None
+    return bool(op and op.credential_type != Operative.CRED_NENHUMA)
+
+
 class IcnfTechnician(models.Model):
     """One line of the ICNF list of technicians credentialed in controlled burning."""
     number      = models.CharField('n.º ICNF', max_length=20, unique=True)

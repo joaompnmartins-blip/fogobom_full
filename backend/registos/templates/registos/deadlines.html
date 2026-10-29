@@ -3,13 +3,9 @@
 {% block page_title %}Prazos e alertas{% endblock %}
 {% block nav_dl %}active{% endblock %}
 {% block content %}
-<div class="btn-group" style="margin-bottom:10px">
-  <a href="?ver=meus{% if kind %}&tipo={{ kind }}{% endif %}" class="btn btn-sm {% if scope == 'meus' %}btn-primary{% else %}btn-secondary{% endif %}">Os meus ({{ n_mine }})</a>
-  <a href="?ver=todos{% if kind %}&tipo={{ kind }}{% endif %}" class="btn btn-sm {% if scope == 'todos' %}btn-primary{% else %}btn-secondary{% endif %}">Todos ({{ n_all }})</a>
-</div>
 <div class="btn-group" style="margin-bottom:14px">
-  <a href="?ver={{ scope }}" class="btn btn-sm {% if not kind %}btn-primary{% else %}btn-secondary{% endif %}">Todos os tipos</a>
-  {% for code, label in kinds %}<a href="?ver={{ scope }}&tipo={{ code }}" class="btn btn-sm {% if kind == code %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>{% endfor %}
+  <a href="?" class="btn btn-sm {% if not kind %}btn-primary{% else %}btn-secondary{% endif %}">Todos os tipos</a>
+  {% for code, label in kinds %}<a href="?tipo={{ code }}" class="btn btn-sm {% if kind == code %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>{% endfor %}
 </div>
 <div class="card">
   <div class="card-title">{{ items|length }} prazo{{ items|length|pluralize }}{% if overdue %} · <span style="color:var(--err-fg)">{{ overdue }} em atraso</span>{% endif %}</div>

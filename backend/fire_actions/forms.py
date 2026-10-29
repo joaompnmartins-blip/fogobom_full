@@ -22,7 +22,7 @@ class PrePlanForm(forms.ModelForm):
 
     class Meta:
         model  = FireAction
-        fields = ['name', 'action_type', 'training', 'purpose', 'objectives', 'responsible_user',
+        fields = ['name', 'action_type', 'purpose', 'objectives', 'responsible_user',
                   'scheduled_date', 'alt_date_1', 'alt_date_2', 'start_time', 'meeting_notes', 'requirements',
                   'slots', 'probability_manual', 'legal_mode', 'legal_reference', 'legal_date', 'legal_document',
                   'accompaniment', 'pfc', 'pfc_reference', 'notes', 'parcels']
@@ -31,9 +31,16 @@ class PrePlanForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from django.contrib.auth import get_user_model
+        from operatives.models import Operative
+        # Only validated, non-expired technicians (plus the current one, so an old action still shows it)
+        tecnicos = [op.user_id for op in Operative.objects.filter(
+            credential_type=Operative.CRED_TECNICO, credential_status=Operative.STATUS_VALIDADA,
+            user__is_active=True) if op.is_tecnico]
+        if self.instance.responsible_user_id:
+            tecnicos.append(self.instance.responsible_user_id)
         self.fields['responsible_user'] = UserChoiceField(
             label='Técnico responsável', required=False,
-            queryset=get_user_model().objects.filter(is_active=True).select_related('operative')
+            queryset=get_user_model().objects.filter(pk__in=tecnicos).select_related('operative')
                      .order_by('operative__name', 'username'))
         self.fields['parcels'].required = False
         self.fields['parcels'].queryset = selectable_parcels(self.instance)
@@ -88,6 +95,7 @@ class PrePlanForm(forms.ModelForm):
 
     def save(self, commit=True):
         from django.contrib.gis.geos import Point
+        self.instance.training = 'formacao' in self.instance.objectives_list   # ICNF type "Formação"
         lat, lng = self.cleaned_data.get('meeting_lat'), self.cleaned_data.get('meeting_lng')
         self.instance.meeting_point = Point(lng, lat, srid=4326) if lat is not None and lng is not None else None
         if self.instance.action_type != FireAction.TYPE_QUEIMADA:
@@ -142,22 +150,42 @@ TIME = forms.TimeInput(attrs={'type': 'time'}, format='%H:%M')
 class ParcelExecutionForm(forms.ModelForm):
     problems = forms.MultipleChoiceField(label='Problemas operacionais', choices=ParcelExecution.PROBLEMS,
                                          required=False, widget=forms.CheckboxSelectMultiple)
+    DIFFICULTY_CHOICES = [('', '—')] + [(str(i), str(i)) for i in range(1, 6)]
 
     class Meta:
         model = ParcelExecution
-        exclude = ['plan', 'parcel', 'date', 'created_at']
+        exclude = ['plan', 'parcel', 'date', 'created_at', 'problem_notes']
         widgets = {'start_time': TIME, 'end_time': TIME,
                    'validated_on': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
                    **{f: forms.Textarea(attrs={'rows': 2}) for f in (
-                       'ignition_techniques', 'operation_notes', 'problems_description', 'rating_why')}}
+                       'ignition_techniques', 'operation_notes', 'rating_why')}}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             self.initial['problems'] = self.instance.problems_list
+        notes = self.instance.problem_notes or {}
+        for code, label in ParcelExecution.PROBLEMS:   # one description box per problem
+            self.fields[f'pnote_{code}'] = forms.CharField(label=f'Descrição — {label}', required=False,
+                                                           max_length=500)
+            self.initial.setdefault(f'pnote_{code}', notes.get(code, ''))
+        for f, label, weight in ParcelExecution.DIFFICULTY_ELEMENTS:
+            self.fields[f] = forms.TypedChoiceField(label=f'{label} (×{weight})', choices=self.DIFFICULTY_CHOICES,
+                                                    coerce=int, empty_value=None, required=False)
+
+    def problem_rows(self):
+        """(code, label, checked, description field) for the template."""
+        ticked = set(self['problems'].value() or [])
+        return [(code, label, code in ticked, self[f'pnote_{code}']) for code, label in ParcelExecution.PROBLEMS]
 
     def clean_problems(self):
         return ','.join(self.cleaned_data.get('problems') or [])
+
+    def save(self, commit=True):
+        codes = [c for c in self.cleaned_data.get('problems', '').split(',') if c]
+        self.instance.problem_notes = {c: self.cleaned_data[f'pnote_{c}'].strip() for c in codes
+                                       if self.cleaned_data.get(f'pnote_{c}', '').strip()}
+        return super().save(commit)
 
     def clean(self):
         data = super().clean()
@@ -192,14 +220,13 @@ class NewParcelExecutionForm(forms.Form):
 
 MemberFormSet = forms.inlineformset_factory(ParcelExecution, ExecutionMember,
                                            fields=['operative', 'function', 'hours', 'book_page'],
-                                           extra=2, can_delete=True)
+                                           extra=1, can_delete=True)
 ReadingFormSet = forms.inlineformset_factory(
     ParcelExecution, WeatherReading,
-    fields=['time', 'temp', 'rh', 'weather', 'wind_bft', 'wind_kmh', 'wind_dir', 'conduct', 'conduct_other',
-            'flame_length_m', 'flame_angle', 'spread_m_min'],
-    widgets={'time': TIME}, extra=2, can_delete=True)
+    fields=['time', 'temp', 'rh', 'weather', 'wind_bft', 'wind_kmh', 'wind_dir', 'conduct', 'conduct_other'],
+    widgets={'time': TIME}, extra=1, can_delete=True)
 StripFormSet = forms.inlineformset_factory(ParcelExecution, SafetyStrip,
                                           fields=['side', 'means', 'width_m', 'time_spent'], extra=0, can_delete=False)
 CostFormSet = forms.inlineformset_factory(ParcelExecution, CostLine,
                                          fields=['category', 'description', 'qty_burn', 'qty_extinction', 'unit_price'],
-                                         extra=2, can_delete=True)
+                                         extra=1, can_delete=True)

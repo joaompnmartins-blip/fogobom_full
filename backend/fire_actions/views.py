@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,7 +12,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from core.decorators import staff_required
+from core.decorators import staff_required, tecnico_area
 from core.forms import clean_photos, form_errors_to_messages
 from operatives.models import Operative
 from parcelas.models import FireParcel
@@ -70,8 +70,11 @@ def announcements(request):
 
 
 def _form_context(form, action=None):
+    pfc_parcels = {str(pfc.pk): list(pfc.plan_parcels.values_list('parcel_id', flat=True))
+                   for pfc in form.fields['pfc'].queryset}
     return {
         'form': form,
+        'pfc_parcels': pfc_parcels,
         'action_obj': action if action and action.pk else None,
         'parcelas': selectable_parcels(action),
         'selected_parcels': _int_list(form.data.getlist('parcels')) if form.is_bound
@@ -228,6 +231,9 @@ def participate(request, pk):
     part.save()
     messages.success(request, {'vou': 'Inscrição registada.', 'talvez': 'Registado como "talvez".',
                                'nao': 'Registado que não vai participar.'}[intent])
+    if intent == Participation.INTENT_VOU and action.slots_exceeded:
+        messages.warning(request, f'Atenção: o número de inscritos ({action.going_count}) já ultrapassou as '
+                                  f'{action.slots} vagas previstas pelo organizador. O técnico confirmará os participantes.')
     next_url = request.POST.get('next', '')
     if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         return redirect(next_url)
@@ -244,9 +250,6 @@ def participant_decision(request, pk, part_pk):
         return redirect('fire_actions:detail', pk=pk)
     decision = request.POST.get('decision')
     if decision == 'confirmar':
-        if action.slots and action.confirmed_participants().exclude(pk=part.pk).count() >= action.slots:
-            messages.error(request, f'Todas as {action.slots} vagas já estão preenchidas.')
-            return redirect('fire_actions:detail', pk=pk)
         part.confirmed = True
     elif decision == 'recusar':
         part.confirmed = False
@@ -293,7 +296,7 @@ def action_ics(request, pk):
     if action.start_time:
         start = timezone.make_aware(datetime.combine(action.scheduled_date, action.start_time))
         end = start + timedelta(hours=6)
-        fmt = lambda dt: dt.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+        fmt = lambda dt: dt.astimezone(dt_timezone.utc).strftime('%Y%m%dT%H%M%SZ')
         when = f'DTSTART:{fmt(start)}\r\nDTEND:{fmt(end)}'
     else:
         when = (f'DTSTART;VALUE=DATE:{action.scheduled_date:%Y%m%d}\r\n'
@@ -360,13 +363,13 @@ def _require_manage(request, action):
     return True
 
 
-@login_required
+@tecnico_area('execucoes')
 def burning_plan_list(request):
     plans = BurningPlan.objects.select_related('pre_plan').prefetch_related('executions')
     return render(request, 'fire_actions/bp_list.html', {'plans': plans})
 
 
-@login_required
+@tecnico_area('execucoes')
 def burning_plan_create(request, preplan_pk=None):
     preplan = get_object_or_404(FireAction, pk=preplan_pk) if preplan_pk else None
     if preplan and hasattr(preplan, 'burningplan'):
@@ -398,7 +401,7 @@ def burning_plan_create(request, preplan_pk=None):
     return render(request, 'fire_actions/bp_form.html', {'form': form, 'bp': None, 'preplan': preplan})
 
 
-@login_required
+@tecnico_area('execucoes')
 def burning_plan_edit(request, pk):
     plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan'), pk=pk)
     if not _require_manage(request, plan.pre_plan):
@@ -442,9 +445,7 @@ def reading_issues(ex):
         issues = []
         for label, value, lo, hi, unit in [('temperatura', r.temp, pp.temp_min, pp.temp_max, '°C'),
                                            ('HR', r.rh, pp.rh_min, pp.rh_max, '%'),
-                                           ('vento', r.wind_kmh, pp.wind_min, pp.wind_max, 'km/h'),
-                                           ('propagação', r.spread_m_min, pp.spread_min, pp.spread_max, 'm/min'),
-                                           ('chama', r.flame_length_m, pp.flame_min, pp.flame_max, 'm')]:
+                                           ('vento', r.wind_kmh, pp.wind_min, pp.wind_max, 'km/h')]:
             if value is None:
                 continue
             if lo is not None and value < lo:
@@ -456,7 +457,7 @@ def reading_issues(ex):
     return out
 
 
-@login_required
+@tecnico_area('execucoes')
 def burning_plan_detail(request, pk):
     plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan', 'pre_plan__pfc'), pk=pk)
     from monitorizacao.schedule import expected_visits
@@ -508,7 +509,7 @@ def _burn_period(items):
 
 
 @require_POST
-@login_required
+@tecnico_area('execucoes')
 def execution_add(request, pk):
     plan = get_object_or_404(BurningPlan, pk=pk)
     if not _require_manage(request, plan.pre_plan):
@@ -522,7 +523,7 @@ def execution_add(request, pk):
     return redirect('fire_actions:burning_plan_detail', pk=pk)
 
 
-@login_required
+@tecnico_area('execucoes')
 def execution_edit(request, pk):
     from .models import ParcelExecution
     ex = get_object_or_404(ParcelExecution.objects.select_related('plan', 'plan__pre_plan', 'parcel'), pk=pk)
@@ -576,13 +577,14 @@ def execution_edit(request, pk):
     return render(request, 'fire_actions/execution_form.html', {
         'ex': ex, 'plan': plan, 'form': form, **formsets,
         'issues': issues, 'estimate': _caof_estimate(ex),
+        'difficulty_fields': [form[f] for f, _, _ in ParcelExecution.DIFFICULTY_ELEMENTS],
         'photo_moments': BurningPlanPhoto.MOMENTS,
         'ex_photos': plan.photos.filter(parcel=ex.parcel, taken_on=ex.date),
     })
 
 
 @require_POST
-@login_required
+@tecnico_area('execucoes')
 def execution_delete(request, pk):
     from .models import ParcelExecution
     ex = get_object_or_404(ParcelExecution.objects.select_related('plan', 'plan__pre_plan'), pk=pk)
@@ -628,7 +630,7 @@ def burning_plan_delete(request, pk):
     return render(request, 'fire_actions/confirm_delete.html', {'obj': bp, 'tipo': 'Execução'})
 
 
-@login_required
+@tecnico_area('execucoes')
 def burning_plan_report(request, pk):
     """POQ-Execução (.docx) following the ICNF model."""
     plan = get_object_or_404(BurningPlan.objects.select_related('pre_plan', 'pre_plan__pfc'), pk=pk)

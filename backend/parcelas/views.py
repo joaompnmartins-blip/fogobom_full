@@ -22,7 +22,7 @@ from .models import EvaluationVegetation, FireParcel, ParcelEvaluation, ParcelPh
 
 VegetationFormSet = inlineformset_factory(
     ParcelEvaluation, EvaluationVegetation, fields=['species', 'cover_pct', 'height_m', 'age_years'],
-    extra=3, can_delete=True)
+    extra=1, can_delete=True)
 
 
 # ── Permissions ──────────────────────────────────────────────────────────────
@@ -317,7 +317,6 @@ def evaluation_edit(request, pk):
         'geom_json': parcela.geometry.json,
         'sections': [(title, [(form[n], n in WIDE_FIELDS) for n in names]) for title, names in EVALUATION_SECTIONS],
         'decision_fields': [form[n] for n in ('visit_date', 'decision', 'justification', 'conditions')],
-        'difficulty_fields': [form[f] for f, _, _ in ParcelEvaluation.DIFFICULTY_ELEMENTS],
     })
 
 

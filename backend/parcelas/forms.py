@@ -35,7 +35,6 @@ class EvaluationForm(forms.ModelForm):
     """Technical evaluation. Decision fields are only required when concluding."""
     objectives = forms.MultipleChoiceField(label='Objetivos', choices=ParcelEvaluation.OBJECTIVES, required=False,
                                            widget=forms.CheckboxSelectMultiple)
-    DIFFICULTY_CHOICES = [('', '—')] + [(str(i), str(i)) for i in range(1, 6)]
 
     class Meta:
         model = ParcelEvaluation
@@ -51,10 +50,6 @@ class EvaluationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             self.initial['objectives'] = self.instance.objectives_list
-        for f, label, weight in ParcelEvaluation.DIFFICULTY_ELEMENTS:
-            self.fields[f] = forms.TypedChoiceField(label=f'{label} (×{weight})', choices=self.DIFFICULTY_CHOICES,
-                                                    coerce=int, empty_value=None, required=False)
-            self.initial.setdefault(f, getattr(self.instance, f))
         for f in ('rocks_pct',):
             self.fields[f].max_value = 100
         self.concluding = False

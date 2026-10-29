@@ -8,9 +8,12 @@
   .fgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px 14px }
   .fgrid .wide { grid-column:1/-1 }
   .hint { color:var(--dim); font-size:11.5px; margin-top:3px }
-  .field ul { list-style:none; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:4px 14px; padding:0 }
-  .field ul label { display:flex; gap:6px; align-items:center; text-transform:none; letter-spacing:0; font-size:13px; color:var(--text); font-weight:400 }
-  .field ul input { width:auto }
+  table.problems td { padding:5px 6px; vertical-align:middle }
+  table.problems label { display:flex; gap:8px; align-items:center; margin:0; text-transform:none; letter-spacing:0; font-size:13px; font-weight:400; color:var(--text); white-space:nowrap }
+  table.problems input[type=checkbox] { width:auto; margin:0 }
+  table.problems input[type=text] { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:5px 8px }
+  .diff td, .diff th { padding:5px 8px }
+  .diff select { width:auto }
   table.fs { width:100%; font-size:12.5px }
   table.fs td, table.fs th { padding:4px 5px; vertical-align:top }
   table.fs input, table.fs select { width:100%; min-width:60px; background:var(--bg3); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:5px 6px }
@@ -24,7 +27,7 @@
 <nav class="sections">
   <a href="#equipa">Equipa e meios</a><a href="#meteo">Meteorologia</a><a href="#combustivel">Combustível</a>
   <a href="#faixas">Faixas</a><a href="#operacao">Operação e problemas</a><a href="#resultados">Efeitos e eficácia</a>
-  <a href="#custos">Custos</a><a href="#validacao">Validação</a><a href="#fotos">Fotografias</a>
+  <a href="#dificuldade">Dificuldade</a><a href="#custos">Custos</a><a href="#validacao">Validação</a><a href="#fotos">Fotografias</a>
 </nav>
 <form method="post" enctype="multipart/form-data">{% csrf_token %}
 {{ members.management_form }}{{ readings.management_form }}{{ strips.management_form }}{{ costs.management_form }}
@@ -37,29 +40,36 @@
     <div class="field"><label>Área tratada (ha)</label>{{ form.area_treated_ha }}</div>
     <div class="field"><label>Formação (registo ICNF)</label>{{ form.formation }}</div>
     <div class="field"><label>Técnicos (n.º)</label>{{ form.n_tecnicos }}</div>
-    <div class="field"><label>Homens</label>{{ form.n_men }}</div>
+    <div class="field"><label>Operacionais</label>{{ form.n_men }}</div>
     <div class="field"><label>VLCI (&lt; 500 l)</label>{{ form.n_vlci }}</div>
     <div class="field"><label>VFCI</label>{{ form.n_vfci }}</div>
     <div class="field"><label>Capacidade VFCI (l)</label>{{ form.vfci_capacity_l }}</div>
   </div>
   <p class="card-title" style="margin-top:14px">Técnicos e operacionais envolvidos</p>
-  <table class="fs"><thead><tr><th>Nome</th><th>Função</th><th>Horas</th><th>Folha do livro</th><th>Validada (operacionais)</th><th>Remover</th></tr></thead><tbody>
-  {% for f in members %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.operative }}</td><td>{{ f.function }}</td>
+  <table class="fs"><thead><tr><th>Nome</th><th>Função</th><th>Horas</th><th>Folha do livro</th><th>Validada (operacionais)</th><th></th></tr></thead><tbody data-formset="members">
+  {% for f in members %}<tr class="fs-row" data-saved="{% if f.instance.pk %}1{% endif %}">{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.operative }}</td><td>{{ f.function }}</td>
     <td style="max-width:80px">{{ f.hours }}</td><td style="max-width:80px">{{ f.book_page }}</td>
     <td style="font-size:12px">{% if f.instance.validated_by_id %}✔ {{ f.instance.validated_by.operative.name|default:f.instance.validated_by.username }}{% elif f.instance.pk %}<span style="color:var(--dim)">—</span>{% endif %}</td>
-    <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+    <td><span class="fs-del">{{ f.DELETE }}</span><button type="button" class="fs-remove" title="Remover">✖</button></td></tr>{% endfor %}
   </tbody></table>
-  <p class="hint">Os participantes confirmados na ação já estão incluídos. O n.º de credenciação vem do perfil de cada pessoa. Guarde para obter mais linhas.
+  {% with e=members.empty_form %}<template id="members-empty"><tr class="fs-row">{% for h in e.hidden_fields %}{{ h }}{% endfor %}<td>{{ e.operative }}</td><td>{{ e.function }}</td>
+    <td style="max-width:80px">{{ e.hours }}</td><td style="max-width:80px">{{ e.book_page }}</td><td></td>
+    <td><button type="button" class="fs-remove" title="Remover">✖</button></td></tr></template>{% endwith %}
+  <button type="button" class="btn btn-secondary btn-sm fs-add" data-add-row="members">+ Acrescentar pessoa</button>
+  <p class="hint">Os participantes confirmados na ação já estão incluídos. O n.º de credenciação vem do perfil de cada pessoa.
     Horas: deixe em branco para usar a duração da execução{% if ex.duration_hours %} ({{ ex.duration_hours|floatformat:"-2" }} h){% endif %}. Estes dados alimentam o livro de campo de cada pessoa.</p>
 </div>
 
 <div class="card" id="meteo">
   <div class="card-title">Meteorologia e comportamento do fogo</div>
   <p class="hint" style="margin-bottom:8px">Registe no início e no fim da queima e sempre que uma alteração meteorológica mude o comportamento do fogo.{% if issues %} <strong style="color:var(--err-fg)">Linhas a vermelho estão fora da prescrição do PFC.</strong>{% endif %}</p>
-  <div style="overflow-x:auto"><table class="fs"><thead><tr><th>Hora</th><th>Temp. °C</th><th>HR %</th><th>Estado do tempo</th><th>Vento Bft</th><th>Vento km/h</th><th>Direção</th><th>Condução</th><th>Outra condução</th><th>Chama (m)</th><th>Ângulo °</th><th>Propagação m/min</th><th>✖</th></tr></thead><tbody>
-  {% for f in readings %}<tr {% if f.issue_text %}class="bad" title="Fora da prescrição: {{ f.issue_text }}"{% endif %}>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
-    <td>{{ f.time }}</td><td>{{ f.temp }}</td><td>{{ f.rh }}</td><td>{{ f.weather }}</td><td>{{ f.wind_bft }}</td><td>{{ f.wind_kmh }}</td><td>{{ f.wind_dir }}</td><td>{{ f.conduct }}</td><td>{{ f.conduct_other }}</td><td>{{ f.flame_length_m }}</td><td>{{ f.flame_angle }}</td><td>{{ f.spread_m_min }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+  <div style="overflow-x:auto"><table class="fs"><thead><tr><th>Hora</th><th>Temp. °C</th><th>HR %</th><th>Estado do tempo</th><th>Vento Bft</th><th>Vento km/h</th><th>Direção</th><th>Condução</th><th>Outra condução</th><th></th></tr></thead><tbody data-formset="readings">
+  {% for f in readings %}<tr class="fs-row{% if f.issue_text %} bad{% endif %}" data-saved="{% if f.instance.pk %}1{% endif %}" {% if f.issue_text %}title="Fora da prescrição: {{ f.issue_text }}"{% endif %}>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+    <td>{{ f.time }}</td><td>{{ f.temp }}</td><td>{{ f.rh }}</td><td>{{ f.weather }}</td><td>{{ f.wind_bft }}</td><td>{{ f.wind_kmh }}</td><td>{{ f.wind_dir }}</td><td>{{ f.conduct }}</td><td>{{ f.conduct_other }}</td><td><span class="fs-del">{{ f.DELETE }}</span><button type="button" class="fs-remove" title="Remover">✖</button></td></tr>{% endfor %}
   </tbody></table></div>
+  {% with e=readings.empty_form %}<template id="readings-empty"><tr class="fs-row">{% for h in e.hidden_fields %}{{ h }}{% endfor %}
+    <td>{{ e.time }}</td><td>{{ e.temp }}</td><td>{{ e.rh }}</td><td>{{ e.weather }}</td><td>{{ e.wind_bft }}</td><td>{{ e.wind_kmh }}</td><td>{{ e.wind_dir }}</td><td>{{ e.conduct }}</td><td>{{ e.conduct_other }}</td><td><button type="button" class="fs-remove" title="Remover">✖</button></td></tr></template>{% endwith %}
+  <button type="button" class="btn btn-secondary btn-sm fs-add" data-add-row="readings">+ Acrescentar leitura</button>
 </div>
 
 <div class="card" id="combustivel">
@@ -88,8 +98,11 @@
   <div class="card-title">Operação e problemas</div>
   <div class="form-row"><div class="field"><label>Técnica(s) de ignição utilizada(s)</label>{{ form.ignition_techniques }}</div></div>
   <div class="form-row"><div class="field"><label>Descrição operacional</label>{{ form.operation_notes }}<div class="hint">Bandas de segurança (largura, posicionamento), progressão do fogo, vento, exposição, linha de ignição, saltos…</div></div></div>
-  <div class="form-row"><div class="field"><label>Problemas operacionais</label>{{ form.problems }}</div></div>
-  <div class="form-row"><div class="field"><label>Descrição dos problemas</label>{{ form.problems_description }}</div></div>
+  <div class="form-row"><div class="field"><label>Problemas operacionais</label>
+    <table class="problems"><tbody>{% for code, label, checked, note in form.problem_rows %}
+      <tr><td style="width:1%"><label><input type="checkbox" name="problems" value="{{ code }}" {% if checked %}checked{% endif %} onchange="this.closest('tr').querySelector('input[type=text]').disabled=!this.checked"> {{ label }}</label></td>
+        <td><input type="text" name="{{ note.html_name }}" value="{{ note.value|default:'' }}" maxlength="500" placeholder="Descrição do problema" {% if not checked %}disabled{% endif %}></td></tr>{% endfor %}
+    </tbody></table></div></div>
   <div class="form-row"><div class="field"><label>Esquema de condução (imagem)</label>
     {% if ex.schema %}<div class="hint">Atual: <a href="{{ ex.schema.url }}" target="_blank">ver esquema</a></div>{% endif %}
     <input type="file" name="schema" accept="image/*" style="color:var(--text)">
@@ -113,12 +126,24 @@
   </div>
 </div>
 
+<div class="card" id="dificuldade">
+  <div class="card-title">Classificação da dificuldade da operação</div>
+  <table class="diff">
+    <thead><tr><th>Elemento (ponderação)</th><th>Valor (1 fácil – 5 difícil)</th></tr></thead>
+    <tbody>{% for f in difficulty_fields %}<tr><td>{{ f.label }}</td><td>{{ f }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <p style="margin-top:8px;font-size:13px">Total: <strong id="diff-total">—</strong> · <span id="diff-class">preencha os 8 elementos</span></p>
+  <p class="hint">Fácil &lt; 35 · Normal 35–54 · Difícil ≥ 55. Ferramenta do técnico (anexo do POQ-Execução).</p>
+</div>
+
 <div class="card" id="custos">
   <div class="card-title">Avaliação económica (custos reais)</div>
-  <table class="fs"><thead><tr><th>Categoria</th><th>Tipo (pessoal / máquina…)</th><th>Queima (h · l · km)</th><th>Extinção / vigilância (h)</th><th>Custo unitário €</th><th>Total</th><th>✖</th></tr></thead><tbody>
-  {% for f in costs %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.category }}</td><td>{{ f.description }}</td><td>{{ f.qty_burn }}</td><td>{{ f.qty_extinction }}</td><td>{{ f.unit_price }}</td><td class="num">{% if f.instance.pk %}{{ f.instance.amount|eur }}{% endif %}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}
+  <table class="fs"><thead><tr><th>Categoria</th><th>Tipo (pessoal / máquina…)</th><th>Queima (h · l · km)</th><th>Extinção / vigilância (h)</th><th>Custo unitário €</th><th>Total</th><th></th></tr></thead><tbody data-formset="costs">
+  {% for f in costs %}<tr class="fs-row" data-saved="{% if f.instance.pk %}1{% endif %}">{% for h in f.hidden_fields %}{{ h }}{% endfor %}<td>{{ f.category }}</td><td>{{ f.description }}</td><td>{{ f.qty_burn }}</td><td>{{ f.qty_extinction }}</td><td>{{ f.unit_price }}</td><td class="num">{% if f.instance.pk %}{{ f.instance.amount|eur }}{% endif %}</td><td><span class="fs-del">{{ f.DELETE }}</span><button type="button" class="fs-remove" title="Remover">✖</button></td></tr>{% endfor %}
   </tbody></table>
-  <p class="hint">Total real: <strong>{{ ex.cost_total|eur }}</strong>{% if estimate %} · estimativa CAOF para esta parcela: <strong>{{ estimate.total|eur }}</strong> ({{ estimate.jornas_ha|floatformat:1 }} jornas/ha; apoio ICNF {{ estimate.support|eur }}){% endif %}. Pessoal: n.º homens × horas (incluindo transporte, tempos mortos e refeições).</p>
+  {% with e=costs.empty_form %}<template id="costs-empty"><tr class="fs-row">{% for h in e.hidden_fields %}{{ h }}{% endfor %}<td>{{ e.category }}</td><td>{{ e.description }}</td><td>{{ e.qty_burn }}</td><td>{{ e.qty_extinction }}</td><td>{{ e.unit_price }}</td><td></td><td><button type="button" class="fs-remove" title="Remover">✖</button></td></tr></template>{% endwith %}
+  <button type="button" class="btn btn-secondary btn-sm fs-add" data-add-row="costs">+ Acrescentar custo</button>
+  <p class="hint">Total real: <strong>{{ ex.cost_total|eur }}</strong>{% if estimate %} · estimativa CAOF para esta parcela: <strong>{{ estimate.total|eur }}</strong> ({{ estimate.jornas_ha|floatformat:1 }} jornas/ha; apoio ICNF {{ estimate.support|eur }}){% endif %}. Pessoal: n.º de operacionais × horas (incluindo transporte, tempos mortos e refeições).</p>
 </div>
 
 <div class="card" id="validacao">
@@ -154,4 +179,22 @@
   <button class="btn btn-secondary btn-sm" title="Guarde primeiro as alterações à equipa">✔ Validar a participação dos operacionais (art. 27.º)</button></form>{% endif %}
 <form method="post" action="{% url 'fire_actions:execution_delete' ex.pk %}" style="margin-top:10px" onsubmit="return confirm('Eliminar esta execução de parcela?')">{% csrf_token %}
   <button class="btn btn-danger btn-sm">🗑️ Eliminar esta execução de parcela</button></form>
+{% endblock %}
+{% block extra_js %}
+<script>
+// Live difficulty total (weights from the POQ annex)
+const WEIGHTS = { diff_escape: 1, diff_risk: 3, diff_fuels: 2, diff_environment: 2, diff_smoke: 1, diff_ignition: 2, diff_team: 1, diff_objectives: 3 };
+function updateDifficulty() {
+  let total = 0, complete = true;
+  for (const [name, w] of Object.entries(WEIGHTS)) {
+    const v = parseInt(document.querySelector(`[name=${name}]`).value);
+    if (isNaN(v)) complete = false; else total += v * w;
+  }
+  document.getElementById('diff-total').textContent = complete ? total : '—';
+  document.getElementById('diff-class').textContent = !complete ? 'preencha os 8 elementos'
+    : total < 35 ? 'Fácil / simples' : total < 55 ? 'Normal' : 'Difícil / complexa';
+}
+Object.keys(WEIGHTS).forEach(n => document.querySelector(`[name=${n}]`).addEventListener('change', updateDifficulty));
+updateDifficulty();
+</script>
 {% endblock %}
