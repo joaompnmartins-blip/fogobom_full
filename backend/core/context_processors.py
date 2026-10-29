@@ -18,7 +18,9 @@ def pending_validations(request):
 
 
 def user_roles(request):
-    """`user_is_tecnico`: validated, non-expired ICNF technician (can evaluate parcels)."""
+    """`user_is_tecnico`: validated, non-expired ICNF technician; `user_has_credential`: técnico or operacional."""
     user = getattr(request, 'user', None)
     op = getattr(user, 'operative', None) if user and user.is_authenticated else None
-    return {'user_is_tecnico': bool(op and op.is_tecnico)}
+    from operatives.models import has_credential
+    return {'user_is_tecnico': bool(op and op.is_tecnico),
+            'user_has_credential': has_credential(user) if user else False}

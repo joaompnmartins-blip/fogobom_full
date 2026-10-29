@@ -89,8 +89,10 @@ class FieldbookTests(Base):
         self.assertContains(r, '4,5 h validadas')
         self.assertRedirects(self.client.get('/livro-de-campo/'), f'/livro-de-campo/{self.op.pk}/',
                              fetch_redirect_response=False)
-        self.client.force_login(User.objects.create_user('semperfil', password='x'))   # no operative profile yet
-        self.assertRedirects(self.client.get('/livro-de-campo/'), '/perfil/', fetch_redirect_response=False)
+        self.client.force_login(User.objects.create_user('semperfil', password='x'))   # no credential: no field book
+        self.assertRedirects(self.client.get('/livro-de-campo/'), '/', fetch_redirect_response=False)
+        self.assertRedirects(self.client.get('/prazos/'), '/', fetch_redirect_response=False)
+        self.assertNotContains(self.client.get('/parcelas/'), 'Livro de campo')
         self.client.force_login(self.user)
         r = self.client.get(f'/livro-de-campo/{self.op.pk}/icnf.xlsx?ano=2026')
         self.assertEqual(r.status_code, 200)
@@ -121,8 +123,8 @@ class FieldbookTests(Base):
         for u in (other, staff):
             self.client.force_login(u)
             for url in (f'/livro-de-campo/{self.op.pk}/', f'/livro-de-campo/{self.op.pk}/icnf.xlsx'):
-                r = self.client.get(url)
-                self.assertRedirects(r, '/livro-de-campo/', fetch_redirect_response=False)
+                r = self.client.get(url)   # staff without a credential has no field book at all
+                self.assertRedirects(r, '/livro-de-campo/' if u == other else '/', fetch_redirect_response=False)
 
     @override_settings(SECURE_SSL_REDIRECT=False)
     def test_validate_team(self):
@@ -165,9 +167,9 @@ class DeadlineTests(Base):
     def test_credential_deadline_is_private(self):
         owner, _ = make_tecnico('renova', '11-2022', valid_until=timezone.localdate() + timedelta(days=20))
         self.client.force_login(self.user)
-        self.assertNotContains(self.client.get('/prazos/?ver=todos'), 'Técnico renova')
+        self.assertNotContains(self.client.get('/prazos/'), 'Técnico renova')
         self.client.force_login(owner)
-        self.assertContains(self.client.get('/prazos/?ver=meus'), 'Técnico renova')
+        self.assertContains(self.client.get('/prazos/'), 'Técnico renova')
 
     def test_credential_and_pfc_deadlines(self):
         _, op = make_tecnico('renova', '11-2022', valid_until=date(2026, 3, 31))
@@ -182,7 +184,7 @@ class DeadlineTests(Base):
         with mock.patch('registos.deadlines.timezone.localdate', return_value=date(2026, 2, 5)):
             r = self.client.get('/prazos/')
         self.assertContains(r, 'Envio do POQ-Execução')
-        self.assertEqual(r.context['scope'], 'meus')
+        self.assertNotContains(r, 'ver=todos')   # each user sees only their own deadlines
         r = self.client.post(f'/registos/envio/{self.plan.pk}/', {'which': 'poq', 'date': '2026-02-03'})
         self.assertRedirects(r, f'/acoes/burning/{self.plan.pk}/', fetch_redirect_response=False)
         self.plan.refresh_from_db()

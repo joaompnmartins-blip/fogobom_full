@@ -7,7 +7,6 @@ immediate effects, efficacy, economic evaluation, photo index, incident (art. 15
 import io
 import json
 import math
-from collections import OrderedDict
 
 from docx import Document
 from docx.enum.section import WD_ORIENT
@@ -169,7 +168,7 @@ def generate_poq_execucao(plan):
     # ── Problemas ──
     _heading(doc, 'Problemas operacionais')
     rows = [[_id_parc(ex, numbers), f'{ex.date:%d/%m/%Y}',
-             '\n'.join(filter(None, [ex.problems_display, ex.problems_description])) or 'Sem problemas']
+             '\n'.join(f'{label}: {note}' if note else label for label, note in ex.problems_detail) or 'Sem problemas']
             for ex in executions]
     _table(doc, ['ID_PARC', 'DATA', 'DESCRIÇÃO'], rows)
 
@@ -202,7 +201,7 @@ def generate_poq_execucao(plan):
     # ── Esquema de condução ──
     _heading(doc, 'Esquema de condução da queima')
     for ex in executions:
-        _table(doc, ['ID_PARC', 'Data', 'Início', 'Fim', 'Téc. n.º', 'VLCI (< 500 l)', 'Homens', 'VFCI'],
+        _table(doc, ['ID_PARC', 'Data', 'Início', 'Fim', 'Téc. n.º', 'VLCI (< 500 l)', 'Operacionais', 'VFCI'],
                [[_id_parc(ex, numbers), f'{ex.date:%d/%m/%Y}', ex.start_time.strftime('%H:%M') if ex.start_time else '',
                  ex.end_time.strftime('%H:%M') if ex.end_time else '', _fmt(ex.n_tecnicos), _fmt(ex.n_vlci),
                  _fmt(ex.n_men), _fmt(ex.n_vfci) + (f' ({ex.vfci_capacity_l} l)' if ex.vfci_capacity_l else '')]])
@@ -250,7 +249,7 @@ def generate_poq_execucao(plan):
             rows.append([_id_parc(ex, numbers), 'TOTAL', '', '', '', '', '', _fmt(ex.cost_total, ' €')])
     _table(doc, ['ID_PARC', 'Categoria', 'Tipo', 'Queima', 'Extinção, vigilância', 'Total (h / l / km)',
                  'Custo unitário €', 'Total'], rows, size=8)
-    _p(doc, 'Custos em pessoal: n.º homens × horas, tempo total dedicado à queima (transporte, tempos mortos e '
+    _p(doc, 'Custos em pessoal: n.º de operacionais × horas, tempo total dedicado à queima (transporte, tempos mortos e '
             'refeições). Custos em material: n.º máquinas × horas, combustível (l) e viaturas (km).', size=8, color=DIM)
 
     # ── Índice de fotografia ──
@@ -288,14 +287,13 @@ def generate_poq_execucao(plan):
     # ── Anexo: dificuldade ──
     _heading(doc, 'ANEXO — Classificação da dificuldade da operação')
     _p(doc, '(Ferramenta a utilizar pelo técnico, mas não devolver preenchido)', size=8.5, italic=True, color=DIM)
-    for parcel in OrderedDict((ex.parcel_id, ex.parcel) for ex in executions).values():
-        ev = parcel.evaluations.filter(completed_at__isnull=False).order_by('-completed_at').first()
-        if not ev:
+    for ex in executions:
+        if all(getattr(ex, f) is None for f, _, _ in ex.DIFFICULTY_ELEMENTS):
             continue
-        rows = [[f'{label} ({w})', _fmt(getattr(ev, f)), _fmt(getattr(ev, f) * w if getattr(ev, f) else None)]
-                for f, label, w in ev.DIFFICULTY_ELEMENTS]
-        rows.append(['TOTAL', '', f'{ev.difficulty_total or "—"} — {ev.difficulty_class or "incompleta"}'])
-        _p(doc, f'{numbers.get(parcel.pk, parcel.name)} — {parcel.name}', bold=True, size=9)
+        rows = [[f'{label} ({w})', _fmt(getattr(ex, f)), _fmt(getattr(ex, f) * w if getattr(ex, f) else None)]
+                for f, label, w in ex.DIFFICULTY_ELEMENTS]
+        rows.append(['TOTAL', '', f'{ex.difficulty_total or "—"} — {ex.difficulty_class or "incompleta"}'])
+        _p(doc, f'{_id_parc(ex, numbers)} — {ex.parcel.name} ({ex.date:%d/%m/%Y})', bold=True, size=9)
         _table(doc, ['Elemento (fator de ponderação)', 'Valor atribuído', 'Peso'], rows)
     _p(doc, 'Fácil / simples < 35 · Normal 35–54 · Difícil / complexa ≥ 55.', size=8, color=DIM)
 
@@ -343,10 +341,9 @@ def _field_sheet(doc, ex, numbers, action):
            [[s.get_side_display(), s.get_means_display() if s.means else '', _fmt(s.width_m), s.time_spent]
             for s in ex.strips.all()], size=8)
     _p(doc, 'METEOROLOGIA E COMPORTAMENTO DO FOGO', bold=True, size=9)
-    _table(doc, ['Hora', 'Temp. ar', 'HR', 'Vento km/h', 'Vento Bft', 'Direção', 'Comprim. chama (m)',
-                 'Ângulo chama', 'Propagação (m/min)'],
-           [[r.time.strftime('%H:%M'), _fmt(r.temp), _fmt(r.rh), _fmt(r.wind_kmh), _fmt(r.wind_bft), r.wind_dir,
-             _fmt(r.flame_length_m), _fmt(r.flame_angle), _fmt(r.spread_m_min)] for r in ex.readings.all()], size=8)
+    _table(doc, ['Hora', 'Temp. ar', 'HR', 'Vento km/h', 'Vento Bft', 'Direção'],
+           [[r.time.strftime('%H:%M'), _fmt(r.temp), _fmt(r.rh), _fmt(r.wind_kmh), _fmt(r.wind_bft), r.wind_dir]
+            for r in ex.readings.all()], size=8)
     _table(doc, ['Dias s/ chuva', 'FWI', 'ISI', 'FFMC', 'BUI', 'DMC', 'DC', 'Humid. comb. superficial'],
            [[_fmt(ex.dry_days), _fmt(ex.fwi), _fmt(ex.isi), _fmt(ex.ffmc), _fmt(ex.bui), _fmt(ex.dmc), _fmt(ex.dc),
              ex.fuel_superficial]], size=8)

@@ -37,7 +37,7 @@
       {% if a.outlook.blocked %}<span class="badge badge-red">perigo IPMA impede queima</span>{% endif %}
     </div>
     {% if a.outlook.reasons %}<div class="meta" style="font-size:12px">{{ a.outlook.reasons.0 }}</div>{% endif %}
-    <div class="meta">🙋 {{ a.n_part }} inscrito{{ a.n_part|pluralize }}{% if a.slots %} · {{ a.slots }} vagas{% endif %}</div>
+    <div class="meta">🙋 {{ a.n_part }} inscrito{{ a.n_part|pluralize }}{% if a.slots %} · {{ a.slots }} vagas previstas{% if a.n_part > a.slots %} <span class="badge badge-orange">vagas ultrapassadas</span>{% endif %}{% endif %}</div>
     <div class="row" style="margin-top:auto">
       <form method="post" action="{% url 'fire_actions:participate' a.pk %}">{% csrf_token %}
         <input type="hidden" name="next" value="{% url 'fire_actions:announcements' %}">

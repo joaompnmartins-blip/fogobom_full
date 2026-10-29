@@ -39,7 +39,7 @@
         {% if action.alt_date_1 or action.alt_date_2 %}<tr><td>Datas alternativas</td><td>{{ action.alt_date_1|date:"d/m/Y" }}{% if action.alt_date_1 and action.alt_date_2 %}, {% endif %}{{ action.alt_date_2|date:"d/m/Y" }}</td></tr>{% endif %}
         <tr><td>Técnico responsável</td><td>{% if action.responsible_user %}{{ action.responsible_user.operative.name|default:action.responsible_user.username }}{% if action.responsible_user.operative.credential_number %} (n.º {{ action.responsible_user.operative.credential_number }}){% endif %}{% else %}{{ action.responsible|default:"—" }}{% endif %}</td></tr>
         <tr><td>Objetivos</td><td>{{ action.objectives_display|default:"—" }}</td></tr>
-        <tr><td>Ponto de encontro</td><td>{{ action.meeting_notes|default:"—" }}{% if action.meeting_point %} · <a href="https://www.google.com/maps?q={{ action.meeting_point.y }},{{ action.meeting_point.x }}" target="_blank">abrir no mapa ↗</a>{% endif %}</td></tr>
+        <tr><td>Ponto de encontro</td><td>{{ action.meeting_notes|default:"—" }}{% if action.meeting_point %} · <a href="https://www.google.com/maps?q={{ action.meeting_point.y|stringformat:".6f" }},{{ action.meeting_point.x|stringformat:".6f" }}" target="_blank">abrir no mapa ↗</a>{% endif %}</td></tr>
         {% if action.requirements %}<tr><td>O que levar</td><td>{{ action.requirements|linebreaksbr }}</td></tr>{% endif %}
         <tr><td>Parcelas</td><td>{% for p in action.parcels.all %}<a href="{% url 'parcelas:detail' p.pk %}">{{ p.name }}</a>{% if p.concelho %} ({{ p.concelho }}){% endif %}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
         {% if action.notes %}<tr><td>Notas</td><td>{{ action.notes|linebreaksbr }}</td></tr>{% endif %}
@@ -126,7 +126,8 @@
     <div class="card" style="padding:0;overflow:hidden"><div id="map" style="height:320px"></div></div>
 
     <div class="card">
-      <div class="card-title">Participantes ({{ participations|length }}{% if action.slots %} · {{ action.slots }} vagas{% endif %})</div>
+      <div class="card-title">Participantes ({{ participations|length }}{% if action.slots %} · {{ action.slots }} vagas previstas{% endif %})</div>
+      {% if action.slots_exceeded %}<div class="msg msg-info" style="margin-bottom:10px">O número de inscritos ({{ action.going_count }}) já ultrapassou as {{ action.slots }} vagas previstas pelo organizador. O técnico confirmará quem participa.</div>{% endif %}
       {% if action.is_open %}
       <form method="post" action="{% url 'fire_actions:participate' action.pk %}" class="inline-form" style="margin-bottom:12px">{% csrf_token %}
         <select name="intent">

@@ -52,6 +52,9 @@ class FireActionTests(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user('u', password='x')
+        Operative.objects.create(user=self.user, name='Técnico U', email='u@example.com', phone='', certification_level='',
+                                 credential_type=Operative.CRED_TECNICO, credential_number='5-2020',
+                                 credential_status=Operative.STATUS_VALIDADA, credential_lifetime=True)
         self.staff = User.objects.create_user('s', password='x', is_staff=True)
         self.client.force_login(self.user)
         self.parcel = FireParcel.objects.create(name='P', geometry=SQUARE, status='apta', area_ha=1.2,
@@ -147,6 +150,26 @@ class FireActionTests(TestCase):
         photo = BurningPlanPhoto.objects.get()
         self.assertEqual((photo.parcel, photo.moment, photo.taken_on), (self.parcel, 'antes', date(2026, 11, 6)))
 
+    def test_problem_notes_difficulty_and_word(self):
+        self.create_bp()
+        ex = ParcelExecution.objects.get()
+        page = self.client.get(f'/acoes/execucao/{ex.pk}/')
+        for prefix in ('members', 'readings', 'costs'):
+            self.assertContains(page, f'id="{prefix}-empty"')
+        self.assertNotContains(page, 'Propagação')
+        self.assertContains(page, 'Operacionais')
+        data = self.edit_data(ex, problems=['fumo'], pnote_fumo='Inversão térmica', pnote_ignicao='ignorado',
+                              **{f: '3' for f, _, _ in ParcelExecution.DIFFICULTY_ELEMENTS})
+        self.client.post(f'/acoes/execucao/{ex.pk}/', data)
+        ex.refresh_from_db()
+        self.assertEqual(ex.problem_notes, {'fumo': 'Inversão térmica'})
+        self.assertEqual((ex.difficulty_total, ex.difficulty_class), (45, 'Normal'))
+        self.assertContains(self.client.get(f'/acoes/execucao/{ex.pk}/'), 'value="Inversão térmica"')
+        text = docx_text(generate_poq_execucao(ex.plan))
+        self.assertIn('Deficiente dispersão do fumo: Inversão térmica', text)
+        self.assertIn('45 — Normal', text)
+        self.assertNotIn('Propagação', text)
+
     def test_invalid_execution_saves_nothing(self):
         self.create_bp()
         ex = ParcelExecution.objects.get()
@@ -177,9 +200,11 @@ class FireActionTests(TestCase):
     def test_only_managers_edit_executions(self):
         self.create_bp()
         ex = ParcelExecution.objects.get()
-        self.client.force_login(User.objects.create_user('outro', password='x'))
+        self.client.force_login(User.objects.create_user('outro', password='x'))   # not a técnico
         r = self.client.get(f'/acoes/execucao/{ex.pk}/')
-        self.assertRedirects(r, f'/acoes/burning/{ex.plan_id}/', fetch_redirect_response=False)
+        self.assertContains(r, 'Área reservada a técnicos credenciados')
+        self.assertContains(self.client.get('/acoes/burning/'), 'Área reservada a técnicos credenciados')
+        self.assertContains(self.client.get('/monitorizacao/'), 'Área reservada a técnicos credenciados')
         self.client.post(f'/acoes/execucao/{ex.pk}/eliminar/')
         self.assertTrue(ParcelExecution.objects.exists())
 

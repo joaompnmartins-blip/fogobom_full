@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block nav_bp %}{% if nav == 'nav_bp' %}active{% endif %}{% endblock %}
+{% block nav_mon %}{% if nav == 'nav_mon' %}active{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:720px">
+  <div class="card-title">Área reservada a técnicos credenciados</div>
+  <p style="font-size:14px;line-height:1.6">{{ text }}</p>
+  <p style="font-size:14px;line-height:1.6;margin-top:10px">Pode acompanhar as ações em <a href="{% url 'fire_actions:announcements' %}">📢 Próximas ações</a>
+    e inscrever-se para participar. Se é técnico credenciado em fogo controlado, indique o n.º de credenciação em
+    <a href="{% url 'core:profile' %}">👤 O meu perfil</a> para pedir a validação.</p>
+</div>
+{% endblock %}

@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,31 +11,39 @@ from django.views.decorators.http import require_POST
 
 from fire_actions.models import BurningPlan, ParcelExecution
 from fire_actions.views import can_manage
-from operatives.models import Operative
+from operatives.models import Operative, has_credential
 from .deadlines import KIND_LABELS, all_deadlines
 from .excel import generate_icnf_xlsx
 from .fieldbook import entries, hours_summary
 
 
-@login_required
+def credentialed_required(view):
+    """Prazos and livro de campo are for people with a credential (técnico or operacional de queima)."""
+    @wraps(view)
+    @login_required
+    def wrapper(request, *args, **kwargs):
+        if not has_credential(request.user):
+            messages.info(request, 'Os prazos e o livro de campo são para técnicos credenciados e operacionais de queima. '
+                                   'Indique a sua credenciação em "O meu perfil".')
+            return redirect('core:dashboard')
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
+@credentialed_required
 def deadlines_page(request):
-    items = all_deadlines()
-    # A person's credential renewal is private (it links to their livro de campo)
-    items = [i for i in items if i['kind'] != 'credenciacao' or request.user.pk in i['users']]
-    mine = [i for i in items if request.user.pk in i['users']]
-    scope = request.GET.get('ver', 'meus' if mine or not request.user.is_staff else 'todos')
-    shown = mine if scope == 'meus' else items
+    """Each user sees only their own deadlines."""
+    shown = [i for i in all_deadlines() if request.user.pk in i['users']]
     kind = request.GET.get('tipo', '')
     if kind in KIND_LABELS:
         shown = [i for i in shown if i['kind'] == kind]
     return render(request, 'registos/deadlines.html', {
-        'items': shown, 'scope': scope, 'kind': kind, 'kinds': KIND_LABELS.items(),
-        'n_mine': len(mine), 'n_all': len(items),
+        'items': shown, 'kind': kind, 'kinds': KIND_LABELS.items(),
         'overdue': sum(1 for i in shown if i['status'] == 'atrasado'),
     })
 
 
-@login_required
+@credentialed_required
 def my_fieldbook(request):
     op = getattr(request.user, 'operative', None)
     if op is None:
@@ -59,7 +68,7 @@ def _own_operative(request, op_pk):
     return op
 
 
-@login_required
+@credentialed_required
 def fieldbook(request, op_pk):
     op = _own_operative(request, op_pk)
     if op is None:
@@ -75,7 +84,7 @@ def fieldbook(request, op_pk):
     })
 
 
-@login_required
+@credentialed_required
 def fieldbook_xlsx(request, op_pk):
     op = _own_operative(request, op_pk)
     if op is None:

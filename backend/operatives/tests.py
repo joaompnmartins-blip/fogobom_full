@@ -40,11 +40,12 @@ class OperativeTests(TestCase):
         self.assertFalse(Operative.objects.exists())
         self.assertContains(r, 'nao-email')
 
-    def test_edit(self):
+    def test_edit_only_staff_and_no_button(self):
         op = Operative.objects.create(name='Op', email='a@example.com', phone='1', certification_level='A')
+        self.assertNotContains(self.client.get('/operacionais/'), f'/operacionais/{op.pk}/editar/')
         self.client.post(f'/operacionais/{op.pk}/editar/', {'name': 'Op 2', 'phone': '2'})
         op.refresh_from_db()
-        self.assertEqual((op.name, op.phone), ('Op 2', '2'))
+        self.assertEqual((op.name, op.phone), ('Op', '1'))
 
     def test_only_staff_can_delete(self):
         op = Operative.objects.create(name='Op', email='a@example.com', phone='1', certification_level='A')
@@ -119,6 +120,22 @@ class RegistrationAndValidationTests(TestCase):
         self.register(reg_cred_type='operacional')
         op = Operative.objects.get(user__username='joao')
         self.assertEqual((op.credential_number, op.credential_status), ('', 'na'))
+
+    def test_register_reuses_record_created_before_the_account(self):
+        old = Operative.objects.create(name='João C.', email='JOAO@example.com', phone='9', certification_level='')
+        self.register(reg_cred_type='operacional')
+        self.assertEqual(Operative.objects.count(), 1)
+        old.refresh_from_db()
+        self.assertEqual((old.user.username, old.name, old.phone), ('joao', 'João Ricardo Valejo Castanheiro', '9'))
+
+    def test_profile_links_record_created_before_the_account(self):
+        user = User.objects.create_user('pedro', email='pedro@example.com', password='x')
+        old = Operative.objects.create(name='Pedro', email='pedro@example.com', phone='', certification_level='')
+        self.client.force_login(user)
+        self.client.post('/perfil/', {'name': 'Pedro J', 'credential_type': 'operacional'})
+        self.assertEqual(Operative.objects.count(), 1)
+        old.refresh_from_db()
+        self.assertEqual((old.user, old.name, old.credential_type), (user, 'Pedro J', 'operacional'))
 
     def test_register_rejects_bad_or_duplicate_number(self):
         r = self.register(reg_cred_number='547')

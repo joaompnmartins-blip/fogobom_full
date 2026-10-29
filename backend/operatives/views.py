@@ -12,7 +12,7 @@ from django.contrib import messages
 from core.forms import form_errors_to_messages
 from .forms import OperativeForm, ProfileForm
 from .icnf import import_list, match
-from .models import IcnfTechnician, Operative
+from .models import IcnfTechnician, Operative, link_unclaimed_operative
 
 
 @login_required
@@ -34,7 +34,7 @@ def operative_create(request):
     return render(request, 'operatives/form.html', {'action': 'Novo Operacional'})
 
 
-@login_required
+@staff_required
 def operative_edit(request, pk):
     op = get_object_or_404(Operative, pk=pk)
     if request.method == 'POST':
@@ -61,7 +61,7 @@ def operative_delete(request, pk):
 # ── Profile & credentials ─────────────────────────────────────────────────────
 
 def _profile_for(user):
-    op = getattr(user, 'operative', None)
+    op = getattr(user, 'operative', None) or link_unclaimed_operative(user)
     if op is None:
         op = Operative(user=user, name=user.get_full_name() or user.get_username(), email=user.email,
                        phone='', certification_level='')

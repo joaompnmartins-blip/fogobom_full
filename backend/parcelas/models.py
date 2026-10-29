@@ -106,17 +106,6 @@ class ParcelEvaluation(models.Model):
                   ('agricola', 'Agrícola'), ('outro', 'Outro')]
     QUEIMADA_PURPOSE = [('pastagens', 'Renovação de pastagens'), ('restolho', 'Eliminação de restolho'),
                         ('sobrantes', 'Eliminação de sobrantes cortados (não amontoados)')]
-    # Annex "Classificação da dificuldade da operação" (POQ-Execução): (field, label, weight)
-    DIFFICULTY_ELEMENTS = [
-        ('diff_escape',     'Potencial de fuga', 1),
-        ('diff_risk',       'Risco', 3),
-        ('diff_fuels',      'Combustíveis / comportamento do fogo', 2),
-        ('diff_environment', 'Restrições ambientais', 2),
-        ('diff_smoke',      'Fumo / qualidade do ar', 1),
-        ('diff_ignition',   'Métodos de ignição', 2),
-        ('diff_team',       'Gestão da equipa', 1),
-        ('diff_objectives', 'Objetivos do tratamento', 3),
-    ]
 
     parcel       = models.ForeignKey(FireParcel, on_delete=models.CASCADE, related_name='evaluations')
     evaluator    = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
@@ -160,15 +149,6 @@ class ParcelEvaluation(models.Model):
     prescription_notes = models.TextField('prescrição sugerida', blank=True, default='')
     include_in_pfc = models.BooleanField('deve integrar um PFC', null=True, blank=True)
 
-    diff_escape      = models.PositiveSmallIntegerField(null=True, blank=True)
-    diff_risk        = models.PositiveSmallIntegerField(null=True, blank=True)
-    diff_fuels       = models.PositiveSmallIntegerField(null=True, blank=True)
-    diff_environment = models.PositiveSmallIntegerField(null=True, blank=True)
-    diff_smoke       = models.PositiveSmallIntegerField(null=True, blank=True)
-    diff_ignition    = models.PositiveSmallIntegerField(null=True, blank=True)
-    diff_team        = models.PositiveSmallIntegerField(null=True, blank=True)
-    diff_objectives  = models.PositiveSmallIntegerField(null=True, blank=True)
-
     history = HistoricalRecords()
 
     class Meta:
@@ -191,20 +171,6 @@ class ParcelEvaluation(models.Model):
     def objectives_display(self):
         labels = dict(self.OBJECTIVES)
         return ', '.join(labels.get(c, c) for c in self.objectives_list)
-
-    @property
-    def difficulty_total(self):
-        values = [(getattr(self, f), w) for f, _, w in self.DIFFICULTY_ELEMENTS]
-        if any(v is None for v, _ in values):
-            return None
-        return sum(v * w for v, w in values)
-
-    @property
-    def difficulty_class(self):
-        total = self.difficulty_total
-        if total is None:
-            return ''
-        return 'Fácil / simples' if total < 35 else 'Normal' if total < 55 else 'Difícil / complexa'
 
 
 class EvaluationVegetation(models.Model):

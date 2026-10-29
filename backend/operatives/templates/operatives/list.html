@@ -16,7 +16,6 @@
         {% if op.is_tecnico %}<span class="badge badge-green">validada</span>{% elif op.credential_status == 'pendente' %}<span class="badge badge-orange">por validar</span>{% elif op.credential_expired %}<span class="badge badge-red">expirada</span>{% else %}<span class="badge badge-red">{{ op.get_credential_status_display|lower }}</span>{% endif %}
         {% elif op.credential_type == 'operacional' %}Operacional de queima{% else %}—{% endif %}</td>
     <td>
-      <a href="{% url 'operatives:edit' op.pk %}" class="btn btn-secondary btn-sm">✏️</a>
       {% if request.user.is_staff %}<a href="{% url 'operatives:delete' op.pk %}" class="btn btn-danger btn-sm">🗑️</a>{% endif %}
     </td>
   </tr>

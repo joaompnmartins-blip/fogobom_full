@@ -54,7 +54,7 @@ def entries(operative, year=None):
                   for o in ex.members.all() if o.pk != m.pk]
         means = ', '.join(t for t in [
             f'{ex.n_vfci} VFCI' if ex.n_vfci else '', f'{ex.n_vlci} VLCI' if ex.n_vlci else '',
-            f'{ex.n_men} homens' if ex.n_men else ''] if t)
+            f'{ex.n_men} operacionais' if ex.n_men else ''] if t)
         notes = '; '.join(t for t in [
             f'Equipa: {", ".join(others)}' if others else '',
             f'Meios: {means}' if means else '',

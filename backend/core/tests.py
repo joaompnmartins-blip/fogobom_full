@@ -32,6 +32,12 @@ class AuthTests(TestCase):
         url = f'/login/?next={next_url}' if next_url else '/login/'
         return self.client.post(url, {'form_type': 'login', 'username': username, 'password': password})
 
+    def test_login_page_texts_and_manual_link(self):
+        r = self.client.get('/login/')
+        self.assertContains(r, 'Sistema de gestão de fogo controlado<br>Planeamento | Execução | Registo')
+        self.assertContains(r, 'href="/manual/"')
+        self.assertNotContains(r, 'FiredPT')
+
     def test_register_rejects_weak_password(self):
         r, _ = self.register(reg_password='123456', reg_confirm='123456')
         self.assertTrue(r.context['reg_error'])

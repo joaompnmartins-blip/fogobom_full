@@ -64,6 +64,28 @@ class AnnouncementTests(TestCase):
         self.post(action_type='')
         self.assertEqual(FireAction.objects.get().action_type, 'queimada')
 
+    def test_responsible_only_tecnicos_and_formacao_objective(self):
+        tec = make_tecnico()
+        choices = [c[0].value for c in self.client.get('/acoes/novo/').context['form'].fields['responsible_user'].choices
+                   if c[0]]
+        self.assertEqual(choices, [tec.pk])
+        self.post(objectives=['formacao', 'prevencao'])
+        a = FireAction.objects.get()
+        self.assertTrue(a.training)
+        self.assertIn('Formação', a.objectives_display)
+
+    def test_ics_and_map_link(self):
+        from datetime import time
+        a = FireAction.objects.create(name='A', scheduled_date=in_days(3), start_time=time(9),
+                                      meeting_notes='Igreja', created_by=self.user)
+        from django.contrib.gis.geos import Point
+        a.meeting_point = Point(-8.461234, 37.371234, srid=4326)
+        a.save()
+        r = self.client.get(f'/acoes/{a.pk}/calendario.ics')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(b'DTSTART:', r.content)
+        self.assertContains(self.client.get(f'/acoes/{a.pk}/'), 'maps?q=37.371234,-8.461234')
+
     def test_fogo_controlado_requires_a_technician(self):
         r, _ = self.post(action_type='fogo_controlado', responsible_user=self.user.pk)
         self.assertEqual(r.status_code, 200)
@@ -173,15 +195,18 @@ class StatusAndParticipationTests(TestCase):
         self.client.post(f'/acoes/{self.action.pk}/participantes/{part.pk}/', {'decision': 'confirmar'})
         part.refresh_from_db()
         self.assertIsNone(part.confirmed)
-        # manager confirms; second confirmation exceeds the single slot
+        # slots are indicative: a sign-up beyond them is accepted with a warning, and the manager may confirm it
         other = User.objects.create_user('rui', password='x')
-        p2 = Participation.objects.create(action=self.action, user=other)
+        self.client.force_login(other)
+        r = self.client.post(f'/acoes/{self.action.pk}/participar/', {'intent': 'vou'}, follow=True)
+        self.assertContains(r, 'já ultrapassou as 1 vagas previstas')
+        p2 = Participation.objects.get(user=other)
         self.client.force_login(self.tec)
         with mock.patch('core.emails.send_async'):
             self.client.post(f'/acoes/{self.action.pk}/participantes/{part.pk}/', {'decision': 'confirmar'})
             self.client.post(f'/acoes/{self.action.pk}/participantes/{p2.pk}/', {'decision': 'confirmar'})
         part.refresh_from_db(); p2.refresh_from_db()
-        self.assertEqual((part.confirmed, p2.confirmed), (True, None))
+        self.assertEqual((part.confirmed, p2.confirmed), (True, True))
 
     def test_participation_closed_when_cancelled(self):
         FireAction.objects.filter(pk=self.action.pk).update(status='cancelada')

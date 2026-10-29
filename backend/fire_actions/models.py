@@ -31,14 +31,14 @@ class FireAction(models.Model):
                         ('sobrantes', 'Eliminação de sobrantes cortados (não amontoados)')]
     OBJECTIVES = [('prevencao', 'Prevenção'), ('silvicola', 'Silvícola'), ('pastoreio', 'Pastoreio'),
                   ('cinegetico', 'Cinegético'), ('ecologico', 'Ecológico'), ('fitossanitario', 'Fitossanitário'),
-                  ('agricola', 'Agrícola'), ('outro', 'Outro')]
+                  ('agricola', 'Agrícola'), ('formacao', 'Formação'), ('outro', 'Outro')]
     PROBABILITY = [('alta', 'Alta'), ('media', 'Média'), ('baixa', 'Baixa')]
     LEGAL_MODES = [('comunicacao_previa', 'Comunicação prévia ao município (técnico credenciado)'),
                    ('autorizacao', 'Autorização do município')]
 
     name           = models.CharField('nome da ação', max_length=200)
     action_type    = models.CharField('tipo', max_length=20, choices=TYPE_CHOICES, default=TYPE_QUEIMADA)
-    training       = models.BooleanField('ação de formação', default=False)
+    training       = models.BooleanField('ação de formação', default=False)  # set from the "Formação" objective
     purpose        = models.CharField('finalidade (queimada)', max_length=20, choices=QUEIMADA_PURPOSE,
                                       blank=True, default='')
     objectives     = models.CharField('objetivos', max_length=200, blank=True, default='')  # comma-separated
@@ -55,7 +55,7 @@ class FireAction(models.Model):
     meeting_point  = gis_models.PointField('ponto de encontro', srid=4326, null=True, blank=True)
     meeting_notes  = models.CharField('indicações do ponto de encontro', max_length=300, blank=True, default='')
     requirements   = models.TextField('o que levar / requisitos', blank=True, default='')
-    slots          = models.PositiveSmallIntegerField('vagas para participantes', null=True, blank=True)
+    slots          = models.PositiveSmallIntegerField('vagas previstas (indicativo)', null=True, blank=True)
     probability_manual = models.CharField('probabilidade (definida pelo técnico)', max_length=10,
                                           choices=PROBABILITY, blank=True, default='')
     notes          = models.TextField('notas', blank=True, default='')
@@ -132,6 +132,15 @@ class FireAction(models.Model):
 
     def confirmed_participants(self):
         return self.participations.filter(confirmed=True)
+
+    @property
+    def going_count(self):
+        return self.participations.filter(intent=Participation.INTENT_VOU).count()
+
+    @property
+    def slots_exceeded(self):
+        """Slots are indicative: more people may sign up, and they are told so."""
+        return bool(self.slots) and self.going_count > self.slots
 
 
 class Participation(models.Model):
@@ -269,6 +278,17 @@ class ParcelExecution(models.Model):
                 ('equipamento', 'Equipamento insuficiente'), ('intenso', 'Fogo demasiado intenso'),
                 ('fumo', 'Deficiente dispersão do fumo'), ('seguranca', 'Deficiente segurança dos operadores'),
                 ('fuga', 'Fuga do fogo')]
+    # Annex "Classificação da dificuldade da operação" (POQ-Execução): (field, label, weight)
+    DIFFICULTY_ELEMENTS = [
+        ('diff_escape',     'Potencial de fuga', 1),
+        ('diff_risk',       'Risco', 3),
+        ('diff_fuels',      'Combustíveis / comportamento do fogo', 2),
+        ('diff_environment', 'Restrições ambientais', 2),
+        ('diff_smoke',      'Fumo / qualidade do ar', 1),
+        ('diff_ignition',   'Métodos de ignição', 2),
+        ('diff_team',       'Gestão da equipa', 1),
+        ('diff_objectives', 'Objetivos do tratamento', 3),
+    ]
 
     plan       = models.ForeignKey(BurningPlan, on_delete=models.CASCADE, related_name='executions')
     parcel     = models.ForeignKey(FireParcel, on_delete=models.PROTECT, related_name='executions',
@@ -284,7 +304,7 @@ class ParcelExecution(models.Model):
     n_vlci     = models.PositiveSmallIntegerField('VLCI (< 500 l)', null=True, blank=True)
     n_vfci     = models.PositiveSmallIntegerField('VFCI', null=True, blank=True)
     vfci_capacity_l = models.PositiveIntegerField('capacidade do VFCI (l)', null=True, blank=True)
-    n_men      = models.PositiveSmallIntegerField('homens', null=True, blank=True)
+    n_men      = models.PositiveSmallIntegerField('operacionais', null=True, blank=True)
 
     # Fine dead fuel moisture
     fuel_method      = models.CharField('metodologia', max_length=1, choices=FUEL_METHODS, blank=True, default='')
@@ -305,7 +325,7 @@ class ParcelExecution(models.Model):
     operation_notes = models.TextField('descrição operacional (faixas, progressão do fogo, vento, linha de ignição…)',
                                        blank=True, default='')
     problems   = models.CharField('problemas operacionais', max_length=200, blank=True, default='')  # comma-separated
-    problems_description = models.TextField('descrição dos problemas', blank=True, default='')
+    problem_notes = models.JSONField('descrição de cada problema', default=dict, blank=True)  # {code: text}
     schema     = models.ImageField('esquema de condução', upload_to='execution_schemas/', null=True, blank=True)
 
     # Immediate effects
@@ -321,6 +341,16 @@ class ParcelExecution(models.Model):
     rating_weather    = models.PositiveSmallIntegerField('condições meteorológicas', choices=RATINGS, null=True,
                                                          blank=True)
     rating_why        = models.TextField('porquê?', blank=True, default='')
+
+    # Difficulty of the operation (1 easy – 5 difficult per element)
+    diff_escape      = models.PositiveSmallIntegerField(null=True, blank=True)
+    diff_risk        = models.PositiveSmallIntegerField(null=True, blank=True)
+    diff_fuels       = models.PositiveSmallIntegerField(null=True, blank=True)
+    diff_environment = models.PositiveSmallIntegerField(null=True, blank=True)
+    diff_smoke       = models.PositiveSmallIntegerField(null=True, blank=True)
+    diff_ignition    = models.PositiveSmallIntegerField(null=True, blank=True)
+    diff_team        = models.PositiveSmallIntegerField(null=True, blank=True)
+    diff_objectives  = models.PositiveSmallIntegerField(null=True, blank=True)
 
     # Validation of the action for the livro de campo (Regulamento, art. 7.º n.º 4)
     VALIDATOR_ROLES = [('proprietario', 'Proprietário'), ('representante', 'Representante do proprietário'),
@@ -350,6 +380,26 @@ class ParcelExecution(models.Model):
     def problems_display(self):
         labels = dict(self.PROBLEMS)
         return ', '.join(labels.get(c, c) for c in self.problems_list)
+
+    @property
+    def problems_detail(self):
+        """[(label, description)] for the problems ticked."""
+        labels, notes = dict(self.PROBLEMS), self.problem_notes or {}
+        return [(labels.get(c, c), notes.get(c, '')) for c in self.problems_list]
+
+    @property
+    def difficulty_total(self):
+        values = [(getattr(self, f), w) for f, _, w in self.DIFFICULTY_ELEMENTS]
+        if any(v is None for v, _ in values):
+            return None
+        return sum(v * w for v, w in values)
+
+    @property
+    def difficulty_class(self):
+        total = self.difficulty_total
+        if total is None:
+            return ''
+        return 'Fácil / simples' if total < 35 else 'Normal' if total < 55 else 'Difícil / complexa'
 
     @property
     def duration_hours(self):
@@ -402,9 +452,6 @@ class WeatherReading(models.Model):
     wind_dir   = models.CharField('direção do vento', max_length=2, choices=WIND_DIRECTIONS, blank=True, default='')
     conduct    = models.PositiveSmallIntegerField('condução', choices=CONDUCT, null=True, blank=True)
     conduct_other = models.CharField('condução — outro', max_length=200, blank=True, default='')
-    flame_length_m = models.FloatField('comprimento / altura de chama (m)', null=True, blank=True)
-    flame_angle = models.FloatField('ângulo da chama (°)', null=True, blank=True)
-    spread_m_min = models.FloatField('velocidade de propagação (m/min)', null=True, blank=True)
 
     class Meta:
         ordering = ['time']
