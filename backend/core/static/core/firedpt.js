@@ -151,7 +151,7 @@ const CONCELHO_TO_NUT3 = {
   "Porto": "Porto",
   "Maia": "Porto",
   "Matosinhos": "Porto",
-  "Vilanova de Gaia": "Porto",
+  "Vila Nova de Gaia": "Porto",
   
   "Amarante": "Tâmega",
   "Baião": "Tâmega",
@@ -482,7 +482,7 @@ async function fetchGridForecast() {
   async function fetchWithRetry(url, attempt = 0) {
     const res = await fetch(url);
     if (res.status === 429) {
-      if (attempt >= 4) throw new Error('API limite excedido. Tente em alguns minutos.');
+      if (attempt >= 4) throw new Error('Limite de pedidos à API excedido. Tente novamente dentro de alguns minutos.');
       const wait = 5000 * Math.pow(2, attempt); // 5s, 10s, 20s, 40s
       document.getElementById('gridStatusText').textContent =
         `Limite API — aguardar ${wait/1000}s…`;
@@ -674,7 +674,7 @@ async function onGridToggle(checked) {
       if (cached) {
         const age = Math.round((Date.now() - JSON.parse(cached).ts) / 60000);
         document.getElementById('gridStatusText').textContent =
-          age < 1 ? 'Dados frescos (cache local)' : `Cache local — ${age} min atrás`;
+          age < 1 ? 'Dados frescos (cache local)' : `Cache local — há ${age} min`;
         document.getElementById('gridStatusBar').style.width = '100%';
         document.getElementById('gridStatus').classList.add('visible');
         setTimeout(() => document.getElementById('gridStatus').classList.remove('visible'), 3000);
@@ -888,8 +888,8 @@ async function generatePDFReport() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(6.5);
       doc.setTextColor(...MUTED);
-      doc.text('PREVISAO DE HUMIDADE DO COMBUSTIVEL', MARGIN + 30, 10);
-      doc.text('Van Wagner (1972) + Simard EMC · Medias diurnas 08h-18h · Sem correccao de terreno', MARGIN + 30, 15);
+      doc.text('PREVISÃO DE HUMIDADE DO COMBUSTÍVEL', MARGIN + 30, 10);
+      doc.text('Van Wagner (1972) + Simard EMC · Médias diurnas 08h–18h · Sem correção de terreno', MARGIN + 30, 15);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(14);
       doc.setTextColor(...TEXT);
@@ -909,7 +909,7 @@ async function generatePDFReport() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(5.5);
       doc.setTextColor(...MUTED);
-      doc.text('DISTRIBUICAO DE AREA POR CLASSE DE HUMIDADE DO COMBUSTIVEL', MARGIN, STATS_Y + 3.5);
+      doc.text('DISTRIBUIÇÃO DE ÁREA POR CLASSE DE HUMIDADE DO COMBUSTÍVEL', MARGIN, STATS_Y + 3.5);
 
       // Stacked bar
       const BAR_Y = STATS_Y + 6;
@@ -1649,7 +1649,7 @@ function renderCards(data, terrain = null) {
       <strong>Modelo:</strong> Simard (1968) — EMC estática horária<br>
       <strong>EMC:</strong> Função de T (°C) e HR (%) · Período 08h–18h<br>
       <strong>Terreno:</strong> Grelha DEM 3×3 · Algoritmo Horn (1981)<br>
-      <strong>Correcção:</strong> Tabela mês × exposição × declive aplicada por hora (08–18h)<br>
+      <strong>Correção:</strong> Tabela mês × exposição × declive aplicada por hora (08–18h)<br>
       <strong>Dias secos:</strong> &lt;1 → NÃO RECOMENDADO · 1–3 → CONDICIONADO · &gt;3 → sem override<br>
       <strong>Classes:</strong> Muito Seco &lt;10% · Seco 10–15% · Ótimo 15–20% · Húmido 20–25% · Muito Húmido &gt;25%<br>
       <em>Dados: Open-Meteo (meteorologia · 10 dias histórico + 5 previsão).</em>
@@ -2056,7 +2056,7 @@ async function generatePointReport() {
       'Dias secos: <1 → NÃO RECOMENDADO · 1–3 → CONDICIONADO · >3 → sem override',
       'Classes: Muito Seco <10% · Seco 10–15% · Ótimo 15–20% · Húmido 20–25% · Muito Húmido >25%',
       'Terreno: Grelha DEM 3×3 · Algoritmo Horn (1981)',
-      'Correcção: Tabela mês × exposição × declive aplicada por hora (08–18h)',
+      'Correção: Tabela mês × exposição × declive aplicada por hora (08–18h)',
       'Dados: Open-Meteo (meteorologia · previsão 5 dias)'
     ];
     
@@ -2175,7 +2175,7 @@ function parseCSV(text) {
   const iName = headers.findIndex(h => h === 'name' || h === 'nome' || h === 'parcela' || h === 'parcel');
   const iId   = headers.findIndex(h => h === 'id' || h === 'fid' || h === 'cod');
 
-  if (iLat === -1 || iLng === -1) throw new Error(`Colunas lat/lon não encontradas. Cabeçalhos detectados: ${headers.join(', ')}`);
+  if (iLat === -1 || iLng === -1) throw new Error(`Colunas lat/lon não encontradas. Cabeçalhos detetados: ${headers.join(', ')}`);
 
   const result = [];
   for (let i = 1; i < lines.length; i++) {
@@ -2345,7 +2345,7 @@ async function loadParcelsForecast() {
     showPreviewError('Erro ao obter previsão: ' + err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '⚡ Actualizar Previsão';
+    btn.textContent = '⚡ Atualizar Previsão';
   }
 }
 
@@ -2553,7 +2553,7 @@ function showParcelsOverviewInSidebar() {
   html += `</tbody></table>
     <div style="margin-top:10px;font-size:0.65rem;color:var(--muted);letter-spacing:1px;line-height:1.6">
       Clique numa linha para ver previsão detalhada c/ terreno.<br>
-      Classificação baseada em HC calculada · Sem correcção de terreno nesta tabela.
+      Classificação baseada em HC calculada · Sem correção de terreno nesta tabela.
     </div>
   </div>`;
 
@@ -2739,7 +2739,7 @@ function clearParcels() {
   // Reset sidebar if showing parcels overview
   const locName = document.getElementById('locName').textContent;
   if (locName === 'PARCELAS CARREGADAS') {
-    document.getElementById('locName').textContent    = '— Nenhuma localização seleccionada —';
+    document.getElementById('locName').textContent    = '— Nenhuma localização selecionada —';
     document.getElementById('locCoords').textContent  = '';
     document.getElementById('locHierarchy').innerHTML = '';
     document.getElementById('terrainPanel').innerHTML = '';

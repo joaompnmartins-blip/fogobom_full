@@ -9,7 +9,7 @@ class OperativeForm(forms.ModelForm):
         fields = ['name', 'nif', 'email', 'phone', 'certification_level', 'notes']
         labels = {
             'name': 'Nome', 'nif': 'NIF', 'email': 'Email', 'phone': 'Telefone',
-            'certification_level': 'Nível de Certificação', 'notes': 'Notas',
+            'certification_level': 'Nível de certificação', 'notes': 'Notas',
         }
 
     def __init__(self, *args, **kwargs):

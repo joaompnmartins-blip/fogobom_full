@@ -148,8 +148,8 @@ def generate_poq_execucao(plan):
     _p(doc, f'Credenciado n.º: {responsible.credential_number if responsible and responsible.credential_number else "—"}')
     dates = sorted({ex.date for ex in executions}) or [plan.execution_date]
     d0 = dates[0]
-    period = (f'De 1 de Janeiro a 31 de Maio de {d0.year}' if d0.month <= 5
-              else f'De 1 de Outubro a 31 de Dezembro de {d0.year}' if d0.month >= 10
+    period = (f'De 1 de janeiro a 31 de maio de {d0.year}' if d0.month <= 5
+              else f'De 1 de outubro a 31 de dezembro de {d0.year}' if d0.month >= 10
               else f'Fora dos períodos de queima habituais ({d0:%d/%m/%Y})')
     _p(doc, f'Período de queima: {period}')
     _p(doc, f'{action.get_action_type_display()}'
