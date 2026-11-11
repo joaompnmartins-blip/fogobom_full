@@ -209,7 +209,9 @@ class ListTests(TestCase):
         self.assertContains(r, '&lt;b&gt;x&lt;/b&gt;')
 
     def test_centroids(self):
-        p = FireParcel.objects.create(name='P', geometry=wkt(-8, 37.1, .002, .002))
+        p = FireParcel.objects.create(name='P', geometry=wkt(-8, 37.1, .002, .002), status='apta')
+        FireParcel.objects.create(name='Proposta', geometry=wkt(-8.1, 37.1, .002, .002))
+        FireParcel.objects.create(name='Recusada', geometry=wkt(-8.2, 37.1, .002, .002), status='nao_apta')
         self.assertEqual(parcel_centroids(), [{'id': str(p.pk), 'name': 'P', 'lat': 37.101, 'lng': -7.999}])
         self.assertEqual(self.client.get('/parcelas/api/centroids/').json()[0]['name'], 'P')
 

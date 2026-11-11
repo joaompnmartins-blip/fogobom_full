@@ -54,8 +54,9 @@ def last_burn_date_for_parcela(parcela):
 
 
 def parcel_centroids():
-    """Parcel centroids (computed in PostGIS) as dicts for the weather/FiredPT map."""
-    qs = FireParcel.objects.annotate(centroid=Centroid('geometry')).only('id', 'name')
+    """Centroids of the apta parcels (computed in PostGIS) as dicts for the weather/FiredPT map."""
+    qs = FireParcel.objects.filter(status__in=FireParcel.AVAILABLE_STATUSES) \
+        .annotate(centroid=Centroid('geometry')).only('id', 'name')
     return [{'id': str(p.id), 'name': p.name,
              'lat': round(p.centroid.y, 6), 'lng': round(p.centroid.x, 6)}
             for p in qs if p.centroid]
