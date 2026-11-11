@@ -459,7 +459,7 @@ class WeatherReading(models.Model):
 
 class SafetyStrip(models.Model):
     SIDES = [('cima', 'Cima'), ('baixo', 'Baixo'), ('lado1', 'Lado 1'), ('lado2', 'Lado 2')]
-    MEANS = [(1, '1 — ferramenta manual'), (2, '2 — motoroçadora'), (3, '3 — bulldozer, corta-matos'), (4, '4 — grade'),
+    MEANS = [(1, '1 — ferramenta manual'), (2, '2 — motorroçadora'), (3, '3 — bulldozer, corta-matos'), (4, '4 — grade'),
              (5, '5 — água'), (6, '6 — fogo'), (7, '7 — estrada, pista'), (8, '8 — caminho'), (9, '9 — rocha'),
              (10, '10 — curso de água'), (11, '11 — vegetação descontínua ou pouco inflamável'),
              (12, '12 — vegetação húmida')]

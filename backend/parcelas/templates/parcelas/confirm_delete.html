@@ -4,7 +4,7 @@
 {% block content %}
 <div class="card" style="max-width:500px">
   <div class="card-title">⚠️ Confirmar Eliminação</div>
-  <p style="margin-bottom:20px">Tem a certeza que quer eliminar a parcela <strong>{{ parcela.name }}</strong>? Esta ação não pode ser desfeita.</p>
+  <p style="margin-bottom:20px">Tem a certeza de que quer eliminar a parcela <strong>{{ parcela.name }}</strong>? Esta ação não pode ser desfeita.</p>
   <form method="post">
     {% csrf_token %}
     <div class="btn-group">
