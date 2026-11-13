@@ -28,7 +28,7 @@
     <p style="font-size:13px"><strong>{{ summary.validated }} h validadas</strong> de {{ summary.required }} h · {{ summary.total }} h registadas
       {% if summary.as_responsible is not None %}· {{ summary.as_responsible }} h como responsável de queima{% endif %}</p>
     <div class="bar"><span style="width:{{ summary.pct }}%"></span></div>
-    {% if summary.missing_hours %}<p style="font-size:11.5px;color:var(--err-fg);margin-top:6px">{{ summary.missing_hours }} participação(ões) sem horas: preencha o horário da execução ou as horas da pessoa.</p>{% endif %}
+    {% if summary.missing_hours %}<p style="font-size:11.5px;color:var(--err-fg);margin-top:6px">{{ summary.missing_hours }} participaç{{ summary.missing_hours|pluralize:"ão,ões" }} sem horas: preencha o horário da execução ou as horas da pessoa.</p>{% endif %}
     <p style="font-size:11.5px;color:var(--dim);margin-top:6px">{% if op.credential_type == 'tecnico_fc' %}Só contam as ações validadas pelo proprietário, representante, proponente do PFC ou ICNF, com o nome de quem validou (art. 7.º n.º 4).{% else %}Participações validadas pelo técnico responsável (art. 27.º n.º 2).{% endif %}</p>
   </div>{% endif %}
 </div>

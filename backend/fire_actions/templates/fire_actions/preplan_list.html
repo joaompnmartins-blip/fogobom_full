@@ -9,7 +9,7 @@
   {% for code, label in statuses %}<a href="?status={{ code }}" class="btn btn-sm {% if status == code %}btn-primary{% else %}btn-secondary{% endif %}">{{ label }}</a>{% endfor %}
 </div>
 <div class="card">
-  <div class="card-title">{{ actions|length }} ação{{ actions|length|pluralize:"ões" }}</div>
+  <div class="card-title">{{ actions|length }} aç{{ actions|length|pluralize:"ão,ões" }}</div>
   {% if actions %}
   <div style="overflow-x:auto">
   <table>
