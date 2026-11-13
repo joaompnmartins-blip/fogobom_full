@@ -47,6 +47,12 @@ class OperativeTests(TestCase):
         op.refresh_from_db()
         self.assertEqual((op.name, op.phone), ('Op', '1'))
 
+    def test_list_count_plural(self):
+        Operative.objects.create(name='A', email='a@example.com', phone='', certification_level='')
+        self.assertContains(self.client.get('/operacionais/'), '1 Operacional<')
+        Operative.objects.create(name='B', email='b@example.com', phone='', certification_level='')
+        self.assertContains(self.client.get('/operacionais/'), '2 Operacionais<')
+
     def test_only_staff_can_delete(self):
         op = Operative.objects.create(name='Op', email='a@example.com', phone='1', certification_level='A')
         self.client.post(f'/operacionais/{op.pk}/eliminar/')

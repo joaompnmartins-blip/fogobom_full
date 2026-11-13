@@ -5,7 +5,7 @@
 {% block topbar_actions %}<a href="{% url 'operatives:create' %}" class="btn btn-primary btn-sm">+ Novo Operacional</a>{% endblock %}
 {% block content %}
 <div class="card">
-  <div class="card-title">{{ operatives.count }} Operacional{{ operatives.count|pluralize:"is" }}</div>
+  <div class="card-title">{{ operatives.count }} Operaciona{{ operatives.count|pluralize:"l,is" }}</div>
   {% if operatives %}
   <table><thead><tr><th>Nome</th><th>NIF</th><th>Email</th><th>Telefone</th><th>Credenciação</th><th>Ações</th></tr></thead>
   <tbody>{% for op in operatives %}

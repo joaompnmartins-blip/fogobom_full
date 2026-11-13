@@ -104,6 +104,12 @@ class AnnouncementTests(TestCase):
         r, _ = self.post(parcels=[prop.pk])
         self.assertFalse(FireAction.objects.exists())
 
+    def test_action_list_count_plural(self):
+        FireAction.objects.create(name='Uma', scheduled_date=in_days(3))
+        self.assertContains(self.client.get('/acoes/'), '1 ação<')
+        FireAction.objects.create(name='Duas', scheduled_date=in_days(4))
+        self.assertContains(self.client.get('/acoes/'), '2 ações<')
+
     def test_announcements_page_lists_open_future_actions(self):
         FireAction.objects.create(name='Futura', scheduled_date=in_days(3))
         FireAction.objects.create(name='Cancelada', scheduled_date=in_days(3), status='cancelada')
